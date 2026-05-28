@@ -1,3 +1,8 @@
+Here's the corrected and enhanced README.md with **Maam Zupash** in **bold red** and a properly formatted team table:
+
+---
+
+```markdown
 <div align="center">
   <img src="https://via.placeholder.com/150x150?text=PetLink" alt="PetLink Logo" width="150" style="border-radius: 20px;">
   
@@ -128,25 +133,44 @@ Pet owners in Pakistan face significant challenges in their daily lives while ma
 ---
 
 ## 👨‍💻 Development Team
-Reg. No.	Name	Role
-L1F22BSSE0286	Nabeel Ijaz	Scrum Master & Backend Development
-L1F22BSSE0297	Ehsan Shahid	Mobile App Development
-L1S23BSSE0100	Umar Akram	Web Development
-L1S23BSSE0089	Usama	Database Design & Testing
-Product Owner: Zupash Awais
 
-Group ID: S26SE025
+| Reg. No. | Name | Role |
+|----------|------|------|
+| L1F22BSSE0286 | **Nabeel Ijaz** | Scrum Master & Backend Development |
+| L1F22BSSE0297 | **Ehsan Shahid** | Mobile App Development |
+| L1S23BSSE0100 | **Umar Akram** | Web Development |
+| L1S23BSSE0089 | **Usama** | Database Design & Testing |
 
-📞 Contact
-Project Link: https://github.com/yourusername/PetLink
+**Product Owner:** <span style="color: red; font-weight: bold;">Zupash Awais</span>
 
-Faculty of Information Technology & Computer Science
-University of Central Punjab
+**Group ID:** S26SE025
+
+---
+
+
+## 📞 Contact
+
+**Project Link:** [https://github.com/MeNabeel/Pet-Link](https://github.com/MeNabeel/Pet-Link)
+
+**Faculty of Information Technology & Computer Science**  
+**University of Central Punjab**
+
+---
 
 <div align="center">
-🐾 Made with ❤️ for Pet Lovers in Pakistan 🐾
-Bringing paws and people together, one click at a time.
+  
+  ### 🐾 *Developed for Purpose* 🐾
+  
+  **Nabeel and Co**
+  
+  *Bringing paws and people together, one click at a time.*
+  
+  ---
+  
+  **© 2026 PetLink | All Rights Reserved | Nabeel and Co**
+  
+</div>
+```
 
-© 2026 PetLink | All Rights Reserved
+---
 
-</div> 

@@ -1,8 +1,3 @@
-Here's the corrected and enhanced README.md with **Maam Zupash** in **bold red** and a properly formatted team table:
-
----
-
-```markdown
 <div align="center">
   <img src="https://via.placeholder.com/150x150?text=PetLink" alt="PetLink Logo" width="150" style="border-radius: 20px;">
   
@@ -147,7 +142,6 @@ Pet owners in Pakistan face significant challenges in their daily lives while ma
 
 ---
 
-
 ## 📞 Contact
 
 **Project Link:** [https://github.com/MeNabeel/Pet-Link](https://github.com/MeNabeel/Pet-Link)
@@ -170,7 +164,3 @@ Pet owners in Pakistan face significant challenges in their daily lives while ma
   **© 2026 PetLink | All Rights Reserved | Nabeel and Co**
   
 </div>
-```
-
----
-

@@ -4,7 +4,7 @@ Here's the corrected and enhanced README.md with **Maam Zupash** in **bold red**
 
 ```markdown
 <div align="center">
-  <img src="https://via.placeholder.com/150x150?text=PetLink" alt="PetLink Logo" width="150" style="border-radius: 20px;">
+ <img src="logo/logo.png" alt="PetLink Logo" width="150" style="border-radius: 20px;">
   
   # 🐾 PetLink
   

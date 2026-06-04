@@ -299,6 +299,133 @@ Purpose: Manages integrations with external services.
 
 ---
 
+### 3.2 Data Flow Description
+This section illustrates the transmission, processing, and storage of data across PetLink. It shows the inputs, outputs, and storage locations for user actions, marketplace activities, and external integrations.
+
+#### 1. Data Flow Diagram Level 0 (Context Diagram)
+The Context Diagram (Level 0 DFD) represents the overall PetLink system as a single process and maps its data exchanges with external entities (Users, Shelter Providers, Administrators, and External APIs).
+
+```mermaid
+graph TD
+    %% Entities
+    U["User (Owner/Buyer/Adopter)"]
+    SP["Shelter Service Provider"]
+    Admin["Platform Administrator"]
+    Stripe["Stripe Payment Gateway"]
+    Maps["Google Maps API"]
+    OpenAI["OpenAI NLP Engine"]
+
+    %% Central Process
+    System["0.0 PetLink Centralized System"]
+
+    %% User Data Flows
+    U -- "Registration & Login Details" --> System
+    U -- "Pet Profiles & Listings Details" --> System
+    U -- "Shelter Request Details" --> System
+    U -- "Cart & Order Info" --> System
+    U -- "Chat Queries & Search Coordinates" --> System
+    System -- "JWT Token & Profile Info" --> U
+    System -- "Marketplace & Search Results" --> U
+    System -- "Order Confirmations & Health Reminders" --> U
+    System -- "Chatbot Replies & Clinic Locations" --> U
+
+    %% Shelter Provider Data Flows
+    SP -- "Shelter Profile & Availability" --> System
+    SP -- "Booking Accept/Reject Decision" --> System
+    System -- "Pending Booking Notifications" --> SP
+    System -- "Updated Booking Details" --> SP
+
+    %% Admin Data Flows
+    Admin -- "Product Updates & Stock Levels" --> System
+    Admin -- "Dispute Resolutions & Categories" --> System
+    System -- "Sales Reports & Order Lists" --> Admin
+
+    %% External APIs Data Flows
+    System -- "Transaction Amounts" --> Stripe
+    Stripe -- "Payment Confirmation Webhooks" --> System
+    System -- "GPS Coordinates" --> Maps
+    Maps -- "Clinic Locations Data" --> System
+    System -- "User Chat Queries" --> OpenAI
+    OpenAI -- "AI Chat Answers" --> System
+```
+
+#### 2. Data Flow Diagram Level 1 (Process Decomposition)
+The Level 1 DFD decomposes the system into core sub-processes, mapping data flows between processes, external actors, and the persistent collections (Data Stores).
+
+```mermaid
+graph TD
+    %% Entities
+    U["User (Owner/Buyer/Adopter)"]
+    SP["Shelter Service Provider"]
+    Admin["Platform Administrator"]
+    Stripe["Stripe Payments API"]
+    Maps["Google Maps API"]
+    OpenAI["OpenAI NLP API"]
+
+    %% Data Stores
+    D1[("D1: Users DB")]
+    D2[("D2: Pets & Listings DB")]
+    D3[("D3: Bookings DB")]
+    D4[("D4: Products & Orders DB")]
+    D5[("D5: Health Records DB")]
+    D6[("D6: Chat Logs DB")]
+
+    %% Processes
+    P1["1.0 Authenticate & Manage Users"]
+    P2["2.0 Manage Pet Profiles & Listings"]
+    P3["3.0 Manage Boarding Bookings"]
+    P4["4.0 Process Store Orders & Payments"]
+    P5["5.0 Run Health Vault & Reminders"]
+    P6["6.0 Process AI Chatbot Queries"]
+    P7["7.0 Lookup Nearby Clinics"]
+
+    %% Flows for P1
+    U -- "Credentials / Profile Details" --> P1
+    P1 -- "Read/Write User Data" --> D1
+    P1 -- "Token & Profile Info" --> U
+
+    %% Flows for P2
+    U -- "Pet & Listing Details" --> P2
+    P2 -- "Read/Write Pet/Listing Data" --> D2
+    P2 -- "Feed & Listing Status" --> U
+
+    %% Flows for P3
+    U -- "Shelter Request Dates" --> P3
+    SP -- "Accept / Reject Decision" --> P3
+    P3 -- "Read/Write Booking Details" --> D3
+    P3 -- "Booking Status Notification" --> U
+    P3 -- "Booking Request Details" --> SP
+
+    %% Flows for P4
+    U -- "Cart & Order Info" --> P4
+    Admin -- "Product Inventory & Stock" --> P4
+    P4 -- "Read/Write Product/Order Data" --> D4
+    P4 -- "Transaction Request" --> Stripe
+    Stripe -- "Payment Success Hook" --> P4
+    P4 -- "Invoice & Order Status" --> U
+    P4 -- "Order Logs & Sales Reports" --> Admin
+
+    %% Flows for P5
+    U -- "Vaccination details" --> P5
+    P5 -- "Read/Write Health Logs" --> D5
+    P5 -- "Vaccination Reminders" --> U
+
+    %% Flows for P6
+    U -- "Chatbot message" --> P6
+    P6 -- "Read/Write Session Context" --> D6
+    P6 -- "Query Payload" --> OpenAI
+    OpenAI -- "AI Reply Text" --> P6
+    P6 -- "Chatbot response" --> U
+
+    %% Flows for P7
+    U -- "Search request (GPS coordinates)" --> P7
+    P7 -- "Location Request" --> Maps
+    Maps -- "Clinics metadata" --> P7
+    P7 -- "Clinic Map Markers" --> U
+```
+
+---
+
 ## 4. UML Diagrams
 
 ### 4.1 Sequence Diagrams

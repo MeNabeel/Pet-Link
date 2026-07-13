@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import Splash from './src/screens/Splash';
-import LoginSignup from './src/screens/LoginSignup';
+import Login from './src/screens/Login';
+import Signup from './src/screens/Signup';
 import { COLORS } from './src/constants/theme';
 
 export default function App() {
@@ -12,10 +13,19 @@ export default function App() {
     <View style={styles.container}>
       <StatusBar style="dark" />
       {screen === 'splash' && (
-        <Splash onProceed={() => setScreen('auth')} />
+        <Splash onProceed={() => setScreen('login')} />
       )}
-      {screen === 'auth' && (
-        <LoginSignup />
+      {screen === 'login' && (
+        <Login 
+          onNavigateToSignup={() => setScreen('signup')} 
+          onLoginSuccess={() => alert('Successfully Logged In!')}
+        />
+      )}
+      {screen === 'signup' && (
+        <Signup 
+          onNavigateToLogin={() => setScreen('login')} 
+          onSignupSuccess={() => setScreen('login')}
+        />
       )}
     </View>
   );

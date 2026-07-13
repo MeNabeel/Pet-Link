@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import Splash from './pages/Splash';
-import LoginSignup from './pages/LoginSignup';
+import Login from './pages/Login';
+import Signup from './pages/Signup';
 
 function App() {
   const [screen, setScreen] = useState('splash');
@@ -8,10 +9,19 @@ function App() {
   return (
     <div className="App">
       {screen === 'splash' && (
-        <Splash onProceed={() => setScreen('auth')} />
+        <Splash onProceed={() => setScreen('login')} />
       )}
-      {screen === 'auth' && (
-        <LoginSignup />
+      {screen === 'login' && (
+        <Login 
+          onNavigateToSignup={() => setScreen('signup')} 
+          onLoginSuccess={() => alert('Successfully Logged In!')}
+        />
+      )}
+      {screen === 'signup' && (
+        <Signup 
+          onNavigateToLogin={() => setScreen('login')} 
+          onSignupSuccess={() => setScreen('login')}
+        />
       )}
     </div>
   );

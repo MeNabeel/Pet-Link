@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Mail, Lock, User, Phone, MapPin, Shield, Eye, EyeOff, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Mail, Lock, User, Phone, MapPin, Eye, EyeOff, AlertCircle, CheckCircle2 } from 'lucide-react';
 import './Signup.css';
 
 export default function Signup({ onNavigateToLogin, onSignupSuccess }) {
@@ -13,6 +13,7 @@ export default function Signup({ onNavigateToLogin, onSignupSuccess }) {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
   const validateForm = () => {
     if (!name || !email || !phone || !address || !role || !password) {
@@ -28,7 +29,6 @@ export default function Signup({ onNavigateToLogin, onSignupSuccess }) {
       return 'Password must be at least 6 characters.';
     }
 
-    // Pakistani phone validation (e.g. 03xx xxxxxxx or +923xx xxxxxxx)
     const pkPhoneRegex = /^((\+92)|(0092))?\s?3\d{2}\s?\d{7}$|^03\d{9}$/;
     if (!pkPhoneRegex.test(phone.replace(/[\s-]/g, ''))) {
       return 'Please enter a valid Pakistani mobile number (e.g., 03001234567).';
@@ -37,7 +37,7 @@ export default function Signup({ onNavigateToLogin, onSignupSuccess }) {
     return null;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setSuccess('');
@@ -48,163 +48,211 @@ export default function Signup({ onNavigateToLogin, onSignupSuccess }) {
       return;
     }
 
-    // Simulate signup interaction
-    setSuccess('Registration successful! Salting and hashing password with Bcrypt in backend...');
-    console.log('Signup form submitted:', { name, email, phone, address, role, password });
+    setSubmitting(true);
+    try {
+      const response = await fetch('http://localhost:5000/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email, phone, address, role, password }),
+      });
 
-    if (onSignupSuccess) {
-      setTimeout(() => {
-        onSignupSuccess();
-      }, 2000);
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Registration failed');
+      }
+
+      setSuccess('Account created successfully! Auto-authenticating...');
+      localStorage.setItem('user', JSON.stringify(data));
+
+      if (onSignupSuccess) {
+        setTimeout(() => {
+          onSignupSuccess(data);
+        }, 1500);
+      }
+    } catch (err) {
+      setError(err.message || 'Registration failed. Network error or server inactive.');
+    } finally {
+      setSubmitting(false);
     }
   };
 
+  const roles = [
+    { label: 'Adopter/Buyer', value: 'buyer' },
+    { label: 'Pet Owner/Seller', value: 'seller' },
+    { label: 'Shelter Provider', value: 'shelter_provider' },
+    { label: 'Administrator', value: 'admin' },
+  ];
+
   return (
-    <div className="signup-container">
-      <div className="signup-card fade-in">
-        <div className="signup-header">
-          <img src="/logo/logo.jpeg" alt="PetLink Logo" className="signup-logo" />
-          <h2 className="signup-title">Register</h2>
-          <p className="signup-subtitle">Create a centralized PetLink account</p>
+    <div className="signup-split-container">
+      {/* Left Panel logo */}
+      <div className="signup-left-panel">
+        <div className="signup-branding-wrapper">
+          <img src="/logo/logo.jpeg" alt="PetLink Logo" className="signup-branding-logo" />
+          <h1 className="signup-branding-title">PetLink</h1>
+          <p className="signup-branding-tagline">
+            Bringing paws and people together, one click at a time.
+          </p>
         </div>
+      </div>
 
-        {error && (
-          <div className="signup-alert-error">
-            <AlertCircle size={18} />
-            <span>{error}</span>
-          </div>
-        )}
+      {/* Right Panel form */}
+      <div className="signup-right-panel">
+        <div className="signup-card fade-in">
+          <h2 className="signup-title-h2">Register</h2>
+          <p className="signup-desc">Create your centralized PetLink account</p>
 
-        {success && (
-          <div className="signup-alert-success">
-            <CheckCircle2 size={18} />
-            <span>{success}</span>
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} noValidate>
-          <div className="form-group">
-            <label className="form-label" htmlFor="name">Full Name</label>
-            <div className="input-wrapper">
-              <User className="input-icon-left" size={18} />
-              <input 
-                type="text" 
-                id="name"
-                className="form-control signup-input"
-                placeholder="Enter full name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                required
-              />
+          {error && (
+            <div className="signup-alert-error">
+              <AlertCircle size={18} style={{ flexShrink: 0 }} />
+              <span>{error}</span>
             </div>
-          </div>
+          )}
 
-          <div className="form-group">
-            <label className="form-label" htmlFor="email">Email Address</label>
-            <div className="input-wrapper">
-              <Mail className="input-icon-left" size={18} />
-              <input 
-                type="email" 
-                id="email"
-                className="form-control signup-input"
-                placeholder="name@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
+          {success && (
+            <div className="signup-alert-success">
+              <CheckCircle2 size={18} style={{ flexShrink: 0 }} />
+              <span>{success}</span>
             </div>
-          </div>
+          )}
 
-          <div className="form-group">
-            <label className="form-label" htmlFor="phone">Phone Number</label>
-            <div className="input-wrapper">
-              <Phone className="input-icon-left" size={18} />
-              <input 
-                type="tel" 
-                id="phone"
-                className="form-control signup-input"
-                placeholder="03xxxxxxxxx"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                required
-              />
+          <form onSubmit={handleSubmit} noValidate>
+            {/* Full Name */}
+            <div className="form-group" style={{ marginBottom: '14px' }}>
+              <label className="form-label" htmlFor="name">Full Name</label>
+              <div className="input-wrapper">
+                <User className="input-icon-left" size={18} />
+                <input 
+                  type="text" 
+                  id="name"
+                  className="form-control signup-input"
+                  placeholder="Enter full name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  disabled={submitting}
+                  required
+                />
+              </div>
             </div>
-          </div>
 
-          <div className="form-group">
-            <label className="form-label" htmlFor="address">Physical Address</label>
-            <div className="input-wrapper">
-              <MapPin className="input-icon-left" size={18} />
-              <input 
-                type="text" 
-                id="address"
-                className="form-control signup-input"
-                placeholder="Street address, City"
-                value={address}
-                onChange={(e) => setAddress(e.target.value)}
-                required
-              />
+            {/* Email Address */}
+            <div className="form-group" style={{ marginBottom: '14px' }}>
+              <label className="form-label" htmlFor="email">Email Address</label>
+              <div className="input-wrapper">
+                <Mail className="input-icon-left" size={18} />
+                <input 
+                  type="email" 
+                  id="email"
+                  className="form-control signup-input"
+                  placeholder="name@example.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  disabled={submitting}
+                  required
+                />
+              </div>
             </div>
-          </div>
 
-          <div className="form-group">
-            <label className="form-label" htmlFor="role">Platform Role</label>
-            <div className="input-wrapper">
-              <Shield className="input-icon-left" size={18} />
-              <select 
-                id="role"
-                className="form-control signup-input role-selector"
-                value={role}
-                onChange={(e) => setRole(e.target.value)}
-                required
-              >
-                <option value="buyer">Pet Adopter / Buyer</option>
-                <option value="seller">Pet Owner / Seller</option>
-                <option value="shelter_provider">Shelter Service Provider</option>
-                <option value="admin">System Administrator</option>
-              </select>
+            {/* Phone & Address row */}
+            <div style={{ display: 'flex', gap: '12px', marginBottom: '14px' }}>
+              <div style={{ flex: 1 }}>
+                <label className="form-label" htmlFor="phone">Phone Number</label>
+                <div className="input-wrapper">
+                  <Phone className="input-icon-left" size={18} />
+                  <input 
+                    type="tel" 
+                    id="phone"
+                    className="form-control signup-input"
+                    placeholder="03xxxxxxxxx"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    disabled={submitting}
+                    required
+                  />
+                </div>
+              </div>
+              <div style={{ flex: 1.2 }}>
+                <label className="form-label" htmlFor="address">City/Address</label>
+                <div className="input-wrapper">
+                  <MapPin className="input-icon-left" size={18} />
+                  <input 
+                    type="text" 
+                    id="address"
+                    className="form-control signup-input"
+                    placeholder="e.g. Lahore, PK"
+                    value={address}
+                    onChange={(e) => setAddress(e.target.value)}
+                    disabled={submitting}
+                    required
+                  />
+                </div>
+              </div>
             </div>
-          </div>
 
-          <div className="form-group">
-            <label className="form-label" htmlFor="password">Password</label>
-            <div className="input-wrapper">
-              <Lock className="input-icon-left" size={18} />
-              <input 
-                type={showPassword ? "text" : "password"} 
-                id="password"
-                className="form-control signup-input-password"
-                placeholder="Enter password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
-              <button
-                type="button"
-                className="input-icon-right"
-                onClick={() => setShowPassword(!showPassword)}
-                title={showPassword ? "Hide Password" : "Show Password"}
-              >
-                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-              </button>
+            {/* Role Select Grid */}
+            <div className="form-group" style={{ marginBottom: '14px' }}>
+              <label className="form-label">Select Your Role</label>
+              <div className="signup-role-grid">
+                {roles.map((item) => (
+                  <button
+                    key={item.value}
+                    type="button"
+                    className={`signup-role-btn ${role === item.value ? 'active' : ''}`}
+                    onClick={() => setRole(item.value)}
+                    disabled={submitting}
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
 
-          <button 
-            type="submit" 
-            className="btn btn-primary"
-            style={{ width: '100%', padding: '14px 20px', marginTop: '10px' }}
-          >
-            Create Account
-          </button>
-        </form>
+            {/* Password */}
+            <div className="form-group" style={{ marginBottom: '20px' }}>
+              <label className="form-label" htmlFor="password">Password</label>
+              <div className="input-wrapper">
+                <Lock className="input-icon-left" size={18} />
+                <input 
+                  type={showPassword ? "text" : "password"} 
+                  id="password"
+                  className="form-control signup-input-password"
+                  style={{ paddingRight: '46px' }}
+                  placeholder="At least 6 characters"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  disabled={submitting}
+                  required
+                />
+                <button
+                  type="button"
+                  className="input-icon-right"
+                  onClick={() => setShowPassword(!showPassword)}
+                  disabled={submitting}
+                >
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
+            </div>
 
-        <p className="signup-footer-link">
-          Already have an account? 
-          <span className="signup-link" onClick={onNavigateToLogin}>
-            Sign In Here
-          </span>
-        </p>
+            {/* Submit */}
+            <button 
+              type="submit" 
+              className="btn btn-primary"
+              style={{ width: '100%', padding: '14px 20px' }}
+              disabled={submitting}
+            >
+              {submitting ? 'Registering Account...' : 'Create Account'}
+            </button>
+          </form>
+
+          <p className="signup-footer-link">
+            Already have an account? 
+            <span className="signup-link" onClick={onNavigateToLogin}>
+              Sign In Here
+            </span>
+          </p>
+        </div>
       </div>
     </div>
   );

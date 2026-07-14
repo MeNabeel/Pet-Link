@@ -1,0 +1,184 @@
+.settings-container {
+  padding: 0;
+  background-color: transparent;
+  min-height: auto;
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
+.settings-card {
+  max-width: 100%;
+  width: 100%;
+  padding: 32px;
+  background-color: var(--color-white);
+  border: 1px solid var(--color-border);
+  border-radius: 24px;
+  box-shadow: var(--shadow-sm);
+  animation: fadeIn var(--transition-normal) forwards;
+}
+
+.settings-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.settings-title {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--color-dark);
+}
+
+.settings-form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.settings-gender-group {
+  display: flex;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.settings-gender-btn {
+  flex: 1;
+  padding: 10px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  border: 1px solid var(--color-border);
+  background-color: var(--color-bg-light);
+  color: var(--color-muted);
+  cursor: pointer;
+  border-radius: 8px;
+  transition: all var(--transition-fast);
+  text-align: center;
+}
+
+.settings-gender-btn.active {
+  background-color: var(--color-primary);
+  border-color: var(--color-primary);
+  color: var(--color-white);
+  box-shadow: var(--shadow-sm);
+}
+
+.settings-read-only {
+  background-color: var(--color-bg-light);
+  border-color: var(--color-border);
+  cursor: not-allowed;
+}
+
+.settings-system-card {
+  background-color: var(--color-bg-light);
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  padding: 20px;
+  margin-top: 24px;
+  margin-bottom: 24px;
+}
+
+.settings-system-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--color-dark);
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px dashed var(--color-border);
+}
+
+.settings-system-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0;
+  font-size: 13px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.02);
+}
+
+.settings-system-row:last-child {
+  border-bottom: none;
+}
+
+.settings-system-label {
+  color: var(--color-muted);
+  font-weight: 600;
+}
+
+.settings-system-value {
+  color: var(--color-dark);
+  font-weight: 700;
+}
+
+.settings-system-mono {
+  font-family: monospace;
+  color: var(--color-muted);
+}
+
+.settings-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.settings-btn-cancel {
+  padding: 12px 24px;
+  border-radius: 24px;
+  border: 1.5px solid var(--color-border);
+  background: none;
+  font-weight: 700;
+  color: var(--color-muted);
+  cursor: pointer;
+  font-size: 14px;
+  transition: all var(--transition-fast);
+}
+
+.settings-btn-cancel:hover {
+  background-color: var(--color-bg-light);
+  color: var(--color-dark);
+}
+
+.settings-btn-save {
+  padding: 12px 28px;
+  border-radius: 24px;
+  border: none;
+  background-color: var(--color-primary);
+  font-weight: 700;
+  color: var(--color-white);
+  cursor: pointer;
+  font-size: 14px;
+  transition: all var(--transition-fast);
+}
+
+.settings-btn-save:hover {
+  background-color: var(--color-primary-hover);
+}
+
+.settings-btn-delete {
+  width: 100%;
+  padding: 12px 20px;
+  border: 1.5px solid #EF4444;
+  border-radius: 24px;
+  background: none;
+  color: #EF4444;
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+  margin-top: 16px;
+  transition: all var(--transition-fast);
+}
+
+.settings-btn-delete:hover {
+  background-color: #FEF2F2;
+}
+
+@media (max-width: 768px) {
+  .settings-form-row {
+    grid-template-columns: 1fr;
+  }
+}

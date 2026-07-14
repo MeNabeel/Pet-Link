@@ -24,6 +24,16 @@ This directory maintains the coding logs, push history, and structural highlight
     *   Implemented Nodemailer password recovery with dynamic Ethereal test server fallbacks and automated space-stripping for Gmail App Passwords.
     *   Removed role toggle bars on login pages; the system automatically detects user/admin roles from the database query.
 
+### 🏷️ Push Log 3: Client Parity Profiles & Streamlined Menu Layouts
+*   **What was accomplished:**
+    *   **Refined Mobile Profile Grid:** Condensed the main mobile profile layout into a streamlined, high-end list menu (reducing scroll weight). Only basic metadata shows at the top (photo, name, username, bio, primary contact), followed by tapable navigation menu rows:
+        1. *Account Settings* (Navigates to full profile editor & read-only system cards).
+        2. *My Orders* (Mock page callback).
+        3. *Transaction History* (Mock page callback).
+        4. *Support Helpdesk* (Mock page callback).
+        5. *Log Out* (Session logout).
+    *   **Web Profile Parity:** Created matching profile templates and editor forms (`Profile.jsx` / `AccountSettings.jsx`) inside the Web Portal to match mobile layouts, linking them from the Dashboard nav drawer.
+
 ---
 
 ## 🎓 Part 2: Examiner's Code Highlights (Lines & CSS)
@@ -47,7 +57,7 @@ Below are the most important sections of code to showcase to your examiner durin
 
 ---
 
-### 📩 2. Password Recovery OTP Generation
+### 🔏 2. Password Recovery OTP Generation
 *   **File:** [`server/backend/controllers/authController.js`](file:///c:/Users/Nabeel/Desktop/FYP%20PETLINK/server/backend/controllers/authController.js)
 *   **Why it's important:** It generates a secure, cryptographically random 6-digit numeric OTP and handles expiration.
 *   **Key Code (Line ~98):**

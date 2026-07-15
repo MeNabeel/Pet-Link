@@ -11,6 +11,7 @@ export default function Splash({ onProceed }) {
           <Image 
             source={require('../../assets/logo/logo.jpeg')} 
             style={styles.logo} 
+            resizeMode="contain"
           />
         </View>
         <Text style={styles.title}>PetLink</Text>
@@ -48,10 +49,7 @@ const styles = StyleSheet.native || StyleSheet.create({
     backgroundColor: COLORS.white,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#111827',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.08,
-    shadowRadius: 16,
+    boxShadow: '0px 6px 16px rgba(17, 24, 39, 0.08)',
     elevation: 5,
     marginBottom: 24,
   },
@@ -59,7 +57,6 @@ const styles = StyleSheet.native || StyleSheet.create({
     width: 76,
     height: 76,
     borderRadius: 18,
-    resizeMode: 'contain',
   },
   title: {
     fontSize: 34,
@@ -88,10 +85,7 @@ const styles = StyleSheet.native || StyleSheet.create({
     width: '100%',
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: COLORS.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 10,
+    boxShadow: '0px 4px 10px rgba(0, 102, 204, 0.15)',
     elevation: 3,
   },
   buttonText: {

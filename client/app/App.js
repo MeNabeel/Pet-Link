@@ -9,11 +9,16 @@ import ForgotPassword from './src/screens/ForgotPassword';
 import Dashboard from './src/screens/Dashboard';
 import Profile from './src/screens/Profile';
 import AccountSettings from './src/screens/AccountSettings';
+import MyPets from './src/screens/MyPets';
+import PetForm from './src/screens/PetForm';
+import PetDetails from './src/screens/PetDetails';
 import { COLORS } from './src/constants/theme';
 
 export default function App() {
   const [screen, setScreen] = useState('splash');
   const [user, setUser] = useState(null);
+  const [petSubView, setPetSubView] = useState('list'); // 'list' | 'form' | 'details'
+  const [selectedPetId, setSelectedPetId] = useState(null);
 
   const handleLoginSuccess = (userData) => {
     setUser({
@@ -36,22 +41,75 @@ export default function App() {
     setScreen('login');
   };
 
-  const handleSaveProfile = (updatedUser) => {
-    setUser(updatedUser);
+  const handleUpdateUser = async (updatedUser) => {
+    try {
+      const response = await fetch('http://localhost:5000/api/auth/profile', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId: updatedUser._id,
+          name: updatedUser.name,
+          username: updatedUser.username,
+          recoveryEmail: updatedUser.recoveryEmail,
+          phone: updatedUser.phone,
+          gender: updatedUser.gender,
+          dob: updatedUser.dob,
+          address: updatedUser.address,
+          city: updatedUser.city,
+          province: updatedUser.province,
+          country: updatedUser.country,
+          bio: updatedUser.bio,
+          profilePic: updatedUser.profilePic,
+          coverPhoto: updatedUser.coverPhoto,
+        }),
+      });
+
+      const data = await response.json();
+      if (response.ok) {
+        setUser(data);
+      } else {
+        alert(data.message || 'Failed to update profile details on server');
+      }
+    } catch (err) {
+      console.log('Mobile profile update error:', err);
+      // Fallback local update
+      setUser(updatedUser);
+    }
+  };
+
+  const handleSaveProfile = async (updatedUser) => {
+    await handleUpdateUser(updatedUser);
     setScreen('profile');
   };
 
-  const showNav = ['dashboard', 'profile', 'settings'].includes(screen);
+  // Pull freshest profile data from MongoDB backend on screen transitions
+  React.useEffect(() => {
+    if (user && user._id && ['dashboard', 'profile'].includes(screen)) {
+      fetch(`http://localhost:5000/api/auth/profile/${user._id}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data && data._id) {
+            setUser(data);
+          }
+        })
+        .catch(err => console.log('Error syncing profile:', err));
+    }
+  }, [screen]);
+
+  const showNav = ['dashboard', 'profile', 'settings', 'mypets'].includes(screen);
 
   const handleTabPress = (tabName) => {
     if (tabName === 'home') {
       setScreen('dashboard');
     } else if (tabName === 'profile') {
       setScreen('profile');
+    } else if (tabName === 'pets') {
+      setPetSubView('list');
+      setScreen('mypets');
     } else if (tabName === 'store') {
       alert('Navigating to the PetLink Store module...');
-    } else if (tabName === 'pets') {
-      alert('Navigating to the My Pets health logs...');
     } else if (tabName === 'services') {
       alert('Navigating to PetLink Vet & Shelter Services...');
     }
@@ -61,6 +119,7 @@ export default function App() {
   const getActiveTab = () => {
     if (screen === 'dashboard') return 'home';
     if (screen === 'profile' || screen === 'settings') return 'profile';
+    if (screen === 'mypets') return 'pets';
     return '';
   };
 
@@ -120,8 +179,54 @@ export default function App() {
               user={user}
               onNavigateToSettings={() => setScreen('settings')}
               onLogout={handleLogout}
-              onUpdateUser={(updated) => setUser(updated)}
+              onUpdateUser={handleUpdateUser}
             />
+          )}
+
+          {screen === 'mypets' && (
+            <>
+              {petSubView === 'list' && (
+                <MyPets
+                  user={user}
+                  onViewDetails={(id) => {
+                    setSelectedPetId(id);
+                    setPetSubView('details');
+                  }}
+                  onAddPet={() => {
+                    setSelectedPetId(null);
+                    setPetSubView('form');
+                  }}
+                  onEditPet={(id) => {
+                    setSelectedPetId(id);
+                    setPetSubView('form');
+                  }}
+                />
+              )}
+
+              {petSubView === 'form' && (
+                <PetForm
+                  user={user}
+                  petId={selectedPetId}
+                  onCancel={() => setPetSubView('list')}
+                  onSaveSuccess={(saved) => {
+                    setSelectedPetId(saved._id);
+                    setPetSubView('details');
+                  }}
+                />
+              )}
+
+              {petSubView === 'details' && (
+                <PetDetails
+                  petId={selectedPetId}
+                  onBack={() => setPetSubView('list')}
+                  onEdit={(id) => {
+                    setSelectedPetId(id);
+                    setPetSubView('form');
+                  }}
+                  onDeleteSuccess={() => setPetSubView('list')}
+                />
+              )}
+            </>
           )}
 
           {screen === 'settings' && (

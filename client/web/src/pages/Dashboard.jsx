@@ -7,10 +7,15 @@ import {
 import './Dashboard.css';
 import Profile from './Profile';
 import AccountSettings from './AccountSettings';
+import MyPets from './MyPets';
+import PetForm from './PetForm';
+import PetDetails from './PetDetails';
 
 export default function Dashboard({ onLogout }) {
   const [user, setUser] = useState(null);
   const [activeTab, setActiveTab] = useState('overview');
+  const [petSubView, setPetSubView] = useState('list'); // 'list' | 'form' | 'details'
+  const [selectedPetId, setSelectedPetId] = useState(null);
 
   useEffect(() => {
     const sessionUser = localStorage.getItem('user');
@@ -31,13 +36,66 @@ export default function Dashboard({ onLogout }) {
     }
   }, []);
 
+  // Pull freshest profile data from MongoDB backend on tab transitions
+  useEffect(() => {
+    if (user && user._id && ['overview', 'profile'].includes(activeTab)) {
+      fetch(`http://localhost:5000/api/auth/profile/${user._id}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data && data._id) {
+            setUser(data);
+            localStorage.setItem('user', JSON.stringify(data));
+          }
+        })
+        .catch(err => console.error('Web profile sync error:', err));
+    }
+    if (activeTab === 'pets') {
+      setPetSubView('list');
+    }
+  }, [activeTab]);
+
   const handleActionClick = (moduleName) => {
     alert(`Navigating to the ${moduleName} module... This is part of the Sprint deliverables mapped in your SDS.`);
   };
 
-  const handleUpdateUser = (updatedUser) => {
-    setUser(updatedUser);
-    localStorage.setItem('user', JSON.stringify(updatedUser));
+  const handleUpdateUser = async (updatedUser) => {
+    try {
+      const response = await fetch('http://localhost:5000/api/auth/profile', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId: updatedUser._id,
+          name: updatedUser.name,
+          username: updatedUser.username,
+          recoveryEmail: updatedUser.recoveryEmail,
+          phone: updatedUser.phone,
+          gender: updatedUser.gender,
+          dob: updatedUser.dob,
+          address: updatedUser.address,
+          city: updatedUser.city,
+          province: updatedUser.province,
+          country: updatedUser.country,
+          bio: updatedUser.bio,
+          profilePic: updatedUser.profilePic,
+          coverPhoto: updatedUser.coverPhoto,
+        }),
+      });
+      
+      const data = await response.json();
+      if (response.ok) {
+        setUser(data);
+        localStorage.setItem('user', JSON.stringify(data));
+      } else {
+        alert(data.message || 'Failed to sync profile changes with MongoDB server');
+      }
+    } catch (err) {
+      console.error('Profile update sync error:', err);
+      // Local fallback in case server port is down during initialization
+      setUser(updatedUser);
+      localStorage.setItem('user', JSON.stringify(updatedUser));
+    }
   };
 
   if (!user) {
@@ -109,7 +167,7 @@ export default function Dashboard({ onLogout }) {
           </span>
           <span 
             className={`dash-side-link ${activeTab === 'pets' ? 'active' : ''}`}
-            onClick={() => handleActionClick('Pet Profile')}
+            onClick={() => setActiveTab('pets')}
           >
             <PawPrint size={18} />
             My Pets
@@ -252,6 +310,55 @@ export default function Dashboard({ onLogout }) {
               onLogout={onLogout}
               onUpdateUser={handleUpdateUser}
             />
+          )}
+
+          {activeTab === 'pets' && (
+            <>
+              {petSubView === 'list' && (
+                <MyPets 
+                  user={user}
+                  onViewDetails={(id) => {
+                    setSelectedPetId(id);
+                    setPetSubView('details');
+                  }}
+                  onAddPet={() => {
+                    setSelectedPetId(null);
+                    setPetSubView('form');
+                  }}
+                  onEditPet={(id) => {
+                    setSelectedPetId(id);
+                    setPetSubView('form');
+                  }}
+                  onDeletePet={() => {
+                    setPetSubView('list');
+                  }}
+                />
+              )}
+
+              {petSubView === 'form' && (
+                <PetForm 
+                  user={user}
+                  petId={selectedPetId}
+                  onCancel={() => setPetSubView('list')}
+                  onSaveSuccess={(savedPet) => {
+                    setSelectedPetId(savedPet._id);
+                    setPetSubView('details');
+                  }}
+                />
+              )}
+
+              {petSubView === 'details' && (
+                <PetDetails 
+                  petId={selectedPetId}
+                  onBack={() => setPetSubView('list')}
+                  onEdit={(id) => {
+                    setSelectedPetId(id);
+                    setPetSubView('form');
+                  }}
+                  onDeleteSuccess={() => setPetSubView('list')}
+                />
+              )}
+            </>
           )}
 
           {activeTab === 'settings' && (

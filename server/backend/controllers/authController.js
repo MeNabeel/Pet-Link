@@ -40,6 +40,16 @@ exports.registerUser = async (req, res) => {
         phone: user.phone,
         address: user.address,
         role: user.role,
+        username: user.username || '',
+        recoveryEmail: user.recoveryEmail || '',
+        gender: user.gender || 'male',
+        dob: user.dob || '',
+        city: user.city || '',
+        province: user.province || '',
+        country: user.country || '',
+        bio: user.bio || '',
+        profilePic: user.profilePic || '',
+        coverPhoto: user.coverPhoto || '',
         token: generateToken(user._id),
       });
     } else {
@@ -76,10 +86,76 @@ exports.loginUser = async (req, res) => {
       phone: user.phone,
       address: user.address,
       role: user.role,
+      username: user.username || '',
+      recoveryEmail: user.recoveryEmail || '',
+      gender: user.gender || 'male',
+      dob: user.dob || '',
+      city: user.city || '',
+      province: user.province || '',
+      country: user.country || '',
+      bio: user.bio || '',
+      profilePic: user.profilePic || '',
+      coverPhoto: user.coverPhoto || '',
       token: generateToken(user._id),
     });
   } catch (error) {
     res.status(500).json({ message: 'Server authentication error', error: error.message });
+  }
+};
+
+// @desc    Update user profile details
+// @route   PUT /api/auth/profile
+// @access  Public
+exports.updateUserProfile = async (req, res) => {
+  try {
+    const { 
+      userId, name, username, recoveryEmail, phone, 
+      gender, dob, address, city, province, country, 
+      bio, profilePic, coverPhoto 
+    } = req.body;
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    user.name = name || user.name;
+    user.username = username !== undefined ? username : user.username;
+    user.recoveryEmail = recoveryEmail !== undefined ? recoveryEmail : user.recoveryEmail;
+    user.phone = phone || user.phone;
+    user.gender = gender !== undefined ? gender : user.gender;
+    user.dob = dob !== undefined ? dob : user.dob;
+    user.address = address || user.address;
+    user.city = city !== undefined ? city : user.city;
+    user.province = province !== undefined ? province : user.province;
+    user.country = country !== undefined ? country : user.country;
+    user.bio = bio !== undefined ? bio : user.bio;
+    user.profilePic = profilePic !== undefined ? profilePic : user.profilePic;
+    user.coverPhoto = coverPhoto !== undefined ? coverPhoto : user.coverPhoto;
+
+    const updatedUser = await user.save();
+
+    res.status(200).json({
+      _id: updatedUser._id,
+      name: updatedUser.name,
+      email: updatedUser.email,
+      phone: updatedUser.phone,
+      address: updatedUser.address,
+      role: updatedUser.role,
+      username: updatedUser.username,
+      recoveryEmail: updatedUser.recoveryEmail,
+      gender: updatedUser.gender,
+      dob: updatedUser.dob,
+      city: updatedUser.city,
+      province: updatedUser.province,
+      country: updatedUser.country,
+      bio: updatedUser.bio,
+      profilePic: updatedUser.profilePic,
+      coverPhoto: updatedUser.coverPhoto,
+      token: generateToken(updatedUser._id),
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Server update error', error: error.message });
   }
 };
 
@@ -165,5 +241,39 @@ exports.resetPassword = async (req, res) => {
     res.status(200).json({ message: 'Your password has been successfully updated' });
   } catch (error) {
     res.status(500).json({ message: 'Password reset operation failed', error: error.message });
+  }
+};
+
+// @desc    Get user profile details by ID
+// @route   GET /api/auth/profile/:userId
+// @access  Public
+exports.getUserProfile = async (req, res) => {
+  try {
+    const user = await User.findById(req.params.userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    res.status(200).json({
+      _id: user._id,
+      name: user.name,
+      email: user.email,
+      phone: user.phone,
+      address: user.address,
+      role: user.role,
+      username: user.username || '',
+      recoveryEmail: user.recoveryEmail || '',
+      gender: user.gender || 'male',
+      dob: user.dob || '',
+      city: user.city || '',
+      province: user.province || '',
+      country: user.country || '',
+      bio: user.bio || '',
+      profilePic: user.profilePic || '',
+      coverPhoto: user.coverPhoto || '',
+      createdAt: user.createdAt,
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Server query error', error: error.message });
   }
 };

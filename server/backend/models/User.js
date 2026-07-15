@@ -48,6 +48,46 @@ const userSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
+    username: {
+      type: String,
+      default: '',
+    },
+    recoveryEmail: {
+      type: String,
+      default: '',
+    },
+    gender: {
+      type: String,
+      default: 'male',
+    },
+    dob: {
+      type: String,
+      default: '',
+    },
+    city: {
+      type: String,
+      default: '',
+    },
+    province: {
+      type: String,
+      default: '',
+    },
+    country: {
+      type: String,
+      default: '',
+    },
+    bio: {
+      type: String,
+      default: '',
+    },
+    profilePic: {
+      type: String,
+      default: '',
+    },
+    coverPhoto: {
+      type: String,
+      default: '',
+    },
   },
   {
     timestamps: true,

@@ -17,12 +17,13 @@ require('./config/db')();
 
 const app = express();
 
-// Express Middlewares
 app.use(cors());
-app.use(express.json()); // JSON parser for body payload
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // Main API Routes
 app.use('/api/auth', require('./routes/authRoutes'));
+app.use('/api/pets', require('./routes/petRoutes'));
 
 // Server Health Endpoint
 app.get('/', (req, res) => {

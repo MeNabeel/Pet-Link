@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   StyleSheet, Text, View, Image, TouchableOpacity, 
   TextInput, Switch, ScrollView, Alert, ActivityIndicator 
@@ -6,6 +6,7 @@ import {
 import { Feather, FontAwesome } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { COLORS } from '../constants/theme';
+import PetImage from '../components/PetImage';
 
 export default function PetForm({ user, petId, onCancel, onSaveSuccess }) {
   const [loading, setLoading] = useState(false);
@@ -21,6 +22,7 @@ export default function PetForm({ user, petId, onCancel, onSaveSuccess }) {
   const [color, setColor] = useState('');
   const [size, setSize] = useState('');
   const [image, setImage] = useState('');
+  const [imageSettings, setImageSettings] = useState({ positionX: 50, positionY: 50, scale: 1, objectPosition: '50% 50%' });
 
   const [isVaccinated, setIsVaccinated] = useState(false);
   const [vaccinationDate, setVaccinationDate] = useState('');
@@ -41,7 +43,7 @@ export default function PetForm({ user, petId, onCancel, onSaveSuccess }) {
   const [aboutPet, setAboutPet] = useState('');
 
   const [adoptionStatus, setAdoptionStatus] = useState('Available');
-  const [activeStatus, setActiveStatus] = useState('Active');
+  const [activeStatus, setActiveStatus] = useState('ACTIVE');
 
   const [country, setCountry] = useState('Pakistan');
   const [province, setProvince] = useState('Punjab');
@@ -67,6 +69,7 @@ export default function PetForm({ user, petId, onCancel, onSaveSuccess }) {
             setColor(data.color || '');
             setSize(data.size || '');
             setImage(data.image || '');
+            setImageSettings(data.imageSettings || { positionX: 50, positionY: 50, scale: 1, objectPosition: '50% 50%' });
 
             setIsVaccinated(data.isVaccinated || false);
             setVaccinationDate(data.vaccinationDate || '');
@@ -87,7 +90,7 @@ export default function PetForm({ user, petId, onCancel, onSaveSuccess }) {
             setAboutPet(data.aboutPet || '');
 
             setAdoptionStatus(data.adoptionStatus || 'Available');
-            setActiveStatus(data.activeStatus || 'Active');
+            setActiveStatus(data.activeStatus ? data.activeStatus.toUpperCase() : 'ACTIVE');
 
             setCountry(data.country || 'Pakistan');
             setProvince(data.province || 'Punjab');
@@ -124,6 +127,7 @@ export default function PetForm({ user, petId, onCancel, onSaveSuccess }) {
         const reader = new FileReader();
         reader.onloadend = () => {
           setImage(reader.result);
+          setImageSettings({ positionX: 50, positionY: 50, scale: 1, objectPosition: '50% 50%' });
         };
         reader.readAsDataURL(blob);
       } catch (err) {
@@ -167,12 +171,61 @@ export default function PetForm({ user, petId, onCancel, onSaveSuccess }) {
     setDocuments(prev => prev.filter((_, i) => i !== idx));
   };
 
-  const handleSave = async () => {
+  // Direct touch reposition handlers
+  const isDragging = useRef(false);
+  const startX = useRef(0);
+  const startY = useRef(0);
+  const startPos = useRef({ x: 50, y: 50 });
+
+  const handleTouchStart = (e) => {
+    isDragging.current = true;
+    startX.current = e.nativeEvent.pageX;
+    startY.current = e.nativeEvent.pageY;
+    startPos.current = { x: imageSettings.positionX, y: imageSettings.positionY };
+  };
+
+  const handleTouchMove = (e) => {
+    if (!isDragging.current) return;
+    const currentX = e.nativeEvent.pageX;
+    const currentY = e.nativeEvent.pageY;
+    const dx = currentX - startX.current;
+    const dy = currentY - startY.current;
+
+    let newX = startPos.current.x - (dx / 2.0);
+    let newY = startPos.current.y - (dy / 1.0);
+
+    newX = Math.max(0, Math.min(100, Math.round(newX)));
+    newY = Math.max(0, Math.min(100, Math.round(newY)));
+
+    setImageSettings({
+      positionX: newX,
+      positionY: newY,
+      scale: 1,
+      objectPosition: `${newX}% ${newY}%`
+    });
+  };
+
+  const handleTouchEnd = () => {
+    isDragging.current = false;
+  };
+
+  const handleSave = () => {
     if (!name || !breed || !age || !weight) {
       Alert.alert("Validation Error", "Please complete all required pet fields.");
       return;
     }
 
+    Alert.alert(
+      petId ? "Confirm Update" : "Confirm Registration",
+      petId ? "Do you want to save these changes to the pet profile?" : "Do you want to register this new pet companion?",
+      [
+        { text: "Cancel", style: "cancel" },
+        { text: "Save", onPress: () => proceedSave() }
+      ]
+    );
+  };
+
+  const proceedSave = async () => {
     setLoading(true);
     const payload = {
       owner: user._id,
@@ -180,7 +233,7 @@ export default function PetForm({ user, petId, onCancel, onSaveSuccess }) {
       isVaccinated, vaccinationDate, nextVaccinationDate, medicalHistory, allergies, diseases, bloodGroup,
       friendlyWithKids, friendlyWithPets, trainingLevel, neuteredSpayed, microchipNumber, foodPreference,
       behaviour, personality, aboutPet, adoptionStatus, activeStatus,
-      country, province, city, address, image, documents
+      country, province, city, address, image, imageSettings, documents
     };
 
     try {
@@ -188,7 +241,10 @@ export default function PetForm({ user, petId, onCancel, onSaveSuccess }) {
       if (petId) {
         response = await fetch(`http://localhost:5000/api/pets/${petId}`, {
           method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 
+            'Content-Type': 'application/json',
+            'x-requester-id': user._id
+          },
           body: JSON.stringify(payload),
         });
       } else {
@@ -201,6 +257,7 @@ export default function PetForm({ user, petId, onCancel, onSaveSuccess }) {
 
       if (response.ok) {
         const saved = await response.json();
+        Alert.alert("Success", petId ? "Companion profile updated successfully!" : "New companion registered successfully!");
         onSaveSuccess(saved);
       } else {
         const errData = await response.json();
@@ -236,18 +293,64 @@ export default function PetForm({ user, petId, onCancel, onSaveSuccess }) {
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>1. Basic Information</Text>
 
-        <TouchableOpacity style={styles.picBox} onPress={handlePickMainImage}>
+        {image ? (
+          <Text style={{ fontSize: 11, color: COLORS.primary, fontWeight: '700', textAlign: 'center', marginBottom: 8 }}>
+            Drag the image to adjust its position inside the card frame
+          </Text>
+        ) : null}
+
+        <View 
+          style={[styles.picBox, { overflow: 'hidden', position: 'relative' }]}
+          onTouchStart={image ? handleTouchStart : undefined}
+          onTouchMove={image ? handleTouchMove : undefined}
+          onTouchEnd={handleTouchEnd}
+        >
           {image ? (
-            <Image source={{ uri: image }} style={styles.picPreview} resizeMode="cover" />
+            <>
+              <View style={{ width: '100%', height: '100%', pointerEvents: 'none' }}>
+                <PetImage src={image} imageSettings={imageSettings} type="card" />
+              </View>
+              <TouchableOpacity 
+                style={{
+                  position: 'absolute',
+                  top: 10,
+                  right: 10,
+                  backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                  width: 32,
+                  height: 32,
+                  borderRadius: 16,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  shadowColor: '#000',
+                  shadowOffset: { width: 0, height: 1 },
+                  shadowOpacity: 0.1,
+                  shadowRadius: 2,
+                  elevation: 2,
+                  zIndex: 2
+                }}
+                onPress={handlePickMainImage}
+              >
+                <Feather name="edit-2" size={14} color={COLORS.primary} />
+              </TouchableOpacity>
+            </>
           ) : (
-            <View style={styles.picPlaceholder}>
+            <TouchableOpacity style={styles.picPlaceholder} onPress={handlePickMainImage}>
               <Feather name="camera" size={28} color={COLORS.muted} />
               <Text style={styles.picPlaceholderText}>Upload Main Photo</Text>
-            </View>
+            </TouchableOpacity>
           )}
-        </TouchableOpacity>
+        </View>
 
-        <Text style={styles.label}>Nick Name *</Text>
+        {image ? (
+          <TouchableOpacity 
+            style={[styles.choiceBtn, { width: 120, alignSelf: 'center', marginTop: 8, paddingVertical: 6 }]} 
+            onPress={handlePickMainImage}
+          >
+            <Text style={{ fontSize: 11, fontWeight: '700', color: COLORS.darkLight }}>Change Photo</Text>
+          </TouchableOpacity>
+        ) : null}
+
+        <Text style={styles.label} style={{ marginTop: 14 }}>Nick Name *</Text>
         <TextInput style={styles.input} value={name} onChangeText={setName} placeholder="e.g. Luna" />
 
         <Text style={styles.label}>Species *</Text>
@@ -377,20 +480,11 @@ export default function PetForm({ user, petId, onCancel, onSaveSuccess }) {
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>4. Status & Adoption Info</Text>
 
-        <Text style={styles.label}>Adoption Status</Text>
-        <View style={styles.genderRow} style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
-          {['Available', 'Pending', 'Adopted'].map(ad => (
-            <TouchableOpacity key={ad} style={[styles.choiceBtn, adoptionStatus === ad && styles.choiceBtnActive]} onPress={() => setAdoptionStatus(ad)}>
-              <Text style={[styles.choiceText, adoptionStatus === ad && styles.choiceTextActive]}>{ad}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-
         <Text style={styles.label} style={{ marginTop: 14 }}>Pet Status</Text>
         <View style={styles.genderRow} style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
-          {['Active', 'Lost', 'Sold', 'Deceased'].map(ac => (
-            <TouchableOpacity key={ac} style={[styles.choiceBtn, activeStatus === ac && styles.choiceBtnActive]} onPress={() => setActiveStatus(ac)}>
-              <Text style={[styles.choiceText, activeStatus === ac && styles.choiceTextActive]}>{ac}</Text>
+          {['ACTIVE', 'FOR_SALE', 'FOR_ADOPTION', 'IN_SHELTER', 'LOST', 'DECEASED', 'ARCHIVED'].map(ac => (
+            <TouchableOpacity key={ac} style={[styles.choiceBtn, activeStatus === ac && styles.choiceBtnActive, { minWidth: 95, marginBottom: 6 }]} onPress={() => setActiveStatus(ac)}>
+              <Text style={[styles.choiceText, activeStatus === ac && styles.choiceTextActive]}>{ac.replace('_', ' ')}</Text>
             </TouchableOpacity>
           ))}
         </View>
@@ -490,9 +584,9 @@ const styles = StyleSheet.create({
     paddingBottom: 8,
   },
   picBox: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
+    width: '100%',
+    height: 180,
+    borderRadius: 20,
     borderWidth: 1.5,
     borderColor: COLORS.border,
     borderStyle: 'dashed',
@@ -502,10 +596,6 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.bgLight,
     overflow: 'hidden',
     marginBottom: 16,
-  },
-  picPreview: {
-    width: '100%',
-    height: '100%',
   },
   picPlaceholder: {
     alignItems: 'center',

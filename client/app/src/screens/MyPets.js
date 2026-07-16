@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import { Feather, FontAwesome } from '@expo/vector-icons';
 import { COLORS } from '../constants/theme';
+import PetImage from '../components/PetImage';
 
 export default function MyPets({ user, onViewDetails, onAddPet, onEditPet }) {
   const [pets, setPets] = useState([]);
@@ -68,18 +69,13 @@ export default function MyPets({ user, onViewDetails, onAddPet, onEditPet }) {
     >
       {/* Pet Photo Container */}
       <View style={styles.petImgContainer}>
-        {item.image ? (
-          <Image source={{ uri: item.image }} style={styles.petImg} resizeMode="cover" />
-        ) : (
-          <View style={styles.petPlaceholderImg}>
-            <FontAwesome name="paw" size={48} color={COLORS.muted} />
-          </View>
-        )}
+        <PetImage src={item.image} imageSettings={item.imageSettings} type="card" />
 
         {/* Badges Overlays */}
         <View style={styles.badgeRow}>
-          <View style={styles.badge}><Text style={styles.badgeText}>{item.adoptionStatus}</Text></View>
-          <View style={[styles.badge, { backgroundColor: COLORS.dark }]}><Text style={styles.badgeText}>{item.activeStatus}</Text></View>
+          <View style={[styles.badge, { backgroundColor: COLORS.dark }]}>
+            <Text style={styles.badgeText}>{item.activeStatus.replace('_', ' ')}</Text>
+          </View>
         </View>
 
         {/* Dropdown Menu Trigger */}

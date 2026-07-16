@@ -271,9 +271,112 @@ exports.getUserProfile = async (req, res) => {
       bio: user.bio || '',
       profilePic: user.profilePic || '',
       coverPhoto: user.coverPhoto || '',
+      status: user.status || 'Active',
       createdAt: user.createdAt,
     });
   } catch (error) {
     res.status(500).json({ message: 'Server query error', error: error.message });
+  }
+};
+
+// @desc    Get all users (admin-only)
+// @route   GET /api/auth/users
+// @access  Private (Admin)
+exports.getAllUsers = async (req, res) => {
+  try {
+    const requesterId = req.headers['x-requester-id'];
+    const requester = await User.findById(requesterId);
+    if (!requester || requester.role !== 'admin') {
+      return res.status(403).json({ message: 'Forbidden: Admin access only' });
+    }
+
+    const users = await User.find({}).select('-password');
+    res.status(200).json(users);
+  } catch (error) {
+    res.status(500).json({ message: 'Server query error', error: error.message });
+  }
+};
+
+// @desc    Update user status (admin-only)
+// @route   PUT /api/auth/users/:userId/status
+// @access  Private (Admin)
+exports.updateUserStatus = async (req, res) => {
+  try {
+    const requesterId = req.headers['x-requester-id'];
+    const requester = await User.findById(requesterId);
+    if (!requester || requester.role !== 'admin') {
+      return res.status(403).json({ message: 'Forbidden: Admin access only' });
+    }
+
+    const user = await User.findById(req.params.userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    const { status } = req.body;
+    if (!['Active', 'Suspended', 'Blocked', 'Deleted', 'Pending Verification'].includes(status)) {
+      return res.status(400).json({ message: 'Invalid status value' });
+    }
+
+    user.status = status;
+    await user.save();
+    res.status(200).json({ message: `User status updated to ${status} successfully`, user });
+  } catch (error) {
+    res.status(500).json({ message: 'Server status update error', error: error.message });
+  }
+};
+
+// @desc    Delete a user (admin-only)
+// @route   DELETE /api/auth/users/:userId
+// @access  Private (Admin)
+exports.deleteUser = async (req, res) => {
+  try {
+    const requesterId = req.headers['x-requester-id'];
+    const requester = await User.findById(requesterId);
+    if (!requester || requester.role !== 'admin') {
+      return res.status(403).json({ message: 'Forbidden: Admin access only' });
+    }
+
+    const user = await User.findById(req.params.userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    await User.findByIdAndDelete(req.params.userId);
+    res.status(200).json({ message: 'User profile permanently deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ message: 'Server deletion error', error: error.message });
+  }
+};
+
+// @desc    Get system analytics (admin-only)
+// @route   GET /api/auth/analytics
+// @access  Private (Admin)
+exports.getSystemAnalytics = async (req, res) => {
+  try {
+    const requesterId = req.headers['x-requester-id'];
+    const requester = await User.findById(requesterId);
+    if (!requester || requester.role !== 'admin') {
+      return res.status(403).json({ message: 'Forbidden: Admin access only' });
+    }
+
+    const totalUsers = await User.countDocuments({});
+    const Pet = require('../models/Pet');
+    const totalPets = await Pet.countDocuments({});
+
+    res.status(200).json({
+      users: totalUsers,
+      pets: totalPets,
+      listings: 0,
+      products: 0,
+      orders: 0,
+      revenue: '0 PKR',
+      bookings: 0,
+      pendingOrders: 0,
+      completedOrders: 0,
+      notifications: 0
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Server analytics error', error: error.message });
   }
 };

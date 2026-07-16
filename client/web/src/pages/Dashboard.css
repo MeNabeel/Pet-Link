@@ -82,6 +82,10 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
+  position: sticky;
+  top: 73px;
+  height: calc(100vh - 73px);
+  overflow-y: auto;
 }
 
 .dash-side-link {
@@ -258,6 +262,274 @@
     padding: 8px 12px;
   }
   .dash-content {
-    padding: 20px;
+    padding: 16px;
   }
+}
+
+/* Admin console overrides & Custom managers styling */
+.admin-users-container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.admin-title {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--color-dark);
+}
+
+.admin-subtitle {
+  font-size: 13px;
+  color: var(--color-muted);
+  margin-top: 4px;
+  font-weight: 500;
+}
+
+.admin-filters-card {
+  background-color: var(--color-white);
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  padding: 16px 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.search-box-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background-color: var(--color-bg-light);
+  border: 1px solid var(--color-border);
+  border-radius: 24px;
+  padding: 8px 16px;
+  flex: 1;
+  min-width: 260px;
+}
+
+.admin-search-input {
+  border: none;
+  background: none;
+  outline: none;
+  width: 100%;
+  font-size: 13px;
+}
+
+.filters-group-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.filter-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.filter-item label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-muted);
+  text-transform: uppercase;
+}
+
+.admin-select {
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  padding: 6px 12px;
+  font-size: 13px;
+  background-color: var(--color-white);
+  outline: none;
+  cursor: pointer;
+}
+
+.admin-table-wrapper {
+  background-color: var(--color-white);
+  border: 1px solid var(--color-border);
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.admin-table th {
+  background-color: var(--color-bg-light);
+  border-bottom: 1px solid var(--color-border);
+  padding: 14px 20px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--color-muted);
+  text-transform: uppercase;
+}
+
+.admin-table td {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--color-bg-light);
+  font-size: 13px;
+  vertical-align: middle;
+}
+
+.admin-avatar-img {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1.5px solid var(--color-border);
+}
+
+.user-table-name {
+  display: block;
+  font-weight: 700;
+  color: var(--color-dark);
+}
+
+.user-table-id {
+  display: block;
+  font-size: 10px;
+  color: var(--color-muted);
+  font-family: monospace;
+  margin-top: 2px;
+}
+
+.user-contact-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--color-muted);
+  font-size: 12px;
+  margin-bottom: 4px;
+}
+
+.user-contact-item:last-child {
+  margin-bottom: 0;
+}
+
+.user-role-badge {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: capitalize;
+  padding: 4px 10px;
+  border-radius: 8px;
+}
+
+.user-role-badge.buyer {
+  background-color: rgba(59, 130, 246, 0.08);
+  color: #3b82f6;
+}
+
+.user-role-badge.seller {
+  background-color: rgba(16, 185, 129, 0.08);
+  color: #10b981;
+}
+
+.user-role-badge.shelter_provider {
+  background-color: rgba(139, 92, 246, 0.08);
+  color: #8b5cf6;
+}
+
+.user-role-badge.admin {
+  background-color: rgba(234, 179, 8, 0.08);
+  color: #eab308;
+}
+
+.user-joined-date {
+  font-size: 12px;
+  color: var(--color-muted);
+  font-weight: 500;
+}
+
+.status-badge-pill {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 20px;
+}
+
+.status-badge-pill.badge-success {
+  background-color: rgba(22, 163, 74, 0.1);
+  color: #16a34a;
+}
+
+.status-badge-pill.badge-warning {
+  background-color: rgba(234, 179, 8, 0.1);
+  color: #d97706;
+}
+
+.status-badge-pill.badge-danger {
+  background-color: rgba(220, 38, 38, 0.1);
+  color: #dc2626;
+}
+
+.status-badge-pill.badge-info {
+  background-color: rgba(59, 130, 246, 0.1);
+  color: #2563eb;
+}
+
+.admin-actions-cell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--color-border);
+  background-color: var(--color-white);
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.suspend-btn {
+  color: #d97706;
+  border-color: rgba(234, 179, 8, 0.2);
+}
+
+.suspend-btn:hover {
+  background-color: rgba(234, 179, 8, 0.05);
+}
+
+.activate-btn {
+  color: #16a34a;
+  border-color: rgba(22, 163, 74, 0.2);
+}
+
+.activate-btn:hover {
+  background-color: rgba(22, 163, 74, 0.05);
+}
+
+.delete-btn {
+  color: #dc2626;
+  border-color: rgba(220, 38, 38, 0.2);
+  padding: 6px 8px;
+}
+
+.delete-btn:hover {
+  background-color: rgba(220, 38, 38, 0.05);
+}
+
+.hover-lift {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.hover-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }

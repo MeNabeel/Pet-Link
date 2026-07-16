@@ -4,6 +4,7 @@ import {
   Upload, X, Image as ImageIcon, Sparkles, CheckSquare 
 } from 'lucide-react';
 import './PetForm.css';
+import PetImage from '../components/PetImage';
 
 export default function PetForm({ user, petId, onCancel, onSaveSuccess }) {
   const [loading, setLoading] = useState(false);
@@ -19,10 +20,7 @@ export default function PetForm({ user, petId, onCancel, onSaveSuccess }) {
   const [color, setColor] = useState('');
   const [size, setSize] = useState('');
   const [image, setImage] = useState('');
-  const [rawImage, setRawImage] = useState('');
-  const [zoom, setZoom] = useState(1);
-  const [panX, setPanX] = useState(0);
-  const [panY, setPanY] = useState(0);
+  const [imageSettings, setImageSettings] = useState({ positionX: 50, positionY: 50, scale: 1, objectPosition: '50% 50%' });
 
   // Section 2: Health Info
   const [isVaccinated, setIsVaccinated] = useState(false);
@@ -77,8 +75,8 @@ export default function PetForm({ user, petId, onCancel, onSaveSuccess }) {
             setAge(data.age || '');
             setWeight(data.weight || '');
             setColor(data.color || '');
-            setSize(data.size || '');
             setImage(data.image || '');
+            setImageSettings(data.imageSettings || { positionX: 50, positionY: 50, scale: 1, objectPosition: '50% 50%' });
 
             setIsVaccinated(data.isVaccinated || false);
             setVaccinationDate(data.vaccinationDate || '');
@@ -99,7 +97,7 @@ export default function PetForm({ user, petId, onCancel, onSaveSuccess }) {
             setAboutPet(data.aboutPet || '');
 
             setAdoptionStatus(data.adoptionStatus || 'Available');
-            setActiveStatus(data.activeStatus || 'Active');
+            setActiveStatus(data.activeStatus ? data.activeStatus.toUpperCase() : 'ACTIVE');
 
             setCountry(data.country || 'Pakistan');
             setProvince(data.province || 'Punjab');
@@ -120,11 +118,8 @@ export default function PetForm({ user, petId, onCancel, onSaveSuccess }) {
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
-        setRawImage(reader.result);
         setImage(reader.result);
-        setZoom(1);
-        setPanX(0);
-        setPanY(0);
+        setImageSettings({ positionX: 50, positionY: 50, scale: 1, objectPosition: '50% 50%' });
       };
       reader.readAsDataURL(file);
     }
@@ -153,37 +148,66 @@ export default function PetForm({ user, petId, onCancel, onSaveSuccess }) {
     setDocuments((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const getCroppedImg = () => {
-    return new Promise((resolve) => {
-      if (!rawImage) {
-        resolve(image);
-        return;
-      }
-      const img = new Image();
-      img.src = rawImage;
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        canvas.width = 300;
-        canvas.height = 300;
-        const ctx = canvas.getContext('2d');
+  const isDragging = useRef(false);
+  const startX = useRef(0);
+  const startY = useRef(0);
+  const startPos = useRef({ x: 50, y: 50 });
 
-        const size = Math.min(img.width, img.height);
-        const srcSize = size / zoom;
-        
-        // Offset mapping to source resolution
-        const dx = (panX / 160) * img.width;
-        const dy = (panY / 160) * img.height;
-        
-        const sx = (img.width - srcSize) / 2 - dx;
-        const sy = (img.height - srcSize) / 2 - dy;
+  const handleMouseDown = (e) => {
+    e.preventDefault();
+    isDragging.current = true;
+    startX.current = e.clientX;
+    startY.current = e.clientY;
+    startPos.current = { x: imageSettings.positionX, y: imageSettings.positionY };
+  };
 
-        ctx.drawImage(img, sx, sy, srcSize, srcSize, 0, 0, 300, 300);
-        resolve(canvas.toDataURL('image/jpeg', 0.9));
-      };
-      img.onerror = () => {
-        resolve(image);
-      };
+  const handleMouseMove = (e) => {
+    if (!isDragging.current) return;
+    const dx = e.clientX - startX.current;
+    const dy = e.clientY - startY.current;
+
+    let newX = startPos.current.x - (dx / 2.8);
+    let newY = startPos.current.y - (dy / 1.8);
+
+    newX = Math.max(0, Math.min(100, Math.round(newX)));
+    newY = Math.max(0, Math.min(100, Math.round(newY)));
+
+    setImageSettings({
+      positionX: newX,
+      positionY: newY,
+      scale: 1,
+      objectPosition: `${newX}% ${newY}%`
     });
+  };
+
+  const handleTouchStart = (e) => {
+    isDragging.current = true;
+    startX.current = e.touches[0].clientX;
+    startY.current = e.touches[0].clientY;
+    startPos.current = { x: imageSettings.positionX, y: imageSettings.positionY };
+  };
+
+  const handleTouchMove = (e) => {
+    if (!isDragging.current) return;
+    const dx = e.touches[0].clientX - startX.current;
+    const dy = e.touches[0].clientY - startY.current;
+
+    let newX = startPos.current.x - (dx / 2.8);
+    let newY = startPos.current.y - (dy / 1.8);
+
+    newX = Math.max(0, Math.min(100, Math.round(newX)));
+    newY = Math.max(0, Math.min(100, Math.round(newY)));
+
+    setImageSettings({
+      positionX: newX,
+      positionY: newY,
+      scale: 1,
+      objectPosition: `${newX}% ${newY}%`
+    });
+  };
+
+  const handleMouseUpOrLeave = () => {
+    isDragging.current = false;
   };
 
   const handleSubmit = async (e) => {
@@ -198,27 +222,26 @@ export default function PetForm({ user, petId, onCancel, onSaveSuccess }) {
 
     setLoading(true);
     try {
-      const finalImage = await getCroppedImg();
-      
       const payload = {
         owner: user._id,
         name, species, breed, gender, age, weight, color, size,
         isVaccinated, vaccinationDate, nextVaccinationDate, medicalHistory, allergies, diseases, bloodGroup,
         friendlyWithKids, friendlyWithPets, trainingLevel, neuteredSpayed, microchipNumber, foodPreference,
         behaviour, personality, aboutPet, adoptionStatus, activeStatus,
-        country, province, city, address, image: finalImage, documents
+        country, province, city, address, image, imageSettings, documents
       };
 
       let response;
       if (petId) {
-        // Edit update request
         response = await fetch(`http://localhost:5000/api/pets/${petId}`, {
           method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 
+            'Content-Type': 'application/json',
+            'x-requester-id': user._id
+          },
           body: JSON.stringify(payload),
         });
       } else {
-        // Create post request
         response = await fetch(`http://localhost:5000/api/pets`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -266,77 +289,57 @@ export default function PetForm({ user, petId, onCancel, onSaveSuccess }) {
             1. Basic Information
           </h3>
 
-          <div className="pet-image-upload-wrapper">
-            <div className="pet-image-upload-box" onClick={() => mainImageRef.current.click()}>
-              {rawImage ? (
-                <div style={{ width: '160px', height: '160px', borderRadius: '50%', overflow: 'hidden', position: 'relative' }}>
-                  <img 
-                    src={rawImage} 
-                    alt="Pet Avatar" 
-                    style={{ 
-                      width: '100%', 
-                      height: '100%', 
-                      objectFit: 'cover',
-                      transform: `scale(${zoom}) translate(${panX}px, ${panY}px)`,
-                      transition: 'transform 0.05s ease-out'
-                    }} 
-                  />
+          <div className="pet-image-upload-wrapper" style={{ width: '280px', margin: '0 auto 20px auto' }}>
+            {image && (
+              <span className="pet-form-subtitle" style={{ fontSize: '11px', marginBottom: '8px', color: 'var(--color-primary)', fontWeight: '700', display: 'block', textAlign: 'center' }}>
+                🖱️ Click & Drag the image below to adjust its position
+              </span>
+            )}
+            <div 
+              className="pet-image-upload-box" 
+              style={{ 
+                width: '280px', 
+                height: '180px', 
+                borderRadius: '20px', 
+                overflow: 'hidden', 
+                cursor: image ? 'grab' : 'pointer',
+                position: 'relative',
+                border: '1px solid var(--color-border)',
+                backgroundColor: '#F3F4F6',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}
+              onClick={() => { if (!image) mainImageRef.current.click(); }}
+              onMouseDown={image ? handleMouseDown : undefined}
+              onMouseMove={image ? handleMouseMove : undefined}
+              onMouseUp={image ? handleMouseUpOrLeave : undefined}
+              onMouseLeave={image ? handleMouseUpOrLeave : undefined}
+              onTouchStart={image ? handleTouchStart : undefined}
+              onTouchMove={image ? handleTouchMove : undefined}
+              onTouchEnd={image ? handleMouseUpOrLeave : undefined}
+            >
+              {image ? (
+                <div style={{ width: '100%', height: '100%', pointerEvents: 'none' }}>
+                  <PetImage src={image} imageSettings={imageSettings} type="card" style={{ height: '100%' }} />
                 </div>
-              ) : image ? (
-                <img src={image} alt="Pet Avatar" className="pet-image-preview" />
               ) : (
-                <div className="pet-image-placeholder">
+                <div className="pet-image-placeholder" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
                   <Upload size={24} />
-                  <span>Pet Main Photo</span>
+                  <span style={{ fontSize: '12px', fontWeight: '600' }}>Pet Main Photo</span>
                 </div>
               )}
             </div>
 
-            {rawImage && (
-              <div className="pet-cropper-controls fade-in" style={{ marginTop: '16px', width: '260px' }} onClick={(e) => e.stopPropagation()}>
-                <div className="cropper-control-row" style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                  <label className="form-label" style={{ fontSize: '11px', margin: 0 }}>Zoom: {zoom.toFixed(1)}x</label>
-                  <input 
-                    type="range" 
-                    min="1" 
-                    max="3" 
-                    step="0.1" 
-                    value={zoom} 
-                    onChange={(e) => setZoom(parseFloat(e.target.value))}
-                    style={{ width: '100%', cursor: 'pointer' }}
-                  />
-                </div>
-                <div className="cropper-control-row" style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '8px' }}>
-                  <label className="form-label" style={{ fontSize: '11px', margin: 0 }}>Pan X: {panX}px</label>
-                  <input 
-                    type="range" 
-                    min="-100" 
-                    max="100" 
-                    step="1" 
-                    value={panX} 
-                    onChange={(e) => setPanX(parseInt(e.target.value))}
-                    style={{ width: '100%', cursor: 'pointer' }}
-                  />
-                </div>
-                <div className="cropper-control-row" style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '8px' }}>
-                  <label className="form-label" style={{ fontSize: '11px', margin: 0 }}>Pan Y: {panY}px</label>
-                  <input 
-                    type="range" 
-                    min="-100" 
-                    max="100" 
-                    step="1" 
-                    value={panY} 
-                    onChange={(e) => setPanY(parseInt(e.target.value))}
-                    style={{ width: '100%', cursor: 'pointer' }}
-                  />
-                </div>
+            {image && (
+              <div style={{ display: 'flex', justifyContent: 'center' }}>
                 <button 
                   type="button" 
                   className="pet-btn-outline" 
-                  style={{ width: '100%', marginTop: '12px', padding: '6px 12px', fontSize: '11px', justifyContent: 'center' }}
+                  style={{ marginTop: '12px', padding: '6px 12px', fontSize: '11px', justifyContent: 'center' }}
                   onClick={() => mainImageRef.current.click()}
                 >
-                  Change Image
+                  Change Photo
                 </button>
               </div>
             )}
@@ -685,11 +688,13 @@ export default function PetForm({ user, petId, onCancel, onSaveSuccess }) {
                 value={activeStatus} 
                 onChange={(e) => setActiveStatus(e.target.value)}
               >
-                <option value="Active">Active</option>
-                <option value="Lost">Lost</option>
-                <option value="Sold">Sold</option>
-                <option value="Adopted">Adopted</option>
-                <option value="Deceased">Deceased</option>
+                <option value="ACTIVE">ACTIVE</option>
+                <option value="FOR_SALE">FOR SALE (Marketplace)</option>
+                <option value="FOR_ADOPTION">FOR ADOPTION (Marketplace)</option>
+                <option value="IN_SHELTER">IN SHELTER</option>
+                <option value="LOST">LOST (Lost & Found)</option>
+                <option value="DECEASED">DECEASED</option>
+                <option value="ARCHIVED">ARCHIVED (Hide from listing)</option>
               </select>
             </div>
           </div>

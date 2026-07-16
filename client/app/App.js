@@ -12,6 +12,7 @@ import AccountSettings from './src/screens/AccountSettings';
 import MyPets from './src/screens/MyPets';
 import PetForm from './src/screens/PetForm';
 import PetDetails from './src/screens/PetDetails';
+import AdminDashboard from './src/screens/AdminDashboard';
 import { COLORS } from './src/constants/theme';
 
 export default function App() {
@@ -98,7 +99,7 @@ export default function App() {
     }
   }, [screen]);
 
-  const showNav = ['dashboard', 'profile', 'settings', 'mypets'].includes(screen);
+  const showNav = ['dashboard', 'profile', 'settings', 'mypets'].includes(screen) && !(user && user.role === 'admin');
 
   const handleTabPress = (tabName) => {
     if (tabName === 'home') {
@@ -167,7 +168,12 @@ export default function App() {
             />
           )}
 
-          {screen === 'dashboard' && (
+          {screen === 'dashboard' && user && user.role === 'admin' ? (
+            <AdminDashboard
+              user={user}
+              onLogout={handleLogout}
+            />
+          ) : screen === 'dashboard' && (
             <Dashboard
               user={user}
               onLogout={handleLogout}
@@ -217,6 +223,7 @@ export default function App() {
 
               {petSubView === 'details' && (
                 <PetDetails
+                  user={user}
                   petId={selectedPetId}
                   onBack={() => setPetSubView('list')}
                   onEdit={(id) => {

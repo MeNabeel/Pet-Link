@@ -5,10 +5,12 @@ import {
   ChevronRight, ArrowLeft 
 } from 'lucide-react';
 import './PetDetails.css';
+import PetImage from '../components/PetImage';
 
-export default function PetDetails({ petId, onBack, onEdit, onDeleteSuccess }) {
+export default function PetDetails({ user, petId, onBack, onEdit, onDeleteSuccess }) {
   const [pet, setPet] = useState(null);
   const [loading, setLoading] = useState(true);
+  const isOwner = user && pet && (pet.owner === user._id || pet.owner._id === user._id);
 
   // Modal / Drawer active states
   const [activeDrawer, setActiveDrawer] = useState(null); // 'health' | 'vaccine' | 'medical' | 'deleteConfirm'
@@ -57,6 +59,9 @@ export default function PetDetails({ petId, onBack, onEdit, onDeleteSuccess }) {
     try {
       const response = await fetch(`http://localhost:5000/api/pets/${petId}`, {
         method: 'DELETE',
+        headers: {
+          'x-requester-id': user._id
+        }
       });
       if (response.ok) {
         setActiveDrawer(null);
@@ -79,7 +84,10 @@ export default function PetDetails({ petId, onBack, onEdit, onDeleteSuccess }) {
     try {
       const response = await fetch(`http://localhost:5000/api/pets/${petId}/vaccine`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'x-requester-id': user._id
+        },
         body: JSON.stringify({
           vaccineName: vName,
           dose: vDose,
@@ -112,7 +120,10 @@ export default function PetDetails({ petId, onBack, onEdit, onDeleteSuccess }) {
     try {
       const response = await fetch(`http://localhost:5000/api/pets/${petId}/medical-record`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'x-requester-id': user._id
+        },
         body: JSON.stringify({
           disease: mDisease,
           symptoms: mSymptoms,
@@ -184,17 +195,10 @@ export default function PetDetails({ petId, onBack, onEdit, onDeleteSuccess }) {
       {/* Hero Banner Grid Card */}
       <div className="pet-details-hero">
         <div className="pet-details-hero-img-wrapper">
-          {pet.image ? (
-            <img src={pet.image} alt={pet.name} className="pet-details-hero-img" />
-          ) : (
-            <div className="pet-details-hero-placeholder">
-              <ChevronRight size={64} />
-            </div>
-          )}
+          <PetImage src={pet.image} imageSettings={pet.imageSettings} type="hero" className="pet-details-hero-img" />
           
           <div className="pet-details-badges-row">
-            <span className="pet-details-badge adoption">{pet.adoptionStatus}</span>
-            <span className={`pet-details-badge status ${pet.activeStatus.toLowerCase()}`}>{pet.activeStatus}</span>
+            <span className={`pet-details-badge status ${pet.activeStatus.toLowerCase().replace('_', '-')}`}>{pet.activeStatus.replace('_', ' ')}</span>
           </div>
         </div>
 
@@ -210,10 +214,12 @@ export default function PetDetails({ petId, onBack, onEdit, onDeleteSuccess }) {
               <HeartPulse size={14} />
               View Health Record
             </button>
-            <button className="pet-btn-outline" onClick={() => setActiveDrawer('vaccine')}>
-              <Syringe size={14} />
-              Add Vaccine
-            </button>
+            {isOwner && (
+              <button className="pet-btn-outline" onClick={() => setActiveDrawer('vaccine')}>
+                <Syringe size={14} />
+                Add Vaccine
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -228,9 +234,11 @@ export default function PetDetails({ petId, onBack, onEdit, onDeleteSuccess }) {
               <User size={16} color="var(--color-primary)" />
               Basic Information
             </span>
-            <button className="pet-section-edit-btn" onClick={() => onEdit(pet._id)} title="Edit Basic Info">
-              <Pencil size={13} />
-            </button>
+            {isOwner && (
+              <button className="pet-section-edit-btn" onClick={() => onEdit(pet._id)} title="Edit Basic Info">
+                <Pencil size={13} />
+              </button>
+            )}
           </h4>
           <div className="pet-info-list">
             <div className="pet-info-item">
@@ -279,9 +287,11 @@ export default function PetDetails({ petId, onBack, onEdit, onDeleteSuccess }) {
               <Heart size={16} color="#EC4899" />
               About Pet & Behaviour
             </span>
-            <button className="pet-section-edit-btn" onClick={() => onEdit(pet._id)} title="Edit Behaviour Info">
-              <Pencil size={13} />
-            </button>
+            {isOwner && (
+              <button className="pet-section-edit-btn" onClick={() => onEdit(pet._id)} title="Edit Behaviour Info">
+                <Pencil size={13} />
+              </button>
+            )}
           </h4>
           <div className="pet-info-list">
             <div className="pet-info-item" style={{ flexDirection: 'column', alignItems: 'flex-start', border: 'none' }}>
@@ -328,9 +338,11 @@ export default function PetDetails({ petId, onBack, onEdit, onDeleteSuccess }) {
               <MapPin size={16} color="#EAB308" />
               Location Details
             </span>
-            <button className="pet-section-edit-btn" onClick={() => onEdit(pet._id)} title="Edit Location Info">
-              <Pencil size={13} />
-            </button>
+            {isOwner && (
+              <button className="pet-section-edit-btn" onClick={() => onEdit(pet._id)} title="Edit Location Info">
+                <Pencil size={13} />
+              </button>
+            )}
           </h4>
           <div className="pet-info-list">
             <div className="pet-info-item">
@@ -361,14 +373,18 @@ export default function PetDetails({ petId, onBack, onEdit, onDeleteSuccess }) {
             <div className="pet-drawer-header">
               <h3 className="pet-drawer-title">{pet.name}'s Medical Health Log</h3>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <button className="pet-btn-outline" style={{ padding: '6px 12px', fontSize: '11px' }} onClick={() => setActiveDrawer('medical')}>
-                  <FilePlus2 size={12} />
-                  Add Medical Record
-                </button>
-                <button className="pet-btn-outline danger" style={{ padding: '6px 12px', fontSize: '11px' }} onClick={() => setActiveDrawer('deleteConfirm')}>
-                  <Trash2 size={12} />
-                  Delete Pet
-                </button>
+                {isOwner && (
+                  <>
+                    <button className="pet-btn-outline" style={{ padding: '6px 12px', fontSize: '11px' }} onClick={() => setActiveDrawer('medical')}>
+                      <FilePlus2 size={12} />
+                      Add Medical Record
+                    </button>
+                    <button className="pet-btn-outline danger" style={{ padding: '6px 12px', fontSize: '11px' }} onClick={() => setActiveDrawer('deleteConfirm')}>
+                      <Trash2 size={12} />
+                      Delete Pet
+                    </button>
+                  </>
+                )}
                 <button className="pet-drawer-close-btn" onClick={() => setActiveDrawer(null)}>
                   <X size={20} />
                 </button>

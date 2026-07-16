@@ -10,6 +10,7 @@ import AccountSettings from './AccountSettings';
 import MyPets from './MyPets';
 import PetForm from './PetForm';
 import PetDetails from './PetDetails';
+import AdminDashboard from './AdminDashboard';
 
 export default function Dashboard({ onLogout }) {
   const [user, setUser] = useState(null);
@@ -106,6 +107,10 @@ export default function Dashboard({ onLogout }) {
     );
   }
 
+  if (user && user.role === 'admin') {
+    return <AdminDashboard user={user} onLogout={onLogout} />;
+  }
+
   // Role display formatter
   const formatRole = (roleKey) => {
     switch(roleKey) {
@@ -167,7 +172,10 @@ export default function Dashboard({ onLogout }) {
           </span>
           <span 
             className={`dash-side-link ${activeTab === 'pets' ? 'active' : ''}`}
-            onClick={() => setActiveTab('pets')}
+            onClick={() => {
+              setActiveTab('pets');
+              setPetSubView('list');
+            }}
           >
             <PawPrint size={18} />
             My Pets
@@ -349,6 +357,7 @@ export default function Dashboard({ onLogout }) {
 
               {petSubView === 'details' && (
                 <PetDetails 
+                  user={user}
                   petId={selectedPetId}
                   onBack={() => setPetSubView('list')}
                   onEdit={(id) => {

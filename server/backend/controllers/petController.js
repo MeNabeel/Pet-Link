@@ -5,7 +5,10 @@ const Pet = require('../models/Pet');
 // @access  Public
 exports.getPetsByOwner = async (req, res) => {
   try {
-    const pets = await Pet.find({ owner: req.params.ownerId }).sort({ createdAt: -1 });
+    const pets = await Pet.find({ 
+      owner: req.params.ownerId,
+      activeStatus: { $ne: 'ARCHIVED' }
+    }).sort({ createdAt: -1 });
     res.status(200).json(pets);
   } catch (error) {
     res.status(500).json({ message: 'Error retrieving user pets', error: error.message });
@@ -37,7 +40,7 @@ exports.addPet = async (req, res) => {
       isVaccinated, vaccinationDate, nextVaccinationDate, medicalHistory, allergies, diseases, bloodGroup,
       friendlyWithKids, friendlyWithPets, trainingLevel, neuteredSpayed, microchipNumber, foodPreference,
       behaviour, personality, aboutPet, adoptionStatus, activeStatus,
-      country, province, city, address, image, documents 
+      country, province, city, address, image, imageSettings, documents 
     } = req.body;
 
     if (!owner || !name || !breed || !age || !weight || !gender) {
@@ -71,12 +74,13 @@ exports.addPet = async (req, res) => {
       personality: personality || '',
       aboutPet: aboutPet || '',
       adoptionStatus: adoptionStatus || 'Available',
-      activeStatus: activeStatus || 'Active',
+      activeStatus: activeStatus || 'ACTIVE',
       country: country || 'Pakistan',
       province: province || 'Punjab',
       city: city || 'Lahore',
       address: address || '',
       image: image || '',
+      imageSettings: imageSettings || { positionX: 50, positionY: 50, scale: 1, objectPosition: '50% 50%' },
       documents: documents || [],
       vaccines: [],
       medicalRecords: [],
@@ -98,6 +102,11 @@ exports.updatePet = async (req, res) => {
       return res.status(404).json({ message: 'Pet profile not found' });
     }
 
+    const requesterId = req.headers['x-requester-id'] || req.body.requesterId || req.query.requesterId;
+    if (pet.owner.toString() !== requesterId) {
+      return res.status(403).json({ message: 'Forbidden: You do not own this pet profile' });
+    }
+
     const updates = req.body;
     
     // Update simple attributes dynamically
@@ -106,7 +115,7 @@ exports.updatePet = async (req, res) => {
       'isVaccinated', 'vaccinationDate', 'nextVaccinationDate', 'medicalHistory', 'allergies', 'diseases', 'bloodGroup',
       'friendlyWithKids', 'friendlyWithPets', 'trainingLevel', 'neuteredSpayed', 'microchipNumber', 'foodPreference',
       'behaviour', 'personality', 'aboutPet', 'adoptionStatus', 'activeStatus',
-      'country', 'province', 'city', 'address', 'image', 'documents'
+      'country', 'province', 'city', 'address', 'image', 'imageSettings', 'documents'
     ];
 
     fields.forEach((field) => {
@@ -132,6 +141,11 @@ exports.deletePet = async (req, res) => {
       return res.status(404).json({ message: 'Pet profile not found' });
     }
 
+    const requesterId = req.headers['x-requester-id'] || req.body.requesterId || req.query.requesterId;
+    if (pet.owner.toString() !== requesterId) {
+      return res.status(403).json({ message: 'Forbidden: You do not own this pet profile' });
+    }
+
     await pet.deleteOne();
     res.status(200).json({ message: 'Pet profile successfully deleted', petId: req.params.petId });
   } catch (error) {
@@ -148,6 +162,11 @@ exports.addVaccine = async (req, res) => {
     const pet = await Pet.findById(req.params.petId);
     if (!pet) {
       return res.status(404).json({ message: 'Pet profile not found' });
+    }
+
+    const requesterId = req.headers['x-requester-id'] || req.body.requesterId || req.query.requesterId;
+    if (pet.owner.toString() !== requesterId) {
+      return res.status(403).json({ message: 'Forbidden: You do not own this pet profile' });
     }
 
     pet.vaccines.push({
@@ -178,6 +197,11 @@ exports.addMedicalRecord = async (req, res) => {
     const pet = await Pet.findById(req.params.petId);
     if (!pet) {
       return res.status(404).json({ message: 'Pet profile not found' });
+    }
+
+    const requesterId = req.headers['x-requester-id'] || req.body.requesterId || req.query.requesterId;
+    if (pet.owner.toString() !== requesterId) {
+      return res.status(403).json({ message: 'Forbidden: You do not own this pet profile' });
     }
 
     pet.medicalRecords.push({

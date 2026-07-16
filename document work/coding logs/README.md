@@ -34,6 +34,18 @@ This directory maintains the coding logs, push history, and structural highlight
         5. *Log Out* (Session logout).
     *   **Web Profile Parity:** Created matching profile templates and editor forms (`Profile.jsx` / `AccountSettings.jsx`) inside the Web Portal to match mobile layouts, linking them from the Dashboard nav drawer.
 
+### 🏷️ Push Log 4: Admin Management, System Analytics & Pet Registration Flows
+*   **What was accomplished:**
+    *   **Admin Dashboard & Management:**
+        *   Created an administrative dashboard (`AdminDashboard.jsx` on Web, `AdminDashboard.js` on Mobile) showing real-time statistics (total users, total pets, products, orders, and revenue).
+        *   Built the `AdminUsersManager` (`AdminUsersManager.jsx`) allowing admins to search/view all users, update user statuses (`Active`, `Suspended`, `Blocked`, `Deleted`, `Pending Verification`), and permanently delete users.
+        *   Integrated role checking with administrative restriction headers (`x-requester-id`).
+    *   **Pet Profiles & Management:**
+        *   Implemented Pet profiles registration & modification (`PetForm.jsx` / `PetForm.js` and `PetDetails.jsx` / `PetDetails.js`).
+        *   Added routes and controllers to register pets, retrieve detailed pet information, list all registered pets under a specific user, and update/remove records with owner validation checks.
+    *   **Unified Navigation:**
+        *   Linked Admin Dashboards and Pet lists/forms directly into the primary navigation workflows on both platforms.
+
 ---
 
 ## 🎓 Part 2: Examiner's Code Highlights (Lines & CSS)
@@ -154,3 +166,32 @@ Below are the most important sections of code to showcase to your examiner durin
     }
     ```
     *Examiner Explanation:* "We avoid fixed pixel widths for cards. By styling the parent layout with `flexWrap: 'wrap'` and `justifyContent: 'space-between'`, we can set card widths to exactly `48%` so they dynamically scale on small or large phone devices."
+
+---
+
+### 🛡️ 6. Admin Authorization & User Status Management
+*   **File:** [`server/backend/controllers/authController.js`](file:///c:/Users/Nabeel/Desktop/FYP%20PETLINK/server/backend/controllers/authController.js)
+*   **Why it's important:** It verifies that requests are coming from an authorized administrator and updates user statuses securely.
+*   **Key Code Snippet:**
+    ```javascript
+    const requesterId = req.headers['x-requester-id'];
+    const requester = await User.findById(requesterId);
+    if (!requester || requester.role !== 'admin') {
+      return res.status(403).json({ message: 'Forbidden: Admin access only' });
+    }
+    ```
+    *Examiner Explanation:* "To secure admin actions, we extract the requestor's ID from the headers, fetch their user profile, and verify that their role is explicitly set to `admin`. This acts as our role-based authorization check."
+
+---
+
+### 🐾 7. Pet Ownership Verification for Profile Updates
+*   **File:** [`server/backend/controllers/petController.js`](file:///c:/Users/Nabeel/Desktop/FYP%20PETLINK/server/backend/controllers/petController.js)
+*   **Why it's important:** It ensures that only the actual owner of a pet profile can update or delete it.
+*   **Key Code Snippet:**
+    ```javascript
+    const requesterId = req.headers['x-requester-id'] || req.body.requesterId || req.query.requesterId;
+    if (pet.owner.toString() !== requesterId) {
+      return res.status(403).json({ message: 'Forbidden: You do not own this pet profile' });
+    }
+    ```
+    *Examiner Explanation:* "For data integrity and privacy, we check the requestor's ID against the stored pet owner ID. If there is a mismatch, the server returns a 403 Forbidden status, ensuring users cannot edit or delete pet profiles that do not belong to them."

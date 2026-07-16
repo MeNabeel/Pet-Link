@@ -121,8 +121,8 @@ const petSchema = new mongoose.Schema(
     },
     activeStatus: {
       type: String,
-      enum: ['Active', 'Lost', 'Sold', 'Adopted', 'Deceased'],
-      default: 'Active',
+      enum: ['ACTIVE', 'FOR_SALE', 'FOR_ADOPTION', 'IN_SHELTER', 'LOST', 'DECEASED', 'ARCHIVED'],
+      default: 'ACTIVE',
     },
     country: {
       type: String,
@@ -143,6 +143,12 @@ const petSchema = new mongoose.Schema(
     image: {
       type: String,
       default: '',
+    },
+    imageSettings: {
+      positionX: { type: Number, default: 50 },
+      positionY: { type: Number, default: 50 },
+      scale: { type: Number, default: 1 },
+      objectPosition: { type: String, default: '50% 50%' }
     },
     documents: [
       {

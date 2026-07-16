@@ -6,13 +6,18 @@ import {
 import { Feather, FontAwesome } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { COLORS } from '../constants/theme';
+import PetImage from '../components/PetImage';
 
-export default function PetDetails({ petId, onBack, onEdit, onDeleteSuccess }) {
+export default function PetDetails({ user, petId, onBack, onEdit, onDeleteSuccess }) {
   const [pet, setPet] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  const isOwner = user && pet && (pet.owner === user._id || pet.owner._id === user._id);
+
   // Sub-drawers modals
   const [activeModal, setActiveModal] = useState(null); // 'health' | 'vaccine' | 'medical' | 'delete'
+  const [behaviourExpanded, setBehaviourExpanded] = useState(false);
+  const [locationExpanded, setLocationExpanded] = useState(false);
 
   // Vaccine Form
   const [vName, setVName] = useState('');
@@ -58,6 +63,9 @@ export default function PetDetails({ petId, onBack, onEdit, onDeleteSuccess }) {
     try {
       const response = await fetch(`http://localhost:5000/api/pets/${petId}`, {
         method: 'DELETE',
+        headers: {
+          'x-requester-id': user._id
+        }
       });
       if (response.ok) {
         setActiveModal(null);
@@ -79,7 +87,10 @@ export default function PetDetails({ petId, onBack, onEdit, onDeleteSuccess }) {
     try {
       const response = await fetch(`http://localhost:5000/api/pets/${petId}/vaccine`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'x-requester-id': user._id
+        },
         body: JSON.stringify({
           vaccineName: vName,
           dose: vDose,
@@ -111,7 +122,10 @@ export default function PetDetails({ petId, onBack, onEdit, onDeleteSuccess }) {
     try {
       const response = await fetch(`http://localhost:5000/api/pets/${petId}/medical-record`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'x-requester-id': user._id
+        },
         body: JSON.stringify({
           disease: mDisease,
           symptoms: mSymptoms,
@@ -194,17 +208,19 @@ export default function PetDetails({ petId, onBack, onEdit, onDeleteSuccess }) {
       {/* Hero card */}
       <View style={styles.heroCard}>
         <View style={styles.heroImgWrapper}>
-          {pet.image ? (
-            <Image source={{ uri: pet.image }} style={styles.heroImg} resizeMode="cover" />
-          ) : (
-            <View style={styles.heroPlaceholder}>
-              <FontAwesome name="paw" size={64} color={COLORS.muted} />
-            </View>
+          <PetImage src={pet.image} imageSettings={pet.imageSettings} type="hero" />
+
+          {isOwner && (
+            <TouchableOpacity 
+              style={styles.floatingEditBtn} 
+              onPress={() => onEdit(pet._id)}
+            >
+              <Feather name="edit-2" size={16} color={COLORS.primary} />
+            </TouchableOpacity>
           )}
 
           <View style={styles.badgesRow}>
-            <View style={styles.badge}><Text style={styles.badgeText}>{pet.adoptionStatus}</Text></View>
-            <View style={[styles.badge, { backgroundColor: COLORS.dark }]}><Text style={styles.badgeText}>{pet.activeStatus}</Text></View>
+            <View style={[styles.badge, { backgroundColor: COLORS.dark }]}><Text style={styles.badgeText}>{pet.activeStatus.replace('_', ' ')}</Text></View>
           </View>
         </View>
 
@@ -212,35 +228,33 @@ export default function PetDetails({ petId, onBack, onEdit, onDeleteSuccess }) {
           <Text style={styles.heroName}>{pet.name}</Text>
           <Text style={styles.heroBreed}>{pet.breed} • {pet.species}</Text>
 
-          {/* Action Toolbar buttons group (Vertical stack on mobile) */}
+          {/* Action Toolbar buttons group (Side-by-side) */}
           <View style={styles.actionsGroup}>
-            <TouchableOpacity style={styles.btnOutline} onPress={() => onEdit(pet._id)}>
-              <Feather name="edit-2" size={13} color={COLORS.darkLight} style={styles.btnIcon} />
-              <Text style={styles.btnOutlineText}>Edit Pet</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.btnOutline} onPress={() => setActiveModal('health')}>
+            <TouchableOpacity style={[styles.btnOutline, { flex: 1 }]} onPress={() => setActiveModal('health')}>
               <Feather name="heart" size={13} color={COLORS.darkLight} style={styles.btnIcon} />
               <Text style={styles.btnOutlineText}>View Health Record</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.btnOutline} onPress={() => setActiveModal('vaccine')}>
-              <Feather name="activity" size={13} color={COLORS.darkLight} style={styles.btnIcon} />
-              <Text style={styles.btnOutlineText}>Add Vaccine</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.btnOutline} onPress={() => setActiveModal('medical')}>
-              <Feather name="plus-circle" size={13} color={COLORS.darkLight} style={styles.btnIcon} />
-              <Text style={styles.btnOutlineText}>Add Medical Record</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={[styles.btnOutline, { borderColor: '#EF4444' }]} onPress={() => setActiveModal('delete')}>
-              <Feather name="trash-2" size={13} color="#EF4444" style={styles.btnIcon} />
-              <Text style={[styles.btnOutlineText, { color: '#EF4444' }]}>Delete Pet</Text>
-            </TouchableOpacity>
+
+            {isOwner && (
+              <TouchableOpacity style={[styles.btnOutline, { flex: 1 }]} onPress={() => setActiveModal('vaccine')}>
+                <Feather name="activity" size={13} color={COLORS.darkLight} style={styles.btnIcon} />
+                <Text style={styles.btnOutlineText}>Add Vaccine</Text>
+              </TouchableOpacity>
+            )}
           </View>
         </View>
       </View>
 
       {/* Info details list */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Basic Information</Text>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, borderBottomWidth: 1, borderBottomColor: COLORS.bgLight, paddingBottom: 6 }}>
+          <Text style={[styles.sectionTitle, { marginBottom: 0, borderBottomWidth: 0, paddingBottom: 0 }]}>Basic Information</Text>
+          {isOwner && (
+            <TouchableOpacity onPress={() => onEdit(pet._id)}>
+              <Feather name="edit-2" size={14} color={COLORS.primary} />
+            </TouchableOpacity>
+          )}
+        </View>
         <View style={styles.infoRow}><Text style={styles.infoLabel}>Age</Text><Text style={styles.infoValue}>{pet.age}</Text></View>
         <View style={styles.infoRow}><Text style={styles.infoLabel}>Gender</Text><Text style={styles.infoValue}>{pet.gender}</Text></View>
         <View style={styles.infoRow}><Text style={styles.infoLabel}>Weight</Text><Text style={styles.infoValue}>{pet.weight}</Text></View>
@@ -250,21 +264,51 @@ export default function PetDetails({ petId, onBack, onEdit, onDeleteSuccess }) {
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Behaviour & Personality</Text>
-        <Text style={styles.label}>Biography</Text>
-        <Text style={styles.aboutText}>{pet.aboutPet || 'No bio registered.'}</Text>
-        <View style={styles.infoRow}><Text style={styles.infoLabel}>Friendly with Kids</Text><Text style={styles.infoValue}>{pet.friendlyWithKids ? 'Yes' : 'No'}</Text></View>
-        <View style={styles.infoRow}><Text style={styles.infoLabel}>Friendly with Pets</Text><Text style={styles.infoValue}>{pet.friendlyWithPets ? 'Yes' : 'No'}</Text></View>
-        <View style={styles.infoRow}><Text style={styles.infoLabel}>Training Level</Text><Text style={styles.infoValue}>{pet.trainingLevel}</Text></View>
-        <View style={styles.infoRow}><Text style={styles.infoLabel}>Food Preference</Text><Text style={styles.infoValue}>{pet.foodPreference || 'N/A'}</Text></View>
-        <View style={styles.infoRow} style={{ flexDirection: 'row', justifyContent: 'space-between', borderBottomWidth: 0, paddingBottom: 0 }}><Text style={styles.infoLabel}>Neutered</Text><Text style={styles.infoValue}>{pet.neuteredSpayed ? 'Yes' : 'No'}</Text></View>
+        <TouchableOpacity 
+          style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: behaviourExpanded ? 12 : 0, borderBottomWidth: behaviourExpanded ? 1 : 0, borderBottomColor: COLORS.bgLight, paddingBottom: behaviourExpanded ? 6 : 0 }} 
+          onPress={() => setBehaviourExpanded(!behaviourExpanded)}
+          activeOpacity={0.7}
+        >
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <Feather name="heart" size={15} color={COLORS.primary} style={{ marginRight: 4 }} />
+            <Text style={[styles.sectionTitle, { marginBottom: 0, borderBottomWidth: 0, paddingBottom: 0 }]}>Behaviour & Personality</Text>
+          </View>
+          <Feather name={behaviourExpanded ? "chevron-up" : "chevron-down"} size={16} color={COLORS.muted} />
+        </TouchableOpacity>
+        
+        {behaviourExpanded && (
+          <View style={{ marginTop: 8 }}>
+            <Text style={styles.label}>Biography</Text>
+            <Text style={styles.aboutText}>{pet.aboutPet || 'No bio registered.'}</Text>
+            <View style={styles.infoRow}><Text style={styles.infoLabel}>Friendly with Kids</Text><Text style={styles.infoValue}>{pet.friendlyWithKids ? 'Yes' : 'No'}</Text></View>
+            <View style={styles.infoRow}><Text style={styles.infoLabel}>Friendly with Pets</Text><Text style={styles.infoValue}>{pet.friendlyWithPets ? 'Yes' : 'No'}</Text></View>
+            <View style={styles.infoRow}><Text style={styles.infoLabel}>Training Level</Text><Text style={styles.infoValue}>{pet.trainingLevel}</Text></View>
+            <View style={styles.infoRow}><Text style={styles.infoLabel}>Food Preference</Text><Text style={styles.infoValue}>{pet.foodPreference || 'N/A'}</Text></View>
+            <View style={styles.infoRow} style={{ flexDirection: 'row', justifyContent: 'space-between', borderBottomWidth: 0, paddingBottom: 0 }}><Text style={styles.infoLabel}>Neutered</Text><Text style={styles.infoValue}>{pet.neuteredSpayed ? 'Yes' : 'No'}</Text></View>
+          </View>
+        )}
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Location</Text>
-        <View style={styles.infoRow}><Text style={styles.infoLabel}>City</Text><Text style={styles.infoValue}>{pet.city}</Text></View>
-        <View style={styles.infoRow}><Text style={styles.infoLabel}>Province</Text><Text style={styles.infoValue}>{pet.province}</Text></View>
-        <View style={styles.infoRow} style={{ flexDirection: 'row', justifyContent: 'space-between', borderBottomWidth: 0, paddingBottom: 0 }}><Text style={styles.infoLabel}>Address</Text><Text style={styles.infoValue}>{pet.address || 'N/A'}</Text></View>
+        <TouchableOpacity 
+          style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: locationExpanded ? 12 : 0, borderBottomWidth: locationExpanded ? 1 : 0, borderBottomColor: COLORS.bgLight, paddingBottom: locationExpanded ? 6 : 0 }} 
+          onPress={() => setLocationExpanded(!locationExpanded)}
+          activeOpacity={0.7}
+        >
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <Feather name="map-pin" size={15} color={COLORS.primary} style={{ marginRight: 4 }} />
+            <Text style={[styles.sectionTitle, { marginBottom: 0, borderBottomWidth: 0, paddingBottom: 0 }]}>Location Details</Text>
+          </View>
+          <Feather name={locationExpanded ? "chevron-up" : "chevron-down"} size={16} color={COLORS.muted} />
+        </TouchableOpacity>
+        
+        {locationExpanded && (
+          <View style={{ marginTop: 8 }}>
+            <View style={styles.infoRow}><Text style={styles.infoLabel}>City</Text><Text style={styles.infoValue}>{pet.city}</Text></View>
+            <View style={styles.infoRow}><Text style={styles.infoLabel}>Province</Text><Text style={styles.infoValue}>{pet.province}</Text></View>
+            <View style={styles.infoRow} style={{ flexDirection: 'row', justifyContent: 'space-between', borderBottomWidth: 0, paddingBottom: 0 }}><Text style={styles.infoLabel}>Address</Text><Text style={styles.infoValue}>{pet.address || 'N/A'}</Text></View>
+          </View>
+        )}
       </View>
 
       {/* Drawer: Health Timeline */}
@@ -273,9 +317,22 @@ export default function PetDetails({ petId, onBack, onEdit, onDeleteSuccess }) {
           <View style={styles.modalContent}>
             <View style={styles.drawerHeader}>
               <Text style={styles.modalTitle}>Medical Log History</Text>
-              <TouchableOpacity onPress={() => setActiveModal(null)}>
-                <Feather name="x" size={20} color={COLORS.dark} />
-              </TouchableOpacity>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                {isOwner && (
+                  <>
+                    <TouchableOpacity style={[styles.btnOutline, { paddingVertical: 5, paddingHorizontal: 10 }]} onPress={() => { setActiveModal('medical'); }}>
+                      <Feather name="plus" size={12} color={COLORS.primary} />
+                      <Text style={{ fontSize: 11, fontWeight: '700', color: COLORS.primary }}>Medical</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={[styles.btnOutline, { paddingVertical: 5, paddingHorizontal: 10, borderColor: '#EF4444' }]} onPress={() => { setActiveModal('delete'); }}>
+                      <Feather name="trash-2" size={12} color="#EF4444" />
+                    </TouchableOpacity>
+                  </>
+                )}
+                <TouchableOpacity onPress={() => setActiveModal(null)} style={{ marginLeft: 6 }}>
+                  <Feather name="x" size={20} color={COLORS.dark} />
+                </TouchableOpacity>
+              </View>
             </View>
 
             <ScrollView showsVerticalScrollIndicator={false} style={{ width: '100%' }}>
@@ -513,7 +570,25 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   actionsGroup: {
+    flexDirection: 'row',
     gap: 10,
+  },
+  floatingEditBtn: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 3,
+    zIndex: 2,
   },
   btnOutline: {
     flexDirection: 'row',

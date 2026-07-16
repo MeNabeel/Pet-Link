@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Search, Eye, Pencil, Trash2, ShieldCheck, Heart, User, Sparkles } from 'lucide-react';
 import './MyPets.css';
+import PetImage from '../components/PetImage';
 
 export default function MyPets({ user, onViewDetails, onAddPet, onEditPet, onDeletePet }) {
   const [pets, setPets] = useState([]);
@@ -105,19 +106,10 @@ export default function MyPets({ user, onViewDetails, onAddPet, onEditPet, onDel
                   
                   {/* Photo Section */}
                   <div className="pet-card-image-wrapper">
-                    {pet.image ? (
-                      <img src={pet.image} alt={pet.name} className="pet-card-image" />
-                    ) : (
-                      <div className="pet-card-placeholder-image">
-                        <Plus size={36} color="var(--color-muted)" />
-                      </div>
-                    )}
+                    <PetImage src={pet.image} imageSettings={pet.imageSettings} type="card" className="pet-card-image" />
                     
-                    <span className="pet-details-badge adoption" style={{ position: 'absolute', bottom: '10px', left: '10px', fontSize: '9px', padding: '4px 10px', opacity: 0.9 }}>
-                      {pet.adoptionStatus}
-                    </span>
-                    <span className={`pet-details-badge status ${pet.activeStatus.toLowerCase()}`} style={{ position: 'absolute', bottom: '10px', right: '10px', fontSize: '9px', padding: '4px 10px', opacity: 0.9 }}>
-                      {pet.activeStatus}
+                    <span className={`pet-details-badge status ${pet.activeStatus.toLowerCase().replace('_', '-')}`} style={{ position: 'absolute', bottom: '10px', right: '10px', fontSize: '9px', padding: '4px 10px', opacity: 0.9 }}>
+                      {pet.activeStatus.replace('_', ' ')}
                     </span>
                   </div>
 

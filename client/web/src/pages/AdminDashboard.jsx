@@ -8,9 +8,15 @@ import {
 } from 'lucide-react';
 import AdminUsersManager from './AdminUsersManager';
 import './Dashboard.css';
+import { 
+  AlertDialog, AlertDialogContent, AlertDialogHeader, 
+  AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, 
+  AlertDialogCancel, AlertDialogAction 
+} from '../components/ui/AlertDialog';
 
 export default function AdminDashboard({ user, onLogout }) {
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [isSignoutOpen, setIsSignoutOpen] = useState(false);
   const [stats, setStats] = useState({
     users: 0,
     pets: 0,
@@ -84,9 +90,9 @@ export default function AdminDashboard({ user, onLogout }) {
 
           <button 
             type="button" 
-            className="btn btn-outline" 
+            className="btn btn-outline btn-signout" 
             style={{ padding: '8px 16px', gap: '6px', fontSize: '13px' }}
-            onClick={onLogout}
+            onClick={() => setIsSignoutOpen(true)}
           >
             <LogOut size={14} />
             Sign Out
@@ -316,34 +322,31 @@ export default function AdminDashboard({ user, onLogout }) {
 
               </div>
 
-              {/* Recent Activity Log Placeholder */}
+              {/* Recent Activity Log */}
               <div style={{ backgroundColor: '#FFF', padding: '24px', borderRadius: '20px', border: '1px solid var(--color-border)' }}>
                 <h4 style={{ fontSize: '14px', fontWeight: '800', marginBottom: '16px' }}>Live Platform Events Logging</h4>
                 <div style={{ gap: '12px', display: 'flex', flexDirection: 'column' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '8px', borderBottom: '1px solid var(--color-bg-light)', fontSize: '12px', alignItems: 'center' }}>
-                    <span style={{ color: 'var(--color-dark)', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <ShieldCheck size={14} color="#16A34A" /> New User account registered: Muhammad Ali (Seller)
-                    </span>
-                    <span style={{ color: 'var(--color-muted)' }}>2 minutes ago</span>
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '8px', borderBottom: '1px solid var(--color-bg-light)', fontSize: '12px', alignItems: 'center' }}>
-                    <span style={{ color: 'var(--color-dark)', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <PawPrint size={14} color="#EAB308" /> New Pet companion posted: "Bella" (Golden Retriever)
-                    </span>
-                    <span style={{ color: 'var(--color-muted)' }}>10 minutes ago</span>
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '8px', borderBottom: '1px solid var(--color-bg-light)', fontSize: '12px', alignItems: 'center' }}>
-                    <span style={{ color: 'var(--color-dark)', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <PackageOpen size={14} color="#3B82F6" /> Order #19024 Dispatched (Shipping destination: Islamabad)
-                    </span>
-                    <span style={{ color: 'var(--color-muted)' }}>1 hour ago</span>
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', alignItems: 'center' }}>
-                    <span style={{ color: 'var(--color-dark)', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <CreditCard size={14} color="#10B981" /> Payment of 4,500 PKR verified for Order #19024
-                    </span>
-                    <span style={{ color: 'var(--color-muted)' }}>1.5 hours ago</span>
-                  </div>
+                  {stats.logs && stats.logs.length > 0 ? (
+                    stats.logs.map((log, idx) => (
+                      <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: idx === stats.logs.length - 1 ? '0' : '8px', borderBottom: idx === stats.logs.length - 1 ? 'none' : '1px solid var(--color-bg-light)', fontSize: '12px', alignItems: 'center' }}>
+                        <span style={{ color: 'var(--color-dark)', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          {log.type === 'user' ? (
+                            <ShieldCheck size={14} color="#16A34A" />
+                          ) : (
+                            <PawPrint size={14} color="#EAB308" />
+                          )}
+                          {log.message}
+                        </span>
+                        <span style={{ color: 'var(--color-muted)' }}>
+                          {new Date(log.time).toLocaleTimeString()}
+                        </span>
+                      </div>
+                    ))
+                  ) : (
+                    <p style={{ color: 'var(--color-muted)', fontSize: '12px', textAlign: 'center', padding: '12px 0' }}>
+                      No recent platform events recorded.
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -370,6 +373,21 @@ export default function AdminDashboard({ user, onLogout }) {
           )}
         </main>
       </div>
+
+      <AlertDialog open={isSignoutOpen} onOpenChange={setIsSignoutOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Sign Out Confirmation</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to sign out of the Admin Control Panel session?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={onLogout}>Sign Out</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

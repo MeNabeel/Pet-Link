@@ -214,9 +214,8 @@ export default function App() {
                   user={user}
                   petId={selectedPetId}
                   onCancel={() => setPetSubView('list')}
-                  onSaveSuccess={(saved) => {
-                    setSelectedPetId(saved._id);
-                    setPetSubView('details');
+                  onSaveSuccess={() => {
+                    setPetSubView('list');
                   }}
                 />
               )}

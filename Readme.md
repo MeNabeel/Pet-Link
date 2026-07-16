@@ -127,6 +127,35 @@ Pet owners in Pakistan face significant challenges in their daily lives while ma
 
 ---
 
+## ⚙️ Installation & Setup
+
+### Prerequisites
+*   Node.js (v18+)
+*   MongoDB installed and running locally
+
+### 1. Server/Backend Setup
+```bash
+cd server/backend
+npm install
+npm start
+```
+
+### 2. Web Client Setup
+```bash
+cd client/web
+npm install
+npm run dev
+```
+
+### 3. Mobile App Setup
+```bash
+cd client/app
+npm install
+npm run android
+```
+
+---
+
 ## 👨‍💻 Development Team
 
 | Reg. No. | Name | Role |

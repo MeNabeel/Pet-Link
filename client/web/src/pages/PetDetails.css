@@ -336,3 +336,61 @@
   color: var(--color-primary);
   background-color: rgba(0, 102, 204, 0.05);
 }
+
+.pet-btn-outline.teal-btn {
+  border-color: #0D9488 !important;
+  color: #0D9488 !important;
+  background-color: rgba(13, 148, 136, 0.02) !important;
+}
+
+.pet-btn-outline.teal-btn:hover {
+  background-color: #0D9488 !important;
+  color: #ffffff !important;
+}
+
+.pet-btn-outline.orange-btn {
+  border-color: #EA580C !important;
+  color: #EA580C !important;
+  background-color: rgba(234, 88, 12, 0.02) !important;
+}
+
+.pet-btn-outline.orange-btn:hover {
+  background-color: #EA580C !important;
+  color: #ffffff !important;
+}
+
+/* Custom Status Badges for Profile details */
+.pet-details-badge.status-active {
+  background-color: #2ECC71 !important;
+  color: #ffffff !important;
+}
+
+.pet-details-badge.status-for-sale {
+  background-color: #3498DB !important;
+  color: #ffffff !important;
+}
+
+.pet-details-badge.status-for-adoption {
+  background-color: #9B59B6 !important;
+  color: #ffffff !important;
+}
+
+.pet-details-badge.status-in-shelter {
+  background-color: #F39C12 !important;
+  color: #ffffff !important;
+}
+
+.pet-details-badge.status-lost {
+  background-color: #E67E22 !important;
+  color: #ffffff !important;
+}
+
+.pet-details-badge.status-deceased {
+  background-color: #E74C3C !important;
+  color: #ffffff !important;
+}
+
+.pet-details-badge.status-archived {
+  background-color: #95A5A6 !important;
+  color: #ffffff !important;
+}

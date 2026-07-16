@@ -364,17 +364,43 @@ exports.getSystemAnalytics = async (req, res) => {
     const Pet = require('../models/Pet');
     const totalPets = await Pet.countDocuments({});
 
+    // Fetch real recent logs dynamically
+    const recentUsers = await User.find({}).sort({ createdAt: -1 }).limit(3);
+    const recentPets = await Pet.find({}).populate('owner').sort({ createdAt: -1 }).limit(3);
+
+    const logs = [];
+    recentUsers.forEach(u => {
+      logs.push({
+        type: 'user',
+        message: `New User account registered: ${u.name} (${u.role.replace('_', ' ')})`,
+        time: u.createdAt
+      });
+    });
+    
+    recentPets.forEach(p => {
+      const ownerName = p.owner ? p.owner.name : 'Unknown';
+      logs.push({
+        type: 'pet',
+        message: `New Pet companion posted: "${p.name}" (${p.breed || p.species}) by ${ownerName}`,
+        time: p.createdAt
+      });
+    });
+
+    // Sort descending by time
+    logs.sort((a, b) => new Date(b.time) - new Date(a.time));
+
     res.status(200).json({
       users: totalUsers,
       pets: totalPets,
-      listings: 0,
+      listings: totalPets,
       products: 0,
       orders: 0,
       revenue: '0 PKR',
       bookings: 0,
       pendingOrders: 0,
       completedOrders: 0,
-      notifications: 0
+      notifications: logs.length,
+      logs: logs
     });
   } catch (error) {
     res.status(500).json({ message: 'Server analytics error', error: error.message });

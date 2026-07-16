@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   StyleSheet, Text, View, Image, TouchableOpacity, 
-  TextInput, Switch, ScrollView, Alert, ActivityIndicator 
+  TextInput, Switch, ScrollView, Alert, ActivityIndicator, Platform 
 } from 'react-native';
 import { Feather, FontAwesome } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
@@ -211,18 +211,27 @@ export default function PetForm({ user, petId, onCancel, onSaveSuccess }) {
 
   const handleSave = () => {
     if (!name || !breed || !age || !weight) {
-      Alert.alert("Validation Error", "Please complete all required pet fields.");
+      if (Platform.OS === 'web') {
+        alert("Please complete Nick Name, Breed, Age, and Weight.");
+      } else {
+        Alert.alert("Validation Error", "Please complete Nick Name, Breed, Age, and Weight.");
+      }
       return;
     }
 
-    Alert.alert(
-      petId ? "Confirm Update" : "Confirm Registration",
-      petId ? "Do you want to save these changes to the pet profile?" : "Do you want to register this new pet companion?",
-      [
-        { text: "Cancel", style: "cancel" },
-        { text: "Save", onPress: () => proceedSave() }
-      ]
-    );
+    if (Platform.OS === 'web') {
+      const check = window.confirm(petId ? "Do you want to save these changes to the pet profile?" : "Do you want to register this new pet companion?");
+      if (check) proceedSave();
+    } else {
+      Alert.alert(
+        petId ? "Confirm Update" : "Confirm Registration",
+        petId ? "Do you want to save these changes to the pet profile?" : "Do you want to register this new pet companion?",
+        [
+          { text: "Cancel", style: "cancel" },
+          { text: "Save", onPress: () => proceedSave() }
+        ]
+      );
+    }
   };
 
   const proceedSave = async () => {
@@ -257,14 +266,26 @@ export default function PetForm({ user, petId, onCancel, onSaveSuccess }) {
 
       if (response.ok) {
         const saved = await response.json();
-        Alert.alert("Success", petId ? "Companion profile updated successfully!" : "New companion registered successfully!");
+        if (Platform.OS === 'web') {
+          alert(petId ? "Companion profile updated successfully!" : "New companion registered successfully!");
+        } else {
+          Alert.alert("Success", petId ? "Companion profile updated successfully!" : "New companion registered successfully!");
+        }
         onSaveSuccess(saved);
       } else {
         const errData = await response.json();
-        Alert.alert("Error", errData.message || "Failed to save companion details.");
+        if (Platform.OS === 'web') {
+          alert(errData.message || "Failed to save companion details.");
+        } else {
+          Alert.alert("Error", errData.message || "Failed to save companion details.");
+        }
       }
     } catch (err) {
-      Alert.alert("Error", "Network connection to PetLink backend failed.");
+      if (Platform.OS === 'web') {
+        alert("Network connection to PetLink backend failed.");
+      } else {
+        Alert.alert("Error", "Network connection to PetLink backend failed.");
+      }
     } finally {
       setLoading(false);
     }

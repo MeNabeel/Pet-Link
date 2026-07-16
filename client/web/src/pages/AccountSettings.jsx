@@ -1,6 +1,11 @@
 import React, { useState } from 'react';
 import { Settings, Shield, User, Mail, Phone, MapPin, Globe, Calendar, AtSign, Trash2 } from 'lucide-react';
 import './AccountSettings.css';
+import { 
+  AlertDialog, AlertDialogContent, AlertDialogHeader, 
+  AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, 
+  AlertDialogCancel, AlertDialogAction 
+} from '../components/ui/AlertDialog';
 
 export default function AccountSettings({ user, onSave, onCancel }) {
   const [name, setName] = useState(user.name || '');
@@ -17,6 +22,7 @@ export default function AccountSettings({ user, onSave, onCancel }) {
 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
 
   const validateAndSubmit = (e) => {
     e.preventDefault();
@@ -62,10 +68,12 @@ export default function AccountSettings({ user, onSave, onCancel }) {
   };
 
   const handleDeleteAccount = () => {
-    const confirmation = window.confirm("This action is permanent. Are you sure you want to request account deletion?");
-    if (confirmation) {
-      alert("Account deletion request submitted.");
-    }
+    setIsDeleteOpen(true);
+  };
+
+  const proceedDeleteAccount = () => {
+    alert("Account deletion request submitted.");
+    setIsDeleteOpen(false);
   };
 
   const formatRole = (roleKey) => {
@@ -332,6 +340,21 @@ export default function AccountSettings({ user, onSave, onCancel }) {
           Delete User Account
         </button>
       </div>
+
+      <AlertDialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Request Account Deletion</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you absolutely sure you want to delete your account? This action is permanent and cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction variant="danger" onClick={proceedDeleteAccount}>Delete Account</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

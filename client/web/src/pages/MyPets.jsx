@@ -2,11 +2,17 @@ import React, { useState, useEffect } from 'react';
 import { Plus, Search, Eye, Pencil, Trash2, ShieldCheck, Heart, User, Sparkles } from 'lucide-react';
 import './MyPets.css';
 import PetImage from '../components/PetImage';
+import { 
+  AlertDialog, AlertDialogContent, AlertDialogHeader, 
+  AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, 
+  AlertDialogCancel, AlertDialogAction 
+} from '../components/ui/AlertDialog';
 
 export default function MyPets({ user, onViewDetails, onAddPet, onEditPet, onDeletePet }) {
   const [pets, setPets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [deletePetId, setDeletePetId] = useState(null);
 
   const fetchPets = async () => {
     try {
@@ -28,29 +34,33 @@ export default function MyPets({ user, onViewDetails, onAddPet, onEditPet, onDel
     }
   }, [user]);
 
-  const handleDeleteClick = async (e, petId) => {
+  const handleDeleteClick = (e, petId) => {
     e.stopPropagation();
-    const check = window.confirm("Are you sure you want to permanently delete this pet?");
-    if (!check) return;
+    setDeletePetId(petId);
+  };
 
+  const proceedDelete = async () => {
+    if (!deletePetId) return;
     try {
-      const response = await fetch(`http://localhost:5000/api/pets/${petId}`, {
+      const response = await fetch(`http://localhost:5000/api/pets/${deletePetId}`, {
         method: 'DELETE',
       });
       if (response.ok) {
         fetchPets();
-        if (onDeletePet) onDeletePet(petId);
+        if (onDeletePet) onDeletePet(deletePetId);
       } else {
-        alert("Failed to delete pet profile");
+        console.error("Failed to delete pet profile");
       }
     } catch (err) {
       console.error("Delete pet error:", err);
+    } finally {
+      setDeletePetId(null);
     }
   };
 
   const filteredPets = pets.filter(p => 
-    p.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-    p.breed.toLowerCase().includes(searchQuery.toLowerCase())
+    (p.name || '').toLowerCase().includes(searchQuery.toLowerCase()) || 
+    (p.breed || '').toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (
@@ -108,8 +118,8 @@ export default function MyPets({ user, onViewDetails, onAddPet, onEditPet, onDel
                   <div className="pet-card-image-wrapper">
                     <PetImage src={pet.image} imageSettings={pet.imageSettings} type="card" className="pet-card-image" />
                     
-                    <span className={`pet-details-badge status ${pet.activeStatus.toLowerCase().replace('_', '-')}`} style={{ position: 'absolute', bottom: '10px', right: '10px', fontSize: '9px', padding: '4px 10px', opacity: 0.9 }}>
-                      {pet.activeStatus.replace('_', ' ')}
+                    <span className={`pet-details-badge status-${(pet.activeStatus || 'ACTIVE').toLowerCase().replace(/_/g, '-')}`} style={{ position: 'absolute', bottom: '10px', right: '10px', fontSize: '9px', padding: '4px 10px', opacity: 0.9 }}>
+                      {(pet.activeStatus || 'ACTIVE').replace('_', ' ')}
                     </span>
                   </div>
 
@@ -120,8 +130,8 @@ export default function MyPets({ user, onViewDetails, onAddPet, onEditPet, onDel
                         <h4 className="pet-card-name">{pet.name}</h4>
                         <span className="pet-card-breed">{pet.breed} • {pet.species}</span>
                       </div>
-                      <span className={`pet-card-gender-badge ${pet.gender.toLowerCase()}`}>
-                        {pet.gender}
+                      <span className={`pet-card-gender-badge ${(pet.gender || 'Male').toLowerCase()}`}>
+                        {pet.gender || 'Male'}
                       </span>
                     </div>
 
@@ -175,6 +185,20 @@ export default function MyPets({ user, onViewDetails, onAddPet, onEditPet, onDel
         </>
       )}
 
+      <AlertDialog open={deletePetId !== null} onOpenChange={(open) => { if (!open) setDeletePetId(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Companion Profile</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to permanently delete this companion profile? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction variant="danger" onClick={proceedDelete}>Delete</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

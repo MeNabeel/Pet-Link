@@ -11,12 +11,18 @@ import MyPets from './MyPets';
 import PetForm from './PetForm';
 import PetDetails from './PetDetails';
 import AdminDashboard from './AdminDashboard';
+import { 
+  AlertDialog, AlertDialogContent, AlertDialogHeader, 
+  AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, 
+  AlertDialogCancel, AlertDialogAction 
+} from '../components/ui/AlertDialog';
 
 export default function Dashboard({ onLogout }) {
   const [user, setUser] = useState(null);
   const [activeTab, setActiveTab] = useState('overview');
   const [petSubView, setPetSubView] = useState('list'); // 'list' | 'form' | 'details'
   const [selectedPetId, setSelectedPetId] = useState(null);
+  const [isSignoutOpen, setIsSignoutOpen] = useState(false);
 
   useEffect(() => {
     const sessionUser = localStorage.getItem('user');
@@ -54,6 +60,34 @@ export default function Dashboard({ onLogout }) {
       setPetSubView('list');
     }
   }, [activeTab]);
+
+  const [metrics, setMetrics] = useState({ pets: 0, listings: 0, vaccines: 0, support: 5 });
+
+  useEffect(() => {
+    if (user && user._id) {
+      fetch(`http://localhost:5000/api/pets/owner/${user._id}`)
+        .then(res => res.json())
+        .then(petsData => {
+          if (Array.isArray(petsData)) {
+            const petsCount = petsData.length;
+            const listingsCount = petsData.filter(p => ['FOR_SALE', 'FOR_ADOPTION'].includes(p.activeStatus)).length;
+            const vaccinesCount = petsData.reduce((acc, p) => acc + (p.vaccines ? p.vaccines.length : 0), 0);
+            
+            // Support: dynamically derived from chatbot logs or local default
+            const chatHistory = localStorage.getItem('chatbot_history');
+            const supportCount = chatHistory ? JSON.parse(chatHistory).length : 5;
+
+            setMetrics({
+              pets: petsCount,
+              listings: listingsCount,
+              vaccines: vaccinesCount,
+              support: supportCount
+            });
+          }
+        })
+        .catch(err => console.error('Error loading dashboard analytics:', err));
+    }
+  }, [user, petSubView, activeTab]);
 
   const handleActionClick = (moduleName) => {
     alert(`Navigating to the ${moduleName} module... This is part of the Sprint deliverables mapped in your SDS.`);
@@ -143,9 +177,9 @@ export default function Dashboard({ onLogout }) {
           </div>
           <button 
             type="button" 
-            className="btn btn-outline" 
+            className="btn btn-outline btn-signout" 
             style={{ padding: '8px 16px', gap: '6px', fontSize: '13px' }}
-            onClick={onLogout}
+            onClick={() => setIsSignoutOpen(true)}
           >
             <LogOut size={14} />
             Sign Out
@@ -236,7 +270,7 @@ export default function Dashboard({ onLogout }) {
                   </div>
                   <div className="metric-info">
                     <span className="metric-label">Registered Pets</span>
-                    <span className="metric-value">2</span>
+                    <span className="metric-value">{metrics.pets}</span>
                   </div>
                 </div>
                 
@@ -246,7 +280,7 @@ export default function Dashboard({ onLogout }) {
                   </div>
                   <div className="metric-info">
                     <span className="metric-label">Active Listings</span>
-                    <span className="metric-value">3</span>
+                    <span className="metric-value">{metrics.listings}</span>
                   </div>
                 </div>
 
@@ -256,7 +290,7 @@ export default function Dashboard({ onLogout }) {
                   </div>
                   <div className="metric-info">
                     <span className="metric-label">Vaccines Tracked</span>
-                    <span className="metric-value">1</span>
+                    <span className="metric-value">{metrics.vaccines}</span>
                   </div>
                 </div>
 
@@ -266,7 +300,7 @@ export default function Dashboard({ onLogout }) {
                   </div>
                   <div className="metric-info">
                     <span className="metric-label">Support Sessions</span>
-                    <span className="metric-value">12</span>
+                    <span className="metric-value">{metrics.support}</span>
                   </div>
                 </div>
               </div>
@@ -348,9 +382,8 @@ export default function Dashboard({ onLogout }) {
                   user={user}
                   petId={selectedPetId}
                   onCancel={() => setPetSubView('list')}
-                  onSaveSuccess={(savedPet) => {
-                    setSelectedPetId(savedPet._id);
-                    setPetSubView('details');
+                  onSaveSuccess={() => {
+                    setPetSubView('list');
                   }}
                 />
               )}
@@ -382,6 +415,21 @@ export default function Dashboard({ onLogout }) {
           )}
         </main>
       </div>
+
+      <AlertDialog open={isSignoutOpen} onOpenChange={setIsSignoutOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Sign Out Confirmation</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to sign out of your PetLink workspace session?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={onLogout}>Sign Out</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

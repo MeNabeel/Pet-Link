@@ -186,7 +186,7 @@ export default function PetDetails({ user, petId, onBack, onEdit, onDeleteSucces
       
       {/* Back Header Nav */}
       <div style={{ marginBottom: '20px' }}>
-        <button className="pet-btn-outline" onClick={onBack} style={{ border: 'none', paddingLeft: 0 }}>
+        <button className="pet-btn-outline" onClick={onBack} style={{ gap: '10px', padding: '8px 18px', display: 'flex', alignItems: 'center' }}>
           <ArrowLeft size={16} />
           Back to list
         </button>
@@ -198,7 +198,7 @@ export default function PetDetails({ user, petId, onBack, onEdit, onDeleteSucces
           <PetImage src={pet.image} imageSettings={pet.imageSettings} type="hero" className="pet-details-hero-img" />
           
           <div className="pet-details-badges-row">
-            <span className={`pet-details-badge status ${pet.activeStatus.toLowerCase().replace('_', '-')}`}>{pet.activeStatus.replace('_', ' ')}</span>
+            <span className={`pet-details-badge status-${(pet.activeStatus || 'ACTIVE').toLowerCase().replace(/_/g, '-')}`}>{pet.activeStatus.replace('_', ' ')}</span>
           </div>
         </div>
 
@@ -208,14 +208,13 @@ export default function PetDetails({ user, petId, onBack, onEdit, onDeleteSucces
             <span className="pet-details-hero-breed">{pet.breed} • {pet.species}</span>
           </div>
 
-          {/* Action Toolbar buttons group */}
           <div className="pet-details-action-group">
-            <button className="pet-btn-outline" onClick={() => setActiveDrawer('health')}>
+            <button className="pet-btn-outline teal-btn" onClick={() => setActiveDrawer('health')}>
               <HeartPulse size={14} />
               View Health Record
             </button>
             {isOwner && (
-              <button className="pet-btn-outline" onClick={() => setActiveDrawer('vaccine')}>
+              <button className="pet-btn-outline orange-btn" onClick={() => setActiveDrawer('vaccine')}>
                 <Syringe size={14} />
                 Add Vaccine
               </button>

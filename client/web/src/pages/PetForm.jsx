@@ -1,14 +1,37 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   Heart, ShieldAlert, Award, FileText, MapPin, 
-  Upload, X, Image as ImageIcon, Sparkles, CheckSquare 
+  Upload, X, Image as ImageIcon, Sparkles, CheckSquare,
+  ChevronDown, ChevronRight
 } from 'lucide-react';
 import './PetForm.css';
 import PetImage from '../components/PetImage';
+import { 
+  AlertDialog, AlertDialogContent, AlertDialogHeader, 
+  AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, 
+  AlertDialogCancel, AlertDialogAction 
+} from '../components/ui/AlertDialog';
 
 export default function PetForm({ user, petId, onCancel, onSaveSuccess }) {
   const [loading, setLoading] = useState(false);
   const [fetchingData, setFetchingData] = useState(false);
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+  const [formError, setFormError] = useState('');
+  const [sectionsExpanded, setSectionsExpanded] = useState({
+    basic: true,
+    health: false,
+    behaviour: false,
+    status: false,
+    location: false,
+    documents: false
+  });
+
+  const toggleSection = (sectionKey) => {
+    setSectionsExpanded(prev => ({
+      ...prev,
+      [sectionKey]: !prev[sectionKey]
+    }));
+  };
 
   // Section 1: Basic Info
   const [name, setName] = useState('');
@@ -46,7 +69,7 @@ export default function PetForm({ user, petId, onCancel, onSaveSuccess }) {
   const [adoptionStatus, setAdoptionStatus] = useState('Available');
 
   // Section 5: Pet Status
-  const [activeStatus, setActiveStatus] = useState('Active');
+  const [activeStatus, setActiveStatus] = useState('ACTIVE');
 
   // Section 6: Location
   const [country, setCountry] = useState('Pakistan');
@@ -210,17 +233,18 @@ export default function PetForm({ user, petId, onCancel, onSaveSuccess }) {
     isDragging.current = false;
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
     if (!name || !breed || !age || !weight) {
       alert('Nick Name, Breed, Age, and Weight are required.');
       return;
     }
+    setIsConfirmOpen(true);
+  };
 
-    const confirmSave = window.confirm(petId ? "Do you want to save these changes to the pet profile?" : "Do you want to register this new pet companion?");
-    if (!confirmSave) return;
-
+  const proceedSave = async () => {
     setLoading(true);
+    setFormError('');
     try {
       const payload = {
         owner: user._id,
@@ -251,17 +275,17 @@ export default function PetForm({ user, petId, onCancel, onSaveSuccess }) {
 
       if (response.ok) {
         const savedData = await response.json();
-        alert(petId ? "Companion profile updated successfully!" : "New companion registered successfully!");
         onSaveSuccess(savedData);
       } else {
         const errorData = await response.json();
-        alert(errorData.message || 'Failed to save pet profile.');
+        setFormError(errorData.message || 'Failed to save pet profile.');
       }
     } catch (err) {
       console.error('Error saving pet profile:', err);
-      alert('Network issue or server unavailable.');
+      setFormError('Network issue or server unavailable.');
     } finally {
       setLoading(false);
+      setIsConfirmOpen(false);
     }
   };
 
@@ -282,14 +306,25 @@ export default function PetForm({ user, petId, onCancel, onSaveSuccess }) {
 
       <form onSubmit={handleSubmit}>
         
+        {formError && (
+          <div style={{ marginBottom: '20px', padding: '12px 16px', borderRadius: '12px', background: '#FEF2F2', color: '#EF4444', border: '1px solid #FEE2E2', fontSize: '13px', fontWeight: '600' }}>
+            {formError}
+          </div>
+        )}
+
         {/* Section 1: Basic Information */}
         <div className="pet-form-section">
-          <h3 className="pet-section-title">
-            <Heart size={18} color="var(--color-primary)" />
-            1. Basic Information
-          </h3>
+          <div className="pet-section-header" onClick={() => toggleSection('basic')}>
+            <h3 className="pet-section-title">
+              <Heart size={18} color="var(--color-primary)" />
+              1. Basic Information
+            </h3>
+            {sectionsExpanded.basic ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
+          </div>
 
-          <div className="pet-image-upload-wrapper" style={{ width: '280px', margin: '0 auto 20px auto' }}>
+          {sectionsExpanded.basic && (
+            <div className="pet-section-body fade-in">
+              <div className="pet-image-upload-wrapper" style={{ width: '280px', margin: '0 auto 20px auto' }}>
             {image && (
               <span className="pet-form-subtitle" style={{ fontSize: '11px', marginBottom: '8px', color: 'var(--color-primary)', fontWeight: '700', display: 'block', textAlign: 'center' }}>
                 🖱️ Click & Drag the image below to adjust its position
@@ -454,14 +489,22 @@ export default function PetForm({ user, petId, onCancel, onSaveSuccess }) {
               />
             </div>
           </div>
+          </div>
+          )}
         </div>
 
         {/* Section 2: Health Information */}
         <div className="pet-form-section">
-          <h3 className="pet-section-title">
-            <ShieldAlert size={18} color="#16A34A" />
-            2. Health Information
-          </h3>
+          <div className="pet-section-header" onClick={() => toggleSection('health')}>
+            <h3 className="pet-section-title">
+              <ShieldAlert size={18} color="#16A34A" />
+              2. Health Information
+            </h3>
+            {sectionsExpanded.health ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
+          </div>
+
+          {sectionsExpanded.health && (
+            <div className="pet-section-body fade-in">
 
           <div className="pet-toggle-row">
             <div className="pet-toggle-label-area">
@@ -543,14 +586,22 @@ export default function PetForm({ user, petId, onCancel, onSaveSuccess }) {
               onChange={(e) => setBloodGroup(e.target.value)} 
             />
           </div>
+          </div>
+          )}
         </div>
 
         {/* Section 3: Behaviour & Personality */}
         <div className="pet-form-section">
-          <h3 className="pet-section-title">
-            <Award size={18} color="#EAB308" />
-            3. Behaviour & Personality
-          </h3>
+          <div className="pet-section-header" onClick={() => toggleSection('behaviour')}>
+            <h3 className="pet-section-title">
+              <Award size={18} color="#EAB308" />
+              3. Behaviour & Personality
+            </h3>
+            {sectionsExpanded.behaviour ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
+          </div>
+
+          {sectionsExpanded.behaviour && (
+            <div className="pet-section-body fade-in">
 
           <div className="pet-grid-2">
             <div className="pet-toggle-row">
@@ -657,14 +708,22 @@ export default function PetForm({ user, petId, onCancel, onSaveSuccess }) {
               onChange={(e) => setAboutPet(e.target.value)}
             />
           </div>
+          </div>
+          )}
         </div>
 
         {/* Section 4 & 5: Adoption & Active Status */}
         <div className="pet-form-section">
-          <h3 className="pet-section-title">
-            <Sparkles size={18} color="var(--color-primary)" />
-            4. Adoption & Active Status
-          </h3>
+          <div className="pet-section-header" onClick={() => toggleSection('status')}>
+            <h3 className="pet-section-title">
+              <Sparkles size={18} color="var(--color-primary)" />
+              4. Adoption & Active Status
+            </h3>
+            {sectionsExpanded.status ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
+          </div>
+
+          {sectionsExpanded.status && (
+            <div className="pet-section-body fade-in">
 
           <div className="pet-grid-2">
             <div className="form-group">
@@ -698,14 +757,22 @@ export default function PetForm({ user, petId, onCancel, onSaveSuccess }) {
               </select>
             </div>
           </div>
+          </div>
+          )}
         </div>
 
         {/* Section 6: Location */}
         <div className="pet-form-section">
-          <h3 className="pet-section-title">
-            <MapPin size={18} color="var(--color-primary)" />
-            5. Location
-          </h3>
+          <div className="pet-section-header" onClick={() => toggleSection('location')}>
+            <h3 className="pet-section-title">
+              <MapPin size={18} color="var(--color-primary)" />
+              5. Location
+            </h3>
+            {sectionsExpanded.location ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
+          </div>
+
+          {sectionsExpanded.location && (
+            <div className="pet-section-body fade-in">
 
           <div className="pet-grid-3">
             <div className="form-group">
@@ -747,14 +814,22 @@ export default function PetForm({ user, petId, onCancel, onSaveSuccess }) {
               onChange={(e) => setAddress(e.target.value)} 
             />
           </div>
+          </div>
+          )}
         </div>
 
         {/* Section 7: Documents Drag & Drop */}
         <div className="pet-form-section">
-          <h3 className="pet-section-title">
-            <FileText size={18} color="var(--color-primary)" />
-            6. Documents & Reports
-          </h3>
+          <div className="pet-section-header" onClick={() => toggleSection('documents')}>
+            <h3 className="pet-section-title">
+              <FileText size={18} color="var(--color-primary)" />
+              6. Documents & Reports
+            </h3>
+            {sectionsExpanded.documents ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
+          </div>
+
+          {sectionsExpanded.documents && (
+            <div className="pet-section-body fade-in">
 
           <div className="pet-drag-drop-zone" onClick={() => docFileRef.current.click()}>
             <Upload size={32} />
@@ -788,6 +863,8 @@ export default function PetForm({ user, petId, onCancel, onSaveSuccess }) {
               ))}
             </div>
           )}
+          </div>
+          )}
         </div>
 
         {/* Action Buttons */}
@@ -801,6 +878,23 @@ export default function PetForm({ user, petId, onCancel, onSaveSuccess }) {
         </div>
 
       </form>
+
+      <AlertDialog open={isConfirmOpen} onOpenChange={setIsConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{petId ? 'Confirm Profile Update' : 'Confirm Registration'}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {petId 
+                ? "Do you want to save these changes to the pet profile?" 
+                : "Do you want to register this new pet companion profile?"}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={proceedSave}>Save</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

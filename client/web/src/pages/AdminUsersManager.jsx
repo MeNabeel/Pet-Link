@@ -1,5 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Search, ShieldAlert, CheckCircle, Ban, Trash2, UserCheck, ShieldCheck, Mail, Phone, MapPin } from 'lucide-react';
+import { 
+  AlertDialog, AlertDialogContent, AlertDialogHeader, 
+  AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, 
+  AlertDialogCancel, AlertDialogAction 
+} from '../components/ui/AlertDialog';
 
 export default function AdminUsersManager({ user }) {
   const [users, setUsers] = useState([]);
@@ -7,6 +12,7 @@ export default function AdminUsersManager({ user }) {
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [confirmConfig, setConfirmConfig] = useState(null);
 
   const fetchUsers = async () => {
     try {
@@ -33,46 +39,58 @@ export default function AdminUsersManager({ user }) {
     }
   }, [user]);
 
-  const handleUpdateStatus = async (targetUserId, newStatus) => {
-    if (!window.confirm(`Are you sure you want to change this user's status to ${newStatus}?`)) return;
-    try {
-      const response = await fetch(`http://localhost:5000/api/auth/users/${targetUserId}/status`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-requester-id': user._id
-        },
-        body: JSON.stringify({ status: newStatus })
-      });
-      if (response.ok) {
-        alert(`User status updated to ${newStatus} successfully!`);
-        fetchUsers();
-      } else {
-        alert('Failed to update user status.');
+  const handleUpdateStatus = (targetUserId, newStatus) => {
+    setConfirmConfig({
+      title: 'Update User Status',
+      description: `Are you sure you want to change this user's status to ${newStatus}?`,
+      isDanger: false,
+      onConfirm: async () => {
+        try {
+          const response = await fetch(`http://localhost:5000/api/auth/users/${targetUserId}/status`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-requester-id': user._id
+            },
+            body: JSON.stringify({ status: newStatus })
+          });
+          if (response.ok) {
+            alert(`User status updated to ${newStatus} successfully!`);
+            fetchUsers();
+          } else {
+            alert('Failed to update user status.');
+          }
+        } catch (err) {
+          console.error(err);
+        }
       }
-    } catch (err) {
-      console.error(err);
-    }
+    });
   };
 
-  const handleDeleteUser = async (targetUserId) => {
-    if (!window.confirm('WARNING: Are you sure you want to permanently delete this user account? This cannot be undone.')) return;
-    try {
-      const response = await fetch(`http://localhost:5000/api/auth/users/${targetUserId}`, {
-        method: 'DELETE',
-        headers: {
-          'x-requester-id': user._id
+  const handleDeleteUser = (targetUserId) => {
+    setConfirmConfig({
+      title: 'Permanently Delete User',
+      description: 'WARNING: Are you sure you want to permanently delete this user account? This cannot be undone.',
+      isDanger: true,
+      onConfirm: async () => {
+        try {
+          const response = await fetch(`http://localhost:5000/api/auth/users/${targetUserId}`, {
+            method: 'DELETE',
+            headers: {
+              'x-requester-id': user._id
+            }
+          });
+          if (response.ok) {
+            alert('User account deleted successfully!');
+            fetchUsers();
+          } else {
+            alert('Failed to delete user.');
+          }
+        } catch (err) {
+          console.error(err);
         }
-      });
-      if (response.ok) {
-        alert('User account deleted successfully!');
-        fetchUsers();
-      } else {
-        alert('Failed to delete user.');
       }
-    } catch (err) {
-      console.error(err);
-    }
+    });
   };
 
   const filteredUsers = users.filter(u => {
@@ -239,6 +257,28 @@ export default function AdminUsersManager({ user }) {
           </table>
         </div>
       )}
+
+      <AlertDialog open={confirmConfig !== null} onOpenChange={(open) => { if (!open) setConfirmConfig(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{confirmConfig?.title}</AlertDialogTitle>
+            <AlertDialogDescription>{confirmConfig?.description}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              variant={confirmConfig?.isDanger ? 'danger' : 'primary'} 
+              onClick={async () => {
+                if (confirmConfig?.onConfirm) {
+                  await confirmConfig.onConfirm();
+                }
+              }}
+            >
+              Confirm
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

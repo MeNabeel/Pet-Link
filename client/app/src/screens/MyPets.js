@@ -74,7 +74,7 @@ export default function MyPets({ user, onViewDetails, onAddPet, onEditPet }) {
         {/* Badges Overlays */}
         <View style={styles.badgeRow}>
           <View style={[styles.badge, { backgroundColor: COLORS.dark }]}>
-            <Text style={styles.badgeText}>{item.activeStatus.replace('_', ' ')}</Text>
+            <Text style={styles.badgeText}>{(item.activeStatus || 'ACTIVE').replace('_', ' ')}</Text>
           </View>
         </View>
 

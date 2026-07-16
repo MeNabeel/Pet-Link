@@ -287,3 +287,26 @@
   flex-direction: column;
   gap: 4px;
 }
+
+.pet-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  user-select: none;
+  transition: opacity var(--transition-fast);
+}
+
+.pet-section-header:hover {
+  opacity: 0.85;
+}
+
+.pet-section-header .pet-section-title {
+  margin-bottom: 0;
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.pet-section-body {
+  margin-top: 24px;
+}

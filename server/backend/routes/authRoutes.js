@@ -3,7 +3,7 @@ const router = express.Router();
 const { 
   registerUser, loginUser, forgotPassword, resetPassword, 
   updateUserProfile, getUserProfile, getAllUsers, updateUserStatus, deleteUser,
-  getSystemAnalytics
+  getSystemAnalytics, updateUserRole
 } = require('../controllers/authController');
 
 // Map routing endpoints
@@ -17,6 +17,7 @@ router.get('/profile/:userId', getUserProfile);
 // Admin User Management routes
 router.get('/users', getAllUsers);
 router.put('/users/:userId/status', updateUserStatus);
+router.put('/users/:userId/role', updateUserRole);
 router.delete('/users/:userId', deleteUser);
 
 // Admin Analytics routes

@@ -24,6 +24,8 @@ app.use(express.urlencoded({ limit: '50mb', extended: true }));
 // Main API Routes
 app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/pets', require('./routes/petRoutes'));
+app.use('/api/categories', require('./routes/categoryRoutes'));
+app.use('/api/products', require('./routes/productRoutes'));
 
 // Server Health Endpoint
 app.get('/', (req, res) => {

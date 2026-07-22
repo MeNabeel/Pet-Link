@@ -2,6 +2,13 @@ import React, { useState } from 'react';
 import { StyleSheet, View, Text, TouchableOpacity, SafeAreaView, Image } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { Feather, FontAwesome } from '@expo/vector-icons';
+import { useFonts } from 'expo-font';
+import { 
+  Outfit_400Regular, 
+  Outfit_600SemiBold, 
+  Outfit_700Bold, 
+  Outfit_800ExtraBold 
+} from '@expo-google-fonts/outfit';
 import Splash from './src/screens/Splash';
 import Login from './src/screens/Login';
 import Signup from './src/screens/Signup';
@@ -13,13 +20,43 @@ import MyPets from './src/screens/MyPets';
 import PetForm from './src/screens/PetForm';
 import PetDetails from './src/screens/PetDetails';
 import AdminDashboard from './src/screens/AdminDashboard';
+import Store from './src/screens/Store';
 import { COLORS } from './src/constants/theme';
+
+// Override global Text rendering styles to map standard font family and weights
+const oldRender = Text.render;
+Text.render = function (...args) {
+  const origin = oldRender.call(this, ...args);
+  const flatStyle = StyleSheet.flatten(origin.props.style) || {};
+  
+  let family = 'Outfit-Regular';
+  if (flatStyle.fontWeight === 'bold' || flatStyle.fontWeight === '700' || flatStyle.fontWeight === '800' || flatStyle.fontWeight === '900') {
+    family = 'Outfit-Bold';
+  } else if (flatStyle.fontWeight === '600' || flatStyle.fontWeight === '500') {
+    family = 'Outfit-SemiBold';
+  }
+  
+  if (flatStyle.fontFamily === 'monospace') {
+    family = 'monospace';
+  }
+
+  return React.cloneElement(origin, {
+    style: [{ fontFamily: family }, origin.props.style]
+  });
+};
 
 export default function App() {
   const [screen, setScreen] = useState('splash');
   const [user, setUser] = useState(null);
-  const [petSubView, setPetSubView] = useState('list'); // 'list' | 'form' | 'details'
+  const [petSubView, setPetSubView] = useState('list');
   const [selectedPetId, setSelectedPetId] = useState(null);
+
+  const [fontsLoaded] = useFonts({
+    'Outfit-Regular': Outfit_400Regular,
+    'Outfit-SemiBold': Outfit_600SemiBold,
+    'Outfit-Bold': Outfit_700Bold,
+    'Outfit-ExtraBold': Outfit_800ExtraBold,
+  });
 
   const handleLoginSuccess = (userData) => {
     setUser({
@@ -99,7 +136,11 @@ export default function App() {
     }
   }, [screen]);
 
-  const showNav = ['dashboard', 'profile', 'settings', 'mypets'].includes(screen) && !(user && user.role === 'admin');
+  if (!fontsLoaded) {
+    return null;
+  }
+
+  const showNav = ['dashboard', 'profile', 'settings', 'mypets', 'store'].includes(screen) && !(user && user.role === 'admin');
 
   const handleTabPress = (tabName) => {
     if (tabName === 'home') {
@@ -110,7 +151,7 @@ export default function App() {
       setPetSubView('list');
       setScreen('mypets');
     } else if (tabName === 'store') {
-      alert('Navigating to the PetLink Store module...');
+      setScreen('store');
     } else if (tabName === 'services') {
       alert('Navigating to PetLink Vet & Shelter Services...');
     }
@@ -121,6 +162,7 @@ export default function App() {
     if (screen === 'dashboard') return 'home';
     if (screen === 'profile' || screen === 'settings') return 'profile';
     if (screen === 'mypets') return 'pets';
+    if (screen === 'store') return 'store';
     return '';
   };
 
@@ -240,6 +282,13 @@ export default function App() {
               user={user}
               onSave={handleSaveProfile}
               onCancel={() => setScreen('profile')}
+            />
+          )}
+
+          {screen === 'store' && (
+            <Store
+              user={user}
+              onBack={() => setScreen('dashboard')}
             />
           )}
         </View>

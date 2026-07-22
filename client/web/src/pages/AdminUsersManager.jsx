@@ -4,7 +4,15 @@ import {
   AlertDialog, AlertDialogContent, AlertDialogHeader, 
   AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, 
   AlertDialogCancel, AlertDialogAction 
-} from '../components/ui/AlertDialog';
+} from '@/components/ui/alert-dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Skeleton } from '@/components/ui/Skeleton';
 
 export default function AdminUsersManager({ user }) {
   const [users, setUsers] = useState([]);
@@ -55,10 +63,36 @@ export default function AdminUsersManager({ user }) {
             body: JSON.stringify({ status: newStatus })
           });
           if (response.ok) {
-            alert(`User status updated to ${newStatus} successfully!`);
             fetchUsers();
           } else {
-            alert('Failed to update user status.');
+            console.error('Failed to update user status.');
+          }
+        } catch (err) {
+          console.error(err);
+        }
+      }
+    });
+  };
+
+  const handleChangeRole = (targetUserId, newRole) => {
+    setConfirmConfig({
+      title: 'Update Platform Role',
+      description: `Are you sure you want to change this user's platform role to ${newRole.toUpperCase()}?`,
+      isDanger: false,
+      onConfirm: async () => {
+        try {
+          const response = await fetch(`http://localhost:5000/api/auth/users/${targetUserId}/role`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-requester-id': user._id
+            },
+            body: JSON.stringify({ role: newRole })
+          });
+          if (response.ok) {
+            fetchUsers();
+          } else {
+            console.error('Failed to update user role.');
           }
         } catch (err) {
           console.error(err);
@@ -81,10 +115,9 @@ export default function AdminUsersManager({ user }) {
             }
           });
           if (response.ok) {
-            alert('User account deleted successfully!');
             fetchUsers();
           } else {
-            alert('Failed to delete user.');
+            console.error('Failed to delete user.');
           }
         } catch (err) {
           console.error(err);
@@ -136,32 +169,80 @@ export default function AdminUsersManager({ user }) {
         <div className="filters-group-row">
           <div className="filter-item">
             <label>Platform Role</label>
-            <select value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)} className="admin-select">
-              <option value="all">All Roles</option>
-              <option value="buyer">Pet Buyer / Adopter</option>
-              <option value="seller">Pet Owner / Seller</option>
-              <option value="shelter_provider">Shelter Provider</option>
-              <option value="admin">Platform Administrator</option>
-            </select>
+            <Select value={roleFilter} onValueChange={(val) => setRoleFilter(val)}>
+              <SelectTrigger className="admin-select">
+                <SelectValue placeholder="All Roles" />
+              </SelectTrigger>
+              <SelectContent style={{ width: '180px' }}>
+                <SelectItem value="all">All Roles</SelectItem>
+                <SelectItem value="buyer">Pet Buyer / Adopter</SelectItem>
+                <SelectItem value="seller">Pet Owner / Seller</SelectItem>
+                <SelectItem value="shelter_provider">Shelter Provider</SelectItem>
+                <SelectItem value="admin">Platform Administrator</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="filter-item">
             <label>Account Status</label>
-            <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="admin-select">
-              <option value="all">All Statuses</option>
-              <option value="Active">Active</option>
-              <option value="Suspended">Suspended</option>
-              <option value="Blocked">Blocked</option>
-              <option value="Deleted">Deleted</option>
-              <option value="Pending Verification">Pending Verification</option>
-            </select>
+            <Select 
+              value={statusFilter} 
+              onValueChange={(val) => setStatusFilter(val)}
+            >
+              <SelectTrigger className={`status-select-colored ${statusFilter === 'Pending Verification' ? 'pending' : statusFilter.toLowerCase()}`}>
+                <SelectValue placeholder="All Statuses" />
+              </SelectTrigger>
+              <SelectContent style={{ width: '180px' }}>
+                <SelectItem value="all">All Statuses</SelectItem>
+                <SelectItem value="Active">Active</SelectItem>
+                <SelectItem value="Suspended">Suspended</SelectItem>
+                <SelectItem value="Blocked">Blocked</SelectItem>
+                <SelectItem value="Deleted">Deleted</SelectItem>
+                <SelectItem value="Pending Verification">Pending Verification</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </div>
       </div>
 
       {/* Users Table */}
       {loading ? (
-        <div className="admin-loading">Loading users directory...</div>
+        <div className="admin-table-wrapper">
+          <table className="admin-table">
+            <thead>
+              <tr>
+                <th><Skeleton width="48px" height="14px" /></th>
+                <th><Skeleton width="120px" height="14px" /></th>
+                <th><Skeleton width="160px" height="14px" /></th>
+                <th><Skeleton width="110px" height="14px" /></th>
+                <th><Skeleton width="100px" height="14px" /></th>
+                <th><Skeleton width="80px" height="14px" /></th>
+                <th><Skeleton width="70px" height="14px" /></th>
+                <th><Skeleton width="90px" height="14px" /></th>
+              </tr>
+            </thead>
+            <tbody>
+              {Array.from({ length: 5 }).map((_, idx) => (
+                <tr key={idx}>
+                  <td><Skeleton width="36px" height="36px" style={{ borderRadius: '50%' }} /></td>
+                  <td>
+                    <Skeleton width="100px" height="14px" style={{ marginBottom: '6px' }} />
+                    <Skeleton width="70px" height="11px" />
+                  </td>
+                  <td>
+                    <Skeleton width="130px" height="12px" style={{ marginBottom: '4px' }} />
+                    <Skeleton width="90px" height="12px" />
+                  </td>
+                  <td><Skeleton width="90px" height="24px" style={{ borderRadius: '8px' }} /></td>
+                  <td><Skeleton width="90px" height="14px" /></td>
+                  <td><Skeleton width="80px" height="14px" /></td>
+                  <td><Skeleton width="60px" height="18px" style={{ borderRadius: '9999px' }} /></td>
+                  <td><Skeleton width="80px" height="28px" style={{ borderRadius: '6px' }} /></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       ) : (
         <div className="admin-table-wrapper">
           <table className="admin-table">
@@ -196,9 +277,33 @@ export default function AdminUsersManager({ user }) {
                     <div className="user-contact-item"><Phone size={12} /> <span>{u.phone || 'N/A'}</span></div>
                   </td>
                   <td>
-                    <span className={`user-role-badge ${u.role}`}>
-                      {u.role.replace('_', ' ')}
-                    </span>
+                    <Select
+                      value={u.role}
+                      onValueChange={(val) => handleChangeRole(u._id, val)}
+                    >
+                      <SelectTrigger 
+                        style={{
+                          height: 'auto',
+                          padding: '6px 12px',
+                          borderRadius: '12px',
+                          border: '1.5px solid var(--color-border)',
+                          fontSize: '11px',
+                          fontWeight: '800',
+                          textTransform: 'uppercase',
+                          cursor: 'pointer',
+                          backgroundColor: 'var(--color-bg-light)',
+                          color: 'var(--color-dark-light)',
+                        }}
+                      >
+                        <SelectValue placeholder="Role" />
+                      </SelectTrigger>
+                      <SelectContent style={{ width: '120px' }}>
+                        <SelectItem value="admin">Admin</SelectItem>
+                        <SelectItem value="buyer">Buyer</SelectItem>
+                        <SelectItem value="seller">Seller</SelectItem>
+                        <SelectItem value="shelter_provider">Shelter</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </td>
                   <td>
                     <div className="user-contact-item"><MapPin size={12} /> <span>{u.city ? `${u.city}, ${u.country || 'PK'}` : 'N/A'}</span></div>

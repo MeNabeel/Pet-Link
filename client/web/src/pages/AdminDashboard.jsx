@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { 
+  BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer 
+} from 'recharts';
+import { 
   Users, PawPrint, HeartHandshake, ShieldAlert, Award, FileText, 
   MapPin, ShoppingBag, FolderOpen, CreditCard, Bell, LogOut, 
   Search, TrendingUp, DollarSign, Calendar, ChevronRight, Activity, 
@@ -7,16 +10,38 @@ import {
   AlertCircle, ShieldCheck
 } from 'lucide-react';
 import AdminUsersManager from './AdminUsersManager';
+import AdminCategoryManager from './AdminCategoryManager';
+import AdminProductManager from './AdminProductManager';
 import './Dashboard.css';
 import { 
   AlertDialog, AlertDialogContent, AlertDialogHeader, 
   AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, 
   AlertDialogCancel, AlertDialogAction 
-} from '../components/ui/AlertDialog';
+} from '@/components/ui/alert-dialog';
+import { Skeleton } from '@/components/ui/Skeleton';
+
+const userChartData = [
+  { month: "Jan", buyers: 45, sellers: 12 },
+  { month: "Feb", buyers: 85, sellers: 28 },
+  { month: "Mar", buyers: 150, sellers: 46 },
+  { month: "Apr", buyers: 220, sellers: 68 },
+  { month: "May", buyers: 310, sellers: 92 },
+  { month: "Jun", buyers: 420, sellers: 135 },
+];
+
+const revenueChartData = [
+  { month: "Jan", StoreSales: 8000, ShelterBookings: 2500 },
+  { month: "Feb", StoreSales: 15000, ShelterBookings: 4500 },
+  { month: "Mar", StoreSales: 24000, ShelterBookings: 8000 },
+  { month: "Apr", StoreSales: 35000, ShelterBookings: 12000 },
+  { month: "May", StoreSales: 52000, ShelterBookings: 17500 },
+  { month: "Jun", StoreSales: 73000, ShelterBookings: 24000 },
+];
 
 export default function AdminDashboard({ user, onLogout }) {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [isSignoutOpen, setIsSignoutOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
     users: 0,
     pets: 0,
@@ -32,6 +57,7 @@ export default function AdminDashboard({ user, onLogout }) {
 
   const fetchAnalytics = async () => {
     try {
+      setLoading(true);
       const response = await fetch('http://localhost:5000/api/auth/analytics', {
         headers: {
           'x-requester-id': user._id
@@ -43,6 +69,8 @@ export default function AdminDashboard({ user, onLogout }) {
       }
     } catch (err) {
       console.error('Error fetching analytics:', err);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -65,10 +93,6 @@ export default function AdminDashboard({ user, onLogout }) {
           <h1 className="dash-brand-name" style={{ color: '#EAB308' }}>PetLink Admin console</h1>
         </div>
 
-        <div className="search-box-wrapper" style={{ width: '300px', display: 'flex', alignItems: 'center', gap: '8px', border: '1px solid var(--color-border)', borderRadius: '24px', padding: '6px 16px', backgroundColor: 'var(--color-bg-light)' }}>
-          <Search size={16} color="var(--color-muted)" />
-          <input type="text" placeholder="Search accounts, products, orders..." style={{ border: 'none', background: 'none', outline: 'none', width: '100%', fontSize: '13px' }} />
-        </div>
         
         <div className="dash-user-nav">
           <div style={{ position: 'relative', cursor: 'pointer', marginRight: '8px' }}>
@@ -165,113 +189,126 @@ export default function AdminDashboard({ user, onLogout }) {
               </div>
 
               {/* Stats Cards Grid */}
-              <div className="dash-metrics-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '20px', marginBottom: '32px' }}>
-                
-                <div className="metric-card hover-lift" style={{ display: 'flex', padding: '20px', backgroundColor: '#FFF', borderRadius: '16px', border: '1px solid var(--color-border)' }}>
-                  <div className="metric-icon-box" style={{ color: 'var(--color-primary)', backgroundColor: 'rgba(0, 102, 204, 0.08)', borderRadius: '12px', padding: '12px', marginRight: '16px' }}>
-                    <Users size={24} />
+              {loading ? (
+                <div className="dash-metrics-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '20px', marginBottom: '32px' }}>
+                  {Array.from({ length: 8 }).map((_, idx) => (
+                    <div key={idx} style={{ display: 'flex', padding: '20px', backgroundColor: '#FFF', borderRadius: '16px', border: '1px solid var(--color-border)' }}>
+                      <Skeleton width="48px" height="48px" style={{ borderRadius: '12px', marginRight: '16px' }} />
+                      <div style={{ flex: 1 }}>
+                        <Skeleton width="90px" height="12px" style={{ marginBottom: '6px' }} />
+                        <Skeleton width="60px" height="20px" style={{ marginBottom: '6px' }} />
+                        <Skeleton width="80px" height="10px" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="dash-metrics-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '20px', marginBottom: '32px' }}>
+                  <div className="metric-card hover-lift" style={{ display: 'flex', padding: '20px', backgroundColor: '#FFF', borderRadius: '16px', border: '1px solid var(--color-border)' }}>
+                    <div className="metric-icon-box" style={{ color: 'var(--color-primary)', backgroundColor: 'rgba(0, 102, 204, 0.08)', borderRadius: '12px', padding: '12px', marginRight: '16px' }}>
+                      <Users size={24} />
+                    </div>
+                    <div>
+                      <span className="metric-label" style={{ fontSize: '12px', color: 'var(--color-muted)', fontWeight: '600' }}>Total Users</span>
+                      <h3 className="metric-value" style={{ fontSize: '20px', fontWeight: '800', margin: '4px 0' }}>{stats.users}</h3>
+                      <span style={{ fontSize: '10px', color: '#16A34A', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '2px' }}>
+                        <TrendingUp size={10} /> Live DB count
+                      </span>
+                    </div>
                   </div>
-                  <div>
-                    <span className="metric-label" style={{ fontSize: '12px', color: 'var(--color-muted)', fontWeight: '600' }}>Total Users</span>
-                    <h3 className="metric-value" style={{ fontSize: '20px', fontWeight: '800', margin: '4px 0' }}>{stats.users}</h3>
-                    <span style={{ fontSize: '10px', color: '#16A34A', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '2px' }}>
-                      <TrendingUp size={10} /> Live DB count
-                    </span>
+
+                  <div className="metric-card hover-lift" style={{ display: 'flex', padding: '20px', backgroundColor: '#FFF', borderRadius: '16px', border: '1px solid var(--color-border)' }}>
+                    <div className="metric-icon-box" style={{ color: '#EAB308', backgroundColor: 'rgba(234, 179, 8, 0.08)', borderRadius: '12px', padding: '12px', marginRight: '16px' }}>
+                      <PawPrint size={24} />
+                    </div>
+                    <div>
+                      <span className="metric-label" style={{ fontSize: '12px', color: 'var(--color-muted)', fontWeight: '600' }}>Total Pets</span>
+                      <h3 className="metric-value" style={{ fontSize: '20px', fontWeight: '800', margin: '4px 0' }}>{stats.pets}</h3>
+                      <span style={{ fontSize: '10px', color: '#16A34A', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '2px' }}>
+                        <TrendingUp size={10} /> Live DB count
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="metric-card hover-lift" style={{ display: 'flex', padding: '20px', backgroundColor: '#FFF', borderRadius: '16px', border: '1px solid var(--color-border)' }}>
+                    <div className="metric-icon-box" style={{ color: '#8B5CF6', backgroundColor: 'rgba(139, 92, 246, 0.08)', borderRadius: '12px', padding: '12px', marginRight: '16px' }}>
+                      <HeartHandshake size={24} />
+                    </div>
+                    <div>
+                      <span className="metric-label" style={{ fontSize: '12px', color: 'var(--color-muted)', fontWeight: '600' }}>Marketplace Listings</span>
+                      <h3 className="metric-value" style={{ fontSize: '20px', fontWeight: '800', margin: '4px 0' }}>{stats.listings}</h3>
+                      <span style={{ fontSize: '10px', color: 'var(--color-muted)', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '2px' }}>
+                        <TrendingUp size={10} /> Active listings
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="metric-card hover-lift" style={{ display: 'flex', padding: '20px', backgroundColor: '#FFF', borderRadius: '16px', border: '1px solid var(--color-border)' }}>
+                    <div className="metric-icon-box" style={{ color: '#EC4899', backgroundColor: 'rgba(236, 72, 153, 0.08)', borderRadius: '12px', padding: '12px', marginRight: '16px' }}>
+                      <ShoppingBag size={24} />
+                    </div>
+                    <div>
+                      <span className="metric-label" style={{ fontSize: '12px', color: 'var(--color-muted)', fontWeight: '600' }}>Products Lister</span>
+                      <h3 className="metric-value" style={{ fontSize: '20px', fontWeight: '800', margin: '4px 0' }}>{stats.products}</h3>
+                      <span style={{ fontSize: '10px', color: 'var(--color-muted)', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '2px' }}>
+                        <TrendingUp size={10} /> Products catalog
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="metric-card hover-lift" style={{ display: 'flex', padding: '20px', backgroundColor: '#FFF', borderRadius: '16px', border: '1px solid var(--color-border)' }}>
+                    <div className="metric-icon-box" style={{ color: '#10B981', backgroundColor: 'rgba(16, 185, 129, 0.08)', borderRadius: '12px', padding: '12px', marginRight: '16px' }}>
+                      <DollarSign size={24} />
+                    </div>
+                    <div>
+                      <span className="metric-label" style={{ fontSize: '12px', color: 'var(--color-muted)', fontWeight: '600' }}>Total Revenue</span>
+                      <h3 className="metric-value" style={{ fontSize: '18px', fontWeight: '800', margin: '4px 0' }}>{stats.revenue}</h3>
+                      <span style={{ fontSize: '10px', color: '#16A34A', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '2px' }}>
+                        <TrendingUp size={10} /> Sales volume
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="metric-card hover-lift" style={{ display: 'flex', padding: '20px', backgroundColor: '#FFF', borderRadius: '16px', border: '1px solid var(--color-border)' }}>
+                    <div className="metric-icon-box" style={{ color: '#3B82F6', backgroundColor: 'rgba(59, 130, 246, 0.08)', borderRadius: '12px', padding: '12px', marginRight: '16px' }}>
+                      <Calendar size={24} />
+                    </div>
+                    <div>
+                      <span className="metric-label" style={{ fontSize: '12px', color: 'var(--color-muted)', fontWeight: '600' }}>Shelter Bookings</span>
+                      <h3 className="metric-value" style={{ fontSize: '20px', fontWeight: '800', margin: '4px 0' }}>{stats.bookings}</h3>
+                      <span style={{ fontSize: '10px', color: 'var(--color-muted)', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '2px' }}>
+                        <TrendingUp size={10} /> Active bookings
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="metric-card hover-lift" style={{ display: 'flex', padding: '20px', backgroundColor: '#FFF', borderRadius: '16px', border: '1px solid var(--color-border)' }}>
+                    <div className="metric-icon-box" style={{ color: '#EF4444', backgroundColor: 'rgba(239, 68, 68, 0.08)', borderRadius: '12px', padding: '12px', marginRight: '16px' }}>
+                      <Activity size={24} />
+                    </div>
+                    <div>
+                      <span className="metric-label" style={{ fontSize: '12px', color: 'var(--color-muted)', fontWeight: '600' }}>Pending Orders</span>
+                      <h3 className="metric-value" style={{ fontSize: '20px', fontWeight: '800', margin: '4px 0' }}>{stats.pendingOrders}</h3>
+                      <span style={{ fontSize: '10px', color: '#EF4444', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '2px' }}>
+                        <AlertCircle size={10} /> Needs packaging
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="metric-card hover-lift" style={{ display: 'flex', padding: '20px', backgroundColor: '#FFF', borderRadius: '16px', border: '1px solid var(--color-border)' }}>
+                    <div className="metric-icon-box" style={{ color: '#059669', backgroundColor: 'rgba(5, 150, 105, 0.08)', borderRadius: '12px', padding: '12px', marginRight: '16px' }}>
+                      <CheckCircle size={24} />
+                    </div>
+                    <div>
+                      <span className="metric-label" style={{ fontSize: '12px', color: 'var(--color-muted)', fontWeight: '600' }}>Completed Orders</span>
+                      <h3 className="metric-value" style={{ fontSize: '20px', fontWeight: '800', margin: '4px 0' }}>{stats.completedOrders}</h3>
+                      <span style={{ fontSize: '10px', color: '#10B981', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '2px' }}>
+                        <CheckCircle size={10} /> Fully dispatched
+                      </span>
+                    </div>
                   </div>
                 </div>
-
-                <div className="metric-card hover-lift" style={{ display: 'flex', padding: '20px', backgroundColor: '#FFF', borderRadius: '16px', border: '1px solid var(--color-border)' }}>
-                  <div className="metric-icon-box" style={{ color: '#EAB308', backgroundColor: 'rgba(234, 179, 8, 0.08)', borderRadius: '12px', padding: '12px', marginRight: '16px' }}>
-                    <PawPrint size={24} />
-                  </div>
-                  <div>
-                    <span className="metric-label" style={{ fontSize: '12px', color: 'var(--color-muted)', fontWeight: '600' }}>Total Pets</span>
-                    <h3 className="metric-value" style={{ fontSize: '20px', fontWeight: '800', margin: '4px 0' }}>{stats.pets}</h3>
-                    <span style={{ fontSize: '10px', color: '#16A34A', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '2px' }}>
-                      <TrendingUp size={10} /> Live DB count
-                    </span>
-                  </div>
-                </div>
-
-                <div className="metric-card hover-lift" style={{ display: 'flex', padding: '20px', backgroundColor: '#FFF', borderRadius: '16px', border: '1px solid var(--color-border)' }}>
-                  <div className="metric-icon-box" style={{ color: '#8B5CF6', backgroundColor: 'rgba(139, 92, 246, 0.08)', borderRadius: '12px', padding: '12px', marginRight: '16px' }}>
-                    <HeartHandshake size={24} />
-                  </div>
-                  <div>
-                    <span className="metric-label" style={{ fontSize: '12px', color: 'var(--color-muted)', fontWeight: '600' }}>Marketplace Listings</span>
-                    <h3 className="metric-value" style={{ fontSize: '20px', fontWeight: '800', margin: '4px 0' }}>{stats.listings}</h3>
-                    <span style={{ fontSize: '10px', color: 'var(--color-muted)', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '2px' }}>
-                      <TrendingUp size={10} /> Active listings
-                    </span>
-                  </div>
-                </div>
-
-                <div className="metric-card hover-lift" style={{ display: 'flex', padding: '20px', backgroundColor: '#FFF', borderRadius: '16px', border: '1px solid var(--color-border)' }}>
-                  <div className="metric-icon-box" style={{ color: '#EC4899', backgroundColor: 'rgba(236, 72, 153, 0.08)', borderRadius: '12px', padding: '12px', marginRight: '16px' }}>
-                    <ShoppingBag size={24} />
-                  </div>
-                  <div>
-                    <span className="metric-label" style={{ fontSize: '12px', color: 'var(--color-muted)', fontWeight: '600' }}>Products Lister</span>
-                    <h3 className="metric-value" style={{ fontSize: '20px', fontWeight: '800', margin: '4px 0' }}>{stats.products}</h3>
-                    <span style={{ fontSize: '10px', color: 'var(--color-muted)', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '2px' }}>
-                      <TrendingUp size={10} /> Products catalog
-                    </span>
-                  </div>
-                </div>
-
-                <div className="metric-card hover-lift" style={{ display: 'flex', padding: '20px', backgroundColor: '#FFF', borderRadius: '16px', border: '1px solid var(--color-border)' }}>
-                  <div className="metric-icon-box" style={{ color: '#10B981', backgroundColor: 'rgba(16, 185, 129, 0.08)', borderRadius: '12px', padding: '12px', marginRight: '16px' }}>
-                    <DollarSign size={24} />
-                  </div>
-                  <div>
-                    <span className="metric-label" style={{ fontSize: '12px', color: 'var(--color-muted)', fontWeight: '600' }}>Total Revenue</span>
-                    <h3 className="metric-value" style={{ fontSize: '18px', fontWeight: '800', margin: '4px 0' }}>{stats.revenue}</h3>
-                    <span style={{ fontSize: '10px', color: '#16A34A', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '2px' }}>
-                      <TrendingUp size={10} /> Sales volume
-                    </span>
-                  </div>
-                </div>
-
-                <div className="metric-card hover-lift" style={{ display: 'flex', padding: '20px', backgroundColor: '#FFF', borderRadius: '16px', border: '1px solid var(--color-border)' }}>
-                  <div className="metric-icon-box" style={{ color: '#3B82F6', backgroundColor: 'rgba(59, 130, 246, 0.08)', borderRadius: '12px', padding: '12px', marginRight: '16px' }}>
-                    <Calendar size={24} />
-                  </div>
-                  <div>
-                    <span className="metric-label" style={{ fontSize: '12px', color: 'var(--color-muted)', fontWeight: '600' }}>Shelter Bookings</span>
-                    <h3 className="metric-value" style={{ fontSize: '20px', fontWeight: '800', margin: '4px 0' }}>{stats.bookings}</h3>
-                    <span style={{ fontSize: '10px', color: 'var(--color-muted)', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '2px' }}>
-                      <TrendingUp size={10} /> Active bookings
-                    </span>
-                  </div>
-                </div>
-
-                <div className="metric-card hover-lift" style={{ display: 'flex', padding: '20px', backgroundColor: '#FFF', borderRadius: '16px', border: '1px solid var(--color-border)' }}>
-                  <div className="metric-icon-box" style={{ color: '#EF4444', backgroundColor: 'rgba(239, 68, 68, 0.08)', borderRadius: '12px', padding: '12px', marginRight: '16px' }}>
-                    <Activity size={24} />
-                  </div>
-                  <div>
-                    <span className="metric-label" style={{ fontSize: '12px', color: 'var(--color-muted)', fontWeight: '600' }}>Pending Orders</span>
-                    <h3 className="metric-value" style={{ fontSize: '20px', fontWeight: '800', margin: '4px 0' }}>{stats.pendingOrders}</h3>
-                    <span style={{ fontSize: '10px', color: '#EF4444', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '2px' }}>
-                      <AlertCircle size={10} /> Needs packaging
-                    </span>
-                  </div>
-                </div>
-
-                <div className="metric-card hover-lift" style={{ display: 'flex', padding: '20px', backgroundColor: '#FFF', borderRadius: '16px', border: '1px solid var(--color-border)' }}>
-                  <div className="metric-icon-box" style={{ color: '#059669', backgroundColor: 'rgba(5, 150, 105, 0.08)', borderRadius: '12px', padding: '12px', marginRight: '16px' }}>
-                    <CheckCircle size={24} />
-                  </div>
-                  <div>
-                    <span className="metric-label" style={{ fontSize: '12px', color: 'var(--color-muted)', fontWeight: '600' }}>Completed Orders</span>
-                    <h3 className="metric-value" style={{ fontSize: '20px', fontWeight: '800', margin: '4px 0' }}>{stats.completedOrders}</h3>
-                    <span style={{ fontSize: '10px', color: '#10B981', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '2px' }}>
-                      <CheckCircle size={10} /> Fully dispatched
-                    </span>
-                  </div>
-                </div>
-
-              </div>
+              )}
 
               {/* Quick Actions Panel */}
               <div className="quick-actions-section" style={{ backgroundColor: '#FFF', padding: '24px', borderRadius: '20px', border: '1px solid var(--color-border)', marginBottom: '32px' }}>
@@ -303,24 +340,55 @@ export default function AdminDashboard({ user, onLogout }) {
                 </div>
               </div>
 
-              {/* Analytics Section Placeholders */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(400px, 1fr))', gap: '24px', marginBottom: '32px' }}>
-                
-                <div style={{ backgroundColor: '#FFF', padding: '24px', borderRadius: '20px', border: '1px solid var(--color-border)' }}>
-                  <h4 style={{ fontSize: '14px', fontWeight: '800', marginBottom: '12px' }}>Monthly Users & Activity Telemetry</h4>
-                  <div style={{ height: '200px', backgroundColor: 'var(--color-bg-light)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifySelf: 'center', justifyContent: 'center', border: '1px dashed var(--color-border)' }}>
-                    <span style={{ fontSize: '12px', color: 'var(--color-muted)', fontWeight: '600' }}>[Interactive Users Line Chart - Placeholder]</span>
+              {/* Analytics Section */}
+              {loading ? (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '24px', marginBottom: '32px' }}>
+                  <div style={{ backgroundColor: '#FFF', padding: '24px', borderRadius: '20px', border: '1px solid var(--color-border)', height: '300px' }}>
+                    <Skeleton width="180px" height="16px" style={{ marginBottom: '20px' }} />
+                    <Skeleton width="100%" height="200px" style={{ borderRadius: '12px' }} />
+                  </div>
+                  <div style={{ backgroundColor: '#FFF', padding: '24px', borderRadius: '20px', border: '1px solid var(--color-border)', height: '300px' }}>
+                    <Skeleton width="180px" height="16px" style={{ marginBottom: '20px' }} />
+                    <Skeleton width="100%" height="200px" style={{ borderRadius: '12px' }} />
                   </div>
                 </div>
+              ) : (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '24px', marginBottom: '32px' }}>
+                  <div style={{ backgroundColor: '#FFF', padding: '24px', borderRadius: '20px', border: '1px solid var(--color-border)' }}>
+                    <h4 style={{ fontSize: '14px', fontWeight: '800', marginBottom: '16px' }}>Monthly Users & Activity Telemetry</h4>
+                    <div style={{ height: '240px', width: '100%' }}>
+                      <ResponsiveContainer width="100%" height="100%">
+                        <LineChart data={userChartData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border)" />
+                          <XAxis dataKey="month" tickLine={false} axisLine={false} style={{ fontSize: '11px', fill: 'var(--color-muted)', fontWeight: '600' }} />
+                          <YAxis tickLine={false} axisLine={false} style={{ fontSize: '11px', fill: 'var(--color-muted)', fontWeight: '600' }} />
+                          <Tooltip contentStyle={{ borderRadius: '12px', border: '1px solid var(--color-border)', fontSize: '12px', fontWeight: '700' }} />
+                          <Legend wrapperStyle={{ fontSize: '11px', fontWeight: '700', paddingTop: '10px' }} />
+                          <Line type="monotone" dataKey="buyers" name="Buyers" stroke="#0066CC" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} />
+                          <Line type="monotone" dataKey="sellers" name="Sellers" stroke="#2ECC71" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
 
-                <div style={{ backgroundColor: '#FFF', padding: '24px', borderRadius: '20px', border: '1px solid var(--color-border)' }}>
-                  <h4 style={{ fontSize: '14px', fontWeight: '800', marginBottom: '12px' }}>Revenue & Sales Analytics</h4>
-                  <div style={{ height: '200px', backgroundColor: 'var(--color-bg-light)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifySelf: 'center', justifyContent: 'center', border: '1px dashed var(--color-border)' }}>
-                    <span style={{ fontSize: '12px', color: 'var(--color-muted)', fontWeight: '600' }}>[Sales Performance Bar Chart - Placeholder]</span>
+                  <div style={{ backgroundColor: '#FFF', padding: '24px', borderRadius: '20px', border: '1px solid var(--color-border)' }}>
+                    <h4 style={{ fontSize: '14px', fontWeight: '800', marginBottom: '16px' }}>Revenue & Sales Analytics (PKR)</h4>
+                    <div style={{ height: '240px', width: '100%' }}>
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={revenueChartData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border)" />
+                          <XAxis dataKey="month" tickLine={false} axisLine={false} style={{ fontSize: '11px', fill: 'var(--color-muted)', fontWeight: '600' }} />
+                          <YAxis tickLine={false} axisLine={false} style={{ fontSize: '11px', fill: 'var(--color-muted)', fontWeight: '600' }} />
+                          <Tooltip contentStyle={{ borderRadius: '12px', border: '1px solid var(--color-border)', fontSize: '12px', fontWeight: '700' }} formatter={(value) => `${value.toLocaleString()} PKR`} />
+                          <Legend wrapperStyle={{ fontSize: '11px', fontWeight: '700', paddingTop: '10px' }} />
+                          <Bar dataKey="StoreSales" name="Store Sales" fill="#EA580C" radius={[4, 4, 0, 0]} />
+                          <Bar dataKey="ShelterBookings" name="Shelter Bookings" fill="#9B59B6" radius={[4, 4, 0, 0]} />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
                   </div>
                 </div>
-
-              </div>
+              )}
 
               {/* Recent Activity Log */}
               <div style={{ backgroundColor: '#FFF', padding: '24px', borderRadius: '20px', border: '1px solid var(--color-border)' }}>
@@ -357,7 +425,15 @@ export default function AdminDashboard({ user, onLogout }) {
             <AdminUsersManager user={user} />
           )}
 
-          {!['dashboard', 'users'].includes(activeTab) && (
+          {activeTab === 'categories' && (
+            <AdminCategoryManager user={user} />
+          )}
+
+          {activeTab === 'products' && (
+            <AdminProductManager user={user} />
+          )}
+
+          {!['dashboard', 'users', 'categories', 'products'].includes(activeTab) && (
             <div style={{ backgroundColor: '#FFF', padding: '40px', borderRadius: '20px', border: '1px solid var(--color-border)', textAlign: 'center' }} className="fade-in">
               <ShieldAlert size={48} color="var(--color-primary)" style={{ margin: '0 auto 16px auto' }} />
               <h3 style={{ fontSize: '18px', fontWeight: '800', marginBottom: '8px' }}>

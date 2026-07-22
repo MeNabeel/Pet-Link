@@ -7,6 +7,7 @@ import {
 import './Dashboard.css';
 import Profile from './Profile';
 import AccountSettings from './AccountSettings';
+import StorePage from './StorePage';
 import MyPets from './MyPets';
 import PetForm from './PetForm';
 import PetDetails from './PetDetails';
@@ -15,7 +16,7 @@ import {
   AlertDialog, AlertDialogContent, AlertDialogHeader, 
   AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, 
   AlertDialogCancel, AlertDialogAction 
-} from '../components/ui/AlertDialog';
+} from '@/components/ui/alert-dialog';
 
 export default function Dashboard({ onLogout }) {
   const [user, setUser] = useState(null);
@@ -230,7 +231,7 @@ export default function Dashboard({ onLogout }) {
           </span>
           <span 
             className={`dash-side-link ${activeTab === 'shop' ? 'active' : ''}`}
-            onClick={() => handleActionClick('E-Commerce Shop')}
+            onClick={() => setActiveTab('shop')}
           >
             <Store size={18} />
             Shop Products
@@ -412,6 +413,10 @@ export default function Dashboard({ onLogout }) {
               }}
               onCancel={() => setActiveTab('profile')}
             />
+          )}
+
+          {activeTab === 'shop' && (
+            <StorePage user={user} />
           )}
         </main>
       </div>

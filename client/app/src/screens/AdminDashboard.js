@@ -5,6 +5,8 @@ import {
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { COLORS } from '../constants/theme';
+import AdminCategories from './AdminCategories';
+import AdminProducts from './AdminProducts';
 
 export default function AdminDashboard({ user, onLogout }) {
   const [activeTab, setActiveTab] = useState('overview'); // 'overview' | 'users'
@@ -172,6 +174,20 @@ export default function AdminDashboard({ user, onLogout }) {
           <Feather name="users" size={16} color={activeTab === 'users' ? COLORS.primary : COLORS.muted} style={{ marginRight: 6 }} />
           <Text style={[styles.tabText, activeTab === 'users' && styles.activeTabText]}>Users</Text>
         </TouchableOpacity>
+        <TouchableOpacity 
+          style={[styles.tabBtn, activeTab === 'categories' && styles.activeTabBtn]} 
+          onPress={() => setActiveTab('categories')}
+        >
+          <Feather name="folder" size={16} color={activeTab === 'categories' ? COLORS.primary : COLORS.muted} style={{ marginRight: 6 }} />
+          <Text style={[styles.tabText, activeTab === 'categories' && styles.activeTabText]}>Categories</Text>
+        </TouchableOpacity>
+        <TouchableOpacity 
+          style={[styles.tabBtn, activeTab === 'products' && styles.activeTabBtn]} 
+          onPress={() => setActiveTab('products')}
+        >
+          <Feather name="package" size={16} color={activeTab === 'products' ? COLORS.primary : COLORS.muted} style={{ marginRight: 6 }} />
+          <Text style={[styles.tabText, activeTab === 'products' && styles.activeTabText]}>Products</Text>
+        </TouchableOpacity>
       </View>
 
       {/* Views */}
@@ -247,7 +263,7 @@ export default function AdminDashboard({ user, onLogout }) {
             </View>
           )}
         </ScrollView>
-      ) : (
+      ) : activeTab === 'users' ? (
         <View style={{ flex: 1 }}>
           {/* Search box */}
           <View style={styles.searchBox}>
@@ -308,7 +324,11 @@ export default function AdminDashboard({ user, onLogout }) {
             />
           )}
         </View>
-      )}
+      ) : activeTab === 'categories' ? (
+        <AdminCategories user={user} onBack={() => setActiveTab('overview')} />
+      ) : activeTab === 'products' ? (
+        <AdminProducts user={user} onBack={() => setActiveTab('overview')} />
+      ) : null}
     </View>
   );
 }

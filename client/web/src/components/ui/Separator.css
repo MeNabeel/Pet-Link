@@ -1,0 +1,16 @@
+.base-separator {
+  background-color: var(--color-border);
+  flex-shrink: 0;
+}
+
+.separator-horizontal {
+  height: 1px;
+  width: 100%;
+  margin: 16px 0;
+}
+
+.separator-vertical {
+  width: 1px;
+  height: 100%;
+  margin: 0 16px;
+}

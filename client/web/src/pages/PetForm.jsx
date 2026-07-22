@@ -10,7 +10,7 @@ import {
   AlertDialog, AlertDialogContent, AlertDialogHeader, 
   AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, 
   AlertDialogCancel, AlertDialogAction 
-} from '../components/ui/AlertDialog';
+} from '@/components/ui/alert-dialog';
 
 export default function PetForm({ user, petId, onCancel, onSaveSuccess }) {
   const [loading, setLoading] = useState(false);

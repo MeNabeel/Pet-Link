@@ -339,13 +339,56 @@
 }
 
 .admin-select {
-  border: 1px solid var(--color-border);
-  border-radius: 10px;
-  padding: 6px 12px;
+  border: 1.5px solid var(--color-border);
+  border-radius: 12px;
+  padding: 8px 32px 8px 12px;
   font-size: 13px;
   background-color: var(--color-white);
   outline: none;
   cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.admin-select:focus {
+  border-color: var(--color-primary);
+}
+
+/* Status dropdown selection colored badges */
+.status-select-colored {
+  appearance: none;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%234B5563' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 14px;
+}
+
+.status-select-colored.published,
+.status-select-colored.active {
+  border-color: #10B981 !important;
+  color: #10B981 !important;
+  background-color: rgba(16, 185, 129, 0.05) !important;
+  font-weight: 700;
+}
+
+.status-select-colored.draft,
+.status-select-colored.inactive,
+.status-select-colored.suspended,
+.status-select-colored.blocked,
+.status-select-colored.pending-verification,
+.status-select-colored.pending_verification,
+.status-select-colored.pending {
+  border-color: #F59E0B !important;
+  color: #F59E0B !important;
+  background-color: rgba(245, 158, 11, 0.05) !important;
+  font-weight: 700;
+}
+
+.status-select-colored.archived,
+.status-select-colored.deleted {
+  border-color: #9CA3AF !important;
+  color: #9CA3AF !important;
+  background-color: rgba(156, 163, 175, 0.05) !important;
+  font-weight: 700;
 }
 
 .admin-table-wrapper {
@@ -487,42 +530,50 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  border: 1px solid var(--color-border);
+  border: 1.5px solid var(--color-border);
   background-color: var(--color-white);
   padding: 6px 12px;
-  font-size: 12px;
-  font-weight: 700;
-  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 800;
+  border-radius: 10px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.action-btn:hover {
+  transform: translateY(-1px);
 }
 
 .suspend-btn {
   color: #d97706;
-  border-color: rgba(234, 179, 8, 0.2);
+  border-color: rgba(234, 179, 8, 0.25);
 }
 
 .suspend-btn:hover {
   background-color: rgba(234, 179, 8, 0.05);
+  border-color: #d97706;
 }
 
 .activate-btn {
   color: #16a34a;
-  border-color: rgba(22, 163, 74, 0.2);
+  border-color: rgba(22, 163, 74, 0.25);
 }
 
 .activate-btn:hover {
   background-color: rgba(22, 163, 74, 0.05);
+  border-color: #16a34a;
 }
 
 .delete-btn {
   color: #dc2626;
-  border-color: rgba(220, 38, 38, 0.2);
-  padding: 6px 8px;
+  border-color: rgba(220, 38, 38, 0.25);
 }
 
 .delete-btn:hover {
   background-color: rgba(220, 38, 38, 0.05);
+  border-color: #dc2626;
 }
 
 .hover-lift {

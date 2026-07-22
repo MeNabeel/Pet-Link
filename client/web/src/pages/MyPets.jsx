@@ -6,7 +6,8 @@ import {
   AlertDialog, AlertDialogContent, AlertDialogHeader, 
   AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, 
   AlertDialogCancel, AlertDialogAction 
-} from '../components/ui/AlertDialog';
+} from '@/components/ui/alert-dialog';
+import { Skeleton } from '@/components/ui/Skeleton';
 
 export default function MyPets({ user, onViewDetails, onAddPet, onEditPet, onDeletePet }) {
   const [pets, setPets] = useState([]);
@@ -93,8 +94,28 @@ export default function MyPets({ user, onViewDetails, onAddPet, onEditPet, onDel
 
       {/* Grid Display */}
       {loading ? (
-        <div style={{ display: 'flex', justifyContent: 'center', marginTop: '40px' }}>
-          <p>Loading family companions...</p>
+        <div className="pets-grid">
+          {Array.from({ length: 4 }).map((_, idx) => (
+            <div key={idx} className="pet-card">
+              <Skeleton width="100%" height="160px" style={{ borderRadius: '12px 12px 0 0' }} />
+              <div className="pet-card-content" style={{ padding: '16px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                  <div>
+                    <Skeleton width="100px" height="14px" style={{ marginBottom: '6px' }} />
+                    <Skeleton width="120px" height="11px" />
+                  </div>
+                  <Skeleton width="50px" height="18px" style={{ borderRadius: '6px' }} />
+                </div>
+                <Skeleton width="100%" height="12px" style={{ marginBottom: '6px' }} />
+                <Skeleton width="90px" height="12px" style={{ marginBottom: '14px' }} />
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <Skeleton width="80px" height="28px" style={{ borderRadius: '8px' }} />
+                  <Skeleton width="80px" height="28px" style={{ borderRadius: '8px' }} />
+                  <Skeleton width="28px" height="28px" style={{ borderRadius: '8px' }} />
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
       ) : (
         <>

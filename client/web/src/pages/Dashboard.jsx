@@ -12,6 +12,8 @@ import MyPets from './MyPets';
 import PetForm from './PetForm';
 import PetDetails from './PetDetails';
 import AdminDashboard from './AdminDashboard';
+import Marketplace from './Marketplace';
+import MarketplacePetDetails from './MarketplacePetDetails';
 import { 
   AlertDialog, AlertDialogContent, AlertDialogHeader, 
   AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, 
@@ -216,8 +218,8 @@ export default function Dashboard({ onLogout }) {
             My Pets
           </span>
           <span 
-            className={`dash-side-link ${activeTab === 'marketplace' ? 'active' : ''}`}
-            onClick={() => handleActionClick('Marketplace Feed')}
+            className={`dash-side-link ${activeTab === 'marketplace' || activeTab === 'marketplace-details' ? 'active' : ''}`}
+            onClick={() => setActiveTab('marketplace')}
           >
             <HeartHandshake size={18} />
             Marketplace
@@ -319,7 +321,7 @@ export default function Dashboard({ onLogout }) {
                   </p>
                 </div>
 
-                <div className="action-card" onClick={() => handleActionClick('Marketplace Lister')}>
+                <div className="action-card" onClick={() => setActiveTab('marketplace')}>
                   <HeartHandshake size={26} color="#16A34A" />
                   <h4 className="action-title">Adoption & Marketplace</h4>
                   <p className="action-desc">
@@ -417,6 +419,24 @@ export default function Dashboard({ onLogout }) {
 
           {activeTab === 'shop' && (
             <StorePage user={user} />
+          )}
+
+          {activeTab === 'marketplace' && (
+            <Marketplace 
+              user={user} 
+              onViewDetails={(id) => {
+                setSelectedPetId(id);
+                setActiveTab('marketplace-details');
+              }}
+            />
+          )}
+
+          {activeTab === 'marketplace-details' && (
+            <MarketplacePetDetails 
+              user={user} 
+              petId={selectedPetId} 
+              onBack={() => setActiveTab('marketplace')} 
+            />
           )}
         </main>
       </div>

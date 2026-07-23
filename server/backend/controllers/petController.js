@@ -40,7 +40,8 @@ exports.addPet = async (req, res) => {
       isVaccinated, vaccinationDate, nextVaccinationDate, medicalHistory, allergies, diseases, bloodGroup,
       friendlyWithKids, friendlyWithPets, trainingLevel, neuteredSpayed, microchipNumber, foodPreference,
       behaviour, personality, aboutPet, adoptionStatus, activeStatus,
-      country, province, city, address, image, imageSettings, documents 
+      country, province, city, address, image, imageSettings, documents,
+      price, negotiable
     } = req.body;
 
     if (!owner || !name || !breed || !age || !weight || !gender) {
@@ -82,6 +83,8 @@ exports.addPet = async (req, res) => {
       image: image || '',
       imageSettings: imageSettings || { positionX: 50, positionY: 50, scale: 1, objectPosition: '50% 50%' },
       documents: documents || [],
+      price: price !== undefined ? price : 0,
+      negotiable: negotiable !== undefined ? negotiable : true,
       vaccines: [],
       medicalRecords: [],
     });
@@ -115,7 +118,8 @@ exports.updatePet = async (req, res) => {
       'isVaccinated', 'vaccinationDate', 'nextVaccinationDate', 'medicalHistory', 'allergies', 'diseases', 'bloodGroup',
       'friendlyWithKids', 'friendlyWithPets', 'trainingLevel', 'neuteredSpayed', 'microchipNumber', 'foodPreference',
       'behaviour', 'personality', 'aboutPet', 'adoptionStatus', 'activeStatus',
-      'country', 'province', 'city', 'address', 'image', 'imageSettings', 'documents'
+      'country', 'province', 'city', 'address', 'image', 'imageSettings', 'documents',
+      'price', 'negotiable', 'moderationStatus', 'isFeatured', 'viewsCount', 'favoritesCount', 'reportsCount'
     ];
 
     fields.forEach((field) => {

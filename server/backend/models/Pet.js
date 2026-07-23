@@ -181,6 +181,35 @@ const petSchema = new mongoose.Schema(
         attachments: [String], // Array of Base64 attachments
       }
     ],
+    price: {
+      type: Number,
+      default: 0
+    },
+    negotiable: {
+      type: Boolean,
+      default: true
+    },
+    moderationStatus: {
+      type: String,
+      enum: ['Pending Review', 'Published', 'Rejected', 'Suspended', 'Archived', 'Removed'],
+      default: 'Published'
+    },
+    isFeatured: {
+      type: Boolean,
+      default: false
+    },
+    viewsCount: {
+      type: Number,
+      default: 0
+    },
+    favoritesCount: {
+      type: Number,
+      default: 0
+    },
+    reportsCount: {
+      type: Number,
+      default: 0
+    }
   },
   {
     timestamps: true,

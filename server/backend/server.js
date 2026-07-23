@@ -26,6 +26,9 @@ app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/pets', require('./routes/petRoutes'));
 app.use('/api/categories', require('./routes/categoryRoutes'));
 app.use('/api/products', require('./routes/productRoutes'));
+app.use('/api/marketplace', require('./routes/marketplaceRoutes'));
+app.use('/api/wishlist', require('./routes/wishlistRoutes'));
+app.use('/api/admin/marketplace', require('./routes/adminMarketplaceRoutes'));
 
 // Server Health Endpoint
 app.get('/', (req, res) => {

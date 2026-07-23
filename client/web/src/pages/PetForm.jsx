@@ -70,6 +70,8 @@ export default function PetForm({ user, petId, onCancel, onSaveSuccess }) {
 
   // Section 5: Pet Status
   const [activeStatus, setActiveStatus] = useState('ACTIVE');
+  const [price, setPrice] = useState(0);
+  const [negotiable, setNegotiable] = useState(true);
 
   // Section 6: Location
   const [country, setCountry] = useState('Pakistan');
@@ -128,6 +130,8 @@ export default function PetForm({ user, petId, onCancel, onSaveSuccess }) {
             setAddress(data.address || '');
 
             setDocuments(data.documents || []);
+            setPrice(data.price !== undefined ? data.price : 0);
+            setNegotiable(data.negotiable !== undefined ? data.negotiable : true);
           }
         })
         .catch((err) => console.error('Error prepopulating pet data:', err))
@@ -252,7 +256,9 @@ export default function PetForm({ user, petId, onCancel, onSaveSuccess }) {
         isVaccinated, vaccinationDate, nextVaccinationDate, medicalHistory, allergies, diseases, bloodGroup,
         friendlyWithKids, friendlyWithPets, trainingLevel, neuteredSpayed, microchipNumber, foodPreference,
         behaviour, personality, aboutPet, adoptionStatus, activeStatus,
-        country, province, city, address, image, imageSettings, documents
+        country, province, city, address, image, imageSettings, documents,
+        price: activeStatus === 'FOR_SALE' ? price : 0,
+        negotiable: activeStatus === 'FOR_SALE' ? negotiable : false
       };
 
       let response;
@@ -757,6 +763,33 @@ export default function PetForm({ user, petId, onCancel, onSaveSuccess }) {
               </select>
             </div>
           </div>
+
+          {activeStatus === 'FOR_SALE' && (
+            <div className="pet-grid-2 fade-in" style={{ marginTop: '16px' }}>
+              <div className="form-group">
+                <label className="form-label">Price (PKR)</label>
+                <input 
+                  type="number" 
+                  className="form-control login-input" 
+                  placeholder="Enter sale price..."
+                  value={price} 
+                  onChange={(e) => setPrice(Math.max(0, Number(e.target.value)))} 
+                />
+              </div>
+              <div className="pet-toggle-row" style={{ marginTop: '24px' }}>
+                <div className="pet-toggle-label-area">
+                  <span className="pet-toggle-title">Price is Negotiable</span>
+                  <span className="pet-toggle-subtitle">Allow buyers to negotiate offers?</span>
+                </div>
+                <input 
+                  type="checkbox" 
+                  style={{ width: '20px', height: '20px', cursor: 'pointer' }}
+                  checked={negotiable} 
+                  onChange={(e) => setNegotiable(e.target.checked)} 
+                />
+              </div>
+            </div>
+          )}
           </div>
           )}
         </div>

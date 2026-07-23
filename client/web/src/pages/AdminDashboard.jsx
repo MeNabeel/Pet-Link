@@ -12,6 +12,7 @@ import {
 import AdminUsersManager from './AdminUsersManager';
 import AdminCategoryManager from './AdminCategoryManager';
 import AdminProductManager from './AdminProductManager';
+import AdminMarketplaceManager from './AdminMarketplaceManager';
 import './Dashboard.css';
 import { 
   AlertDialog, AlertDialogContent, AlertDialogHeader, 
@@ -433,7 +434,11 @@ export default function AdminDashboard({ user, onLogout }) {
             <AdminProductManager user={user} />
           )}
 
-          {!['dashboard', 'users', 'categories', 'products'].includes(activeTab) && (
+          {activeTab === 'marketplace' && (
+            <AdminMarketplaceManager user={user} />
+          )}
+
+          {!['dashboard', 'users', 'categories', 'products', 'marketplace'].includes(activeTab) && (
             <div style={{ backgroundColor: '#FFF', padding: '40px', borderRadius: '20px', border: '1px solid var(--color-border)', textAlign: 'center' }} className="fade-in">
               <ShieldAlert size={48} color="var(--color-primary)" style={{ margin: '0 auto 16px auto' }} />
               <h3 style={{ fontSize: '18px', fontWeight: '800', marginBottom: '8px' }}>

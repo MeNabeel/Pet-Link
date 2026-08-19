@@ -6,17 +6,28 @@ import {
 import { Feather, FontAwesome } from '@expo/vector-icons';
 import { COLORS } from '../constants/theme';
 
-export default function Store({ user, onBack }) {
+export default function Store({ user, onBack, initialMode }) {
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
+  const [pets, setPets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [wishlist, setWishlist] = useState([]);
   const [cartCount, setCartCount] = useState(0);
 
+  // Tab state: 'pets' or 'products'
+  const [viewMode, setViewMode] = useState(initialMode || 'products');
+
   // Quick view states
   const [selectedProductForModal, setSelectedProductForModal] = useState(null);
+
+  // Sync mode if changed externally
+  useEffect(() => {
+    if (initialMode) {
+      setViewMode(initialMode);
+    }
+  }, [initialMode]);
 
   const fetchData = async () => {
     try {
@@ -30,10 +41,16 @@ export default function Store({ user, onBack }) {
       const prodRes = await fetch('http://localhost:5000/api/products?status=Published&visibility=Public');
       if (prodRes.ok) {
         const prodData = await prodRes.json();
-        setProducts(prodData);
+        setProducts(prodData || []);
+      }
+
+      const petsRes = await fetch('http://localhost:5000/api/pets');
+      if (petsRes.ok) {
+        const petsData = await petsRes.json();
+        setPets(petsData || []);
       }
     } catch (err) {
-      console.log('Error loading mobile store catalog:', err);
+      console.log('Error loading mobile marketplace database catalog:', err);
     } finally {
       setLoading(false);
     }
@@ -53,7 +70,7 @@ export default function Store({ user, onBack }) {
 
   const handleAddToCart = (product) => {
     setCartCount(prev => prev + 1);
-    Alert.alert("Cart", `Added ${product.name} to shopping cart!`);
+    Alert.alert("Basket", `Added ${product.name} to shopping basket!`);
   };
 
   const handleProductPress = (id) => {
@@ -66,9 +83,16 @@ export default function Store({ user, onBack }) {
 
   const filteredProducts = products.filter(p => {
     const matchesSearch = p.name.toLowerCase().includes(search.toLowerCase()) ||
-                          p.brand.toLowerCase().includes(search.toLowerCase());
+                          (p.brand && p.brand.toLowerCase().includes(search.toLowerCase()));
     const matchesCat = selectedCategory === 'all' || (p.category && p.category._id === selectedCategory);
     return matchesSearch && matchesCat;
+  });
+
+  const filteredPets = pets.filter(p => {
+    const isAvailable = p.activeStatus === 'FOR_SALE' || p.activeStatus === 'FOR_ADOPTION';
+    const matchesSearch = p.name.toLowerCase().includes(search.toLowerCase()) ||
+                          p.breed.toLowerCase().includes(search.toLowerCase());
+    return isAvailable && matchesSearch;
   });
 
   const renderProductCard = ({ item }) => {
@@ -77,7 +101,6 @@ export default function Store({ user, onBack }) {
 
     return (
       <View style={styles.card}>
-        {/* Product Media Area */}
         <TouchableOpacity style={styles.cardMedia} activeOpacity={0.9} onPress={() => handleProductPress(item._id)}>
           {item.images && item.images.length > 0 ? (
             <Image source={{ uri: item.images[0] }} style={styles.cardImage} />
@@ -85,10 +108,8 @@ export default function Store({ user, onBack }) {
             <View style={styles.cardNoImg}><Feather name="package" size={24} color={COLORS.muted} /></View>
           )}
 
-          {/* Floating Category Tag */}
           <Text style={styles.cardCatBadge}>{item.category?.name || 'Item'}</Text>
           
-          {/* Wishlist Icon */}
           <TouchableOpacity style={styles.wishBtn} onPress={() => toggleWishlist(item._id)}>
             <FontAwesome 
               name={isWishlisted ? "heart" : "heart-o"} 
@@ -98,7 +119,6 @@ export default function Store({ user, onBack }) {
           </TouchableOpacity>
         </TouchableOpacity>
 
-        {/* Product Metadata */}
         <View style={styles.cardBody}>
           {item.brand ? <Text style={styles.cardBrand}>{item.brand}</Text> : null}
           <Text style={styles.cardTitle} numberOfLines={1} onPress={() => handleProductPress(item._id)}>
@@ -146,47 +166,119 @@ export default function Store({ user, onBack }) {
     );
   };
 
+  const renderPetCard = ({ item }) => {
+    const isSale = item.activeStatus === 'FOR_SALE';
+    return (
+      <View style={styles.card}>
+        <View style={styles.cardMedia}>
+          {item.image ? (
+            <Image source={{ uri: item.image }} style={styles.cardImage} />
+          ) : (
+            <View style={styles.cardNoImg}>
+              <FontAwesome name="paw" size={24} color={COLORS.muted} />
+            </View>
+          )}
+
+          <Text style={[styles.cardCatBadge, { backgroundColor: isSale ? '#EA580C' : '#10B981' }]}>
+            {isSale ? 'For Sale' : 'Adoption'}
+          </Text>
+        </View>
+
+        <View style={styles.cardBody}>
+          <Text style={styles.cardTitle} numberOfLines={1}>{item.name}</Text>
+          <Text style={styles.cardBrand}>{item.breed} • {item.age}</Text>
+
+          <View style={styles.ratingsRow}>
+            <Feather name="map-pin" size={10} color={COLORS.muted} style={{ marginRight: 4 }} />
+            <Text style={styles.ratingText} numberOfLines={1}>{item.city || 'Lahore'}, {item.province || 'Punjab'}</Text>
+          </View>
+
+          <View style={styles.priceRow}>
+            <Text style={styles.salePrice}>
+              {isSale ? `${item.price || 'Negotiable'} PKR` : 'Free Adoption'}
+            </Text>
+          </View>
+
+          <View style={styles.actionsRow}>
+            <TouchableOpacity 
+              style={[styles.addToCartBtn, { flex: 1, backgroundColor: COLORS.primary }]}
+              onPress={() => Alert.alert('Contact Owner', `Owner: ${item.owner?.name || 'Pet Owner'}\nPhone: ${item.phone || '+92 300 1234567'}`)}
+            >
+              <Feather name="phone" size={12} color={COLORS.white} style={{ marginRight: 6 }} />
+              <Text style={styles.addToCartText}>Call Owner</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    );
+  };
+
   return (
     <View style={styles.container}>
       {/* Store Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backBtn} onPress={onBack}>
           <Feather name="arrow-left" size={18} color={COLORS.dark} />
-          <Text style={styles.backBtnText}>Exit Shop</Text>
+          <Text style={styles.backBtnText}>Exit</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>PetLink Store</Text>
-        <View style={styles.cartBtn}>
-          <Feather name="shopping-bag" size={16} color={COLORS.primary} />
-          <Text style={styles.cartCountText}>{cartCount}</Text>
-        </View>
+        <Text style={styles.headerTitle}>{viewMode === 'pets' ? 'Pet Marketplace' : 'PetLink Store'}</Text>
+        
+        {viewMode === 'products' ? (
+          <View style={styles.cartBtn}>
+            <Feather name="shopping-bag" size={16} color={COLORS.primary} />
+            <Text style={styles.cartCountText}>{cartCount}</Text>
+          </View>
+        ) : (
+          <View style={{ width: 44 }} />
+        )}
       </View>
 
-      {/* Categories Horizontal Selector */}
-      <View style={styles.catSelectorWrapper}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16 }}>
-          <TouchableOpacity 
-            style={[styles.catChip, selectedCategory === 'all' && styles.catChipActive]}
-            onPress={() => setSelectedCategory('all')}
-          >
-            <Text style={[styles.catChipText, selectedCategory === 'all' && styles.catChipTextActive]}>All Items</Text>
-          </TouchableOpacity>
-          {categories.map(c => (
-            <TouchableOpacity 
-              key={c._id} 
-              style={[styles.catChip, selectedCategory === c._id && styles.catChipActive]}
-              onPress={() => setSelectedCategory(c._id)}
-            >
-              <Text style={[styles.catChipText, selectedCategory === c._id && styles.catChipTextActive]}>{c.name}</Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
+      {/* Segmented View Mode Toggle */}
+      <View style={styles.toggleBar}>
+        <TouchableOpacity 
+          style={[styles.toggleBtn, viewMode === 'pets' && styles.toggleBtnActive]}
+          onPress={() => setViewMode('pets')}
+        >
+          <FontAwesome name="paw" size={14} color={viewMode === 'pets' ? COLORS.white : COLORS.muted} style={{ marginRight: 6 }} />
+          <Text style={[styles.toggleBtnText, viewMode === 'pets' && styles.toggleBtnTextActive]}>Adopt/Buy Pets</Text>
+        </TouchableOpacity>
+        <TouchableOpacity 
+          style={[styles.toggleBtn, viewMode === 'products' && styles.toggleBtnActive]}
+          onPress={() => setViewMode('products')}
+        >
+          <Feather name="shopping-bag" size={14} color={viewMode === 'products' ? COLORS.white : COLORS.muted} style={{ marginRight: 6 }} />
+          <Text style={[styles.toggleBtnText, viewMode === 'products' && styles.toggleBtnTextActive]}>Pet Products</Text>
+        </TouchableOpacity>
       </View>
+
+      {/* Categories Horizontal Selector (Only for products) */}
+      {viewMode === 'products' && (
+        <View style={styles.catSelectorWrapper}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16 }}>
+            <TouchableOpacity 
+              style={[styles.catChip, selectedCategory === 'all' && styles.catChipActive]}
+              onPress={() => setSelectedCategory('all')}
+            >
+              <Text style={[styles.catChipText, selectedCategory === 'all' && styles.catChipTextActive]}>All Items</Text>
+            </TouchableOpacity>
+            {categories.map(c => (
+              <TouchableOpacity 
+                key={c._id} 
+                style={[styles.catChip, selectedCategory === c._id && styles.catChipActive]}
+                onPress={() => setSelectedCategory(c._id)}
+              >
+                <Text style={[styles.catChipText, selectedCategory === c._id && styles.catChipTextActive]}>{c.name}</Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+      )}
 
       {/* Search Input */}
       <View style={styles.searchBar}>
         <Feather name="search" size={16} color={COLORS.muted} style={{ marginRight: 8 }} />
         <TextInput 
-          placeholder="Search foods, toys, wellness..."
+          placeholder={viewMode === 'products' ? "Search foods, toys, wellness..." : "Search pets name, breed..."}
           value={search}
           onChangeText={setSearch}
           style={styles.searchInput}
@@ -225,10 +317,10 @@ export default function Store({ user, onBack }) {
               <Text style={styles.modalDesc}>{selectedProductForModal.description || selectedProductForModal.shortDescription || 'No description specs configured for this product catalog entry.'}</Text>
 
               <View style={styles.modalSpecsGrid}>
-                {selectedProductForModal.sku ? <Text style={styles.specText}>SKU: {selectedProductForModal.sku}</Text> : null}
-                {selectedProductForModal.stockStatus ? <Text style={styles.specText}>Stock: {selectedProductForModal.stockStatus}</Text> : null}
-                {selectedProductForModal.weight ? <Text style={styles.specText}>Weight: {selectedProductForModal.weight}</Text> : null}
-                {selectedProductForModal.dimensions ? <Text style={styles.specText}>Size: {selectedProductForModal.dimensions}</Text> : null}
+                {selectedProductForModal.sku ? <Text style={specText}>SKU: {selectedProductForModal.sku}</Text> : null}
+                {selectedProductForModal.stockStatus ? <Text style={specText}>Stock: {selectedProductForModal.stockStatus}</Text> : null}
+                {selectedProductForModal.weight ? <Text style={specText}>Weight: {selectedProductForModal.weight}</Text> : null}
+                {selectedProductForModal.dimensions ? <Text style={specText}>Size: {selectedProductForModal.dimensions}</Text> : null}
               </View>
 
               <TouchableOpacity style={styles.modalAddBtn} onPress={() => { handleAddToCart(selectedProductForModal); setSelectedProductForModal(null); }}>
@@ -244,16 +336,18 @@ export default function Store({ user, onBack }) {
         <ActivityIndicator size="large" color={COLORS.primary} style={{ marginTop: 40 }} />
       ) : (
         <FlatList 
-          data={filteredProducts}
+          data={viewMode === 'products' ? filteredProducts : filteredPets}
           keyExtractor={item => item._id}
           numColumns={2}
           columnWrapperStyle={styles.gridRow}
           contentContainerStyle={{ paddingHorizontal: 12, paddingBottom: 30 }}
-          renderItem={renderProductCard}
+          renderItem={viewMode === 'products' ? renderProductCard : renderPetCard}
           ListEmptyComponent={() => (
             <View style={styles.empty}>
-              <Feather name="shopping-bag" size={32} color={COLORS.muted} style={{ marginBottom: 8 }} />
-              <Text style={styles.emptyText}>No store items found matching search filters.</Text>
+              <Feather name={viewMode === 'products' ? "shopping-bag" : "heart"} size={32} color={COLORS.muted} style={{ marginBottom: 8 }} />
+              <Text style={styles.emptyText}>
+                {viewMode === 'products' ? "No store items found matching search filters." : "No pets matching adoption/sales search filters."}
+              </Text>
             </View>
           )}
         />
@@ -281,6 +375,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
+    width: 60,
   },
   backBtnText: {
     fontSize: 13,
@@ -298,7 +393,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,102,204,0.06)',
     paddingHorizontal: 10,
     paddingVertical: 5,
-    borderRadius: 8,
+    borderRadius: 14,
     gap: 4,
   },
   cartCountText: {
@@ -306,32 +401,60 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: COLORS.primary,
   },
+  toggleBar: {
+    flexDirection: 'row',
+    backgroundColor: '#F1F5F9',
+    marginHorizontal: 16,
+    marginTop: 12,
+    borderRadius: 12,
+    padding: 3,
+  },
+  toggleBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 8,
+    borderRadius: 9,
+  },
+  toggleBtnActive: {
+    backgroundColor: COLORS.primary,
+  },
+  toggleBtnText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#64748B',
+  },
+  toggleBtnTextActive: {
+    color: COLORS.white,
+  },
   catSelectorWrapper: {
-    paddingVertical: 12,
-    backgroundColor: COLORS.white,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
+    marginVertical: 12,
+    height: 34,
   },
   catChip: {
+    backgroundColor: COLORS.white,
+    borderWidth: 1,
+    borderColor: COLORS.border,
     paddingHorizontal: 14,
     paddingVertical: 6,
-    borderRadius: 14,
-    backgroundColor: '#F3F4F6',
+    borderRadius: 16,
     marginRight: 8,
-    borderWidth: 1,
-    borderColor: 'transparent',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   catChipActive: {
-    backgroundColor: 'rgba(0,102,204,0.08)',
-    borderColor: 'rgba(0,102,204,0.2)',
+    backgroundColor: COLORS.primary,
+    borderColor: COLORS.primary,
   },
   catChipText: {
     fontSize: 11,
-    fontWeight: '700',
-    color: COLORS.muted,
+    color: COLORS.darkLight,
+    fontWeight: '600',
   },
   catChipTextActive: {
-    color: COLORS.primary,
+    color: COLORS.white,
+    fontWeight: '700',
   },
   searchBar: {
     flexDirection: 'row',
@@ -339,11 +462,12 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.white,
     borderWidth: 1,
     borderColor: COLORS.border,
-    borderRadius: 12,
-    paddingHorizontal: 12,
+    borderRadius: 14,
     marginHorizontal: 16,
-    marginVertical: 14,
+    marginBottom: 14,
+    paddingHorizontal: 12,
     height: 40,
+    marginTop: 8,
   },
   searchInput: {
     flex: 1,
@@ -352,12 +476,12 @@ const styles = StyleSheet.create({
   },
   gridRow: {
     justifyContent: 'space-between',
-    paddingHorizontal: 4,
+    paddingHorizontal: 6,
   },
   card: {
-    width: '48%',
+    width: '47%',
     backgroundColor: COLORS.white,
-    borderRadius: 16,
+    borderRadius: 18,
     borderWidth: 1,
     borderColor: COLORS.border,
     marginBottom: 14,
@@ -371,7 +495,6 @@ const styles = StyleSheet.create({
   cardImage: {
     width: '100%',
     height: '100%',
-    objectFit: 'cover',
   },
   cardNoImg: {
     flex: 1,
@@ -384,11 +507,12 @@ const styles = StyleSheet.create({
     left: 8,
     fontSize: 8,
     fontWeight: '800',
-    color: COLORS.primary,
-    backgroundColor: COLORS.white,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
+    color: COLORS.white,
+    backgroundColor: 'rgba(17,24,39,0.75)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    overflow: 'hidden',
     textTransform: 'uppercase',
   },
   wishBtn: {
@@ -401,79 +525,84 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.white,
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
   },
   cardBody: {
-    padding: 10,
-    flex: 1,
+    padding: 12,
   },
   cardBrand: {
-    fontSize: 8,
-    fontWeight: '700',
+    fontSize: 9,
     color: COLORS.muted,
+    fontWeight: '700',
     textTransform: 'uppercase',
+    marginBottom: 2,
   },
   cardTitle: {
     fontSize: 12,
     fontWeight: '800',
     color: COLORS.dark,
-    marginTop: 2,
+    lineHeight: 15,
   },
   ratingsRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    marginTop: 4,
+    marginVertical: 4,
   },
   stars: {
     flexDirection: 'row',
     gap: 1,
   },
   ratingText: {
-    fontSize: 9,
-    fontWeight: '700',
+    fontSize: 10,
+    fontWeight: '600',
     color: COLORS.muted,
+    marginLeft: 4,
   },
   cardShortDesc: {
     fontSize: 10,
     color: COLORS.muted,
-    lineHeight: 12,
-    marginTop: 4,
-    height: 24,
+    lineHeight: 13,
+    marginVertical: 4,
   },
   priceRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 10,
+    marginTop: 6,
+    marginBottom: 8,
   },
   salePrice: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '800',
     color: '#16A34A',
   },
   regPriceCrossed: {
-    fontSize: 8,
+    fontSize: 9,
     color: COLORS.muted,
     textDecorationLine: 'line-through',
+    marginTop: 1,
   },
   stockTag: {
-    fontSize: 7,
+    fontSize: 8,
     fontWeight: '800',
-    backgroundColor: 'rgba(16, 185, 129, 0.08)',
-    color: '#16A34A',
-    paddingVertical: 1,
-    paddingHorizontal: 4,
+    color: '#2563EB',
+    backgroundColor: 'rgba(37,99,235,0.08)',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
     borderRadius: 4,
-    textTransform: 'uppercase',
+    overflow: 'hidden',
   },
   actionsRow: {
     flexDirection: 'row',
     gap: 6,
-    marginTop: 10,
   },
   quickViewBtn: {
-    width: 28,
-    height: 28,
+    width: 32,
+    height: 32,
     borderRadius: 8,
     borderWidth: 1,
     borderColor: COLORS.border,
@@ -482,8 +611,8 @@ const styles = StyleSheet.create({
   },
   addToCartBtn: {
     flex: 1,
-    height: 28,
-    backgroundColor: COLORS.primary,
+    height: 32,
+    backgroundColor: COLORS.dark,
     borderRadius: 8,
     flexDirection: 'row',
     alignItems: 'center',
@@ -496,14 +625,17 @@ const styles = StyleSheet.create({
   },
   empty: {
     alignItems: 'center',
-    paddingTop: 50,
+    justifyContent: 'center',
+    paddingVertical: 50,
   },
   emptyText: {
-    fontSize: 12,
+    fontSize: 11,
     color: COLORS.muted,
-    fontWeight: '600',
+    fontWeight: '700',
+    textAlign: 'center',
+    marginTop: 8,
+    paddingHorizontal: 20,
   },
-  // Modal Detail Styles
   modalBackdrop: {
     position: 'absolute',
     top: 0,
@@ -534,7 +666,6 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 180,
     borderRadius: 14,
-    objectFit: 'cover',
   },
   modalNoImg: {
     width: '100%',

@@ -130,7 +130,7 @@ Pet owners in Pakistan face significant challenges in their daily lives while ma
 ## ⚙️ Installation & Setup
 
 ### Prerequisites
-*   Node.js (v18+)
+*   Node.js (v20+)
 *   MongoDB installed and running locally
 
 ### 1. Server/Backend Setup
@@ -138,6 +138,10 @@ Pet owners in Pakistan face significant challenges in their daily lives while ma
 cd server/backend
 npm install
 npm start
+# To run backend tests:
+npm run test
+# To run backend lint checks:
+npm run lint
 ```
 
 ### 2. Web Client Setup
@@ -145,14 +149,37 @@ npm start
 cd client/web
 npm install
 npm run dev
+# To run web frontend tests:
+npm run test
+# To run web lint checks:
+npm run lint
 ```
 
 ### 3. Mobile App Setup
 ```bash
 cd client/app
 npm install
-npm run android
+npm start
+# To run mobile tests:
+npm run test
+# To run mobile lint checks:
+npm run lint
 ```
+
+---
+
+## 🚀 Continuous Integration (CI/CD Pipeline)
+
+We have configured a complete **GitHub Actions CI Pipeline** in [.github/workflows/ci.yml](file:///.github/workflows/ci.yml) to automatically validate pull requests and branch contributions.
+
+### Workflow Jobs
+1. **Linting Check**: Runs ESLint and OxLint across backend server, web frontend, and React Native mobile codebases to enforce quality standards.
+2. **Testing Suite**: Installs dependencies and runs unit tests (`Jest` for backend/mobile app, `Vitest` for web frontend) with coverage outputs. Passed environment parameters are injected securely via GitHub Actions secrets (`MONGODB_URI`, `JWT_SECRET`).
+3. **Build Verification**: Validates production compiles (`npm run build` for React web client and `npm run build` for React Native Expo app client).
+
+### Team Contribution Rules
+* **Required PR Checks**: All Pull Requests targeting `main` or `master` branches must pass the CI checks before merge approval.
+* **Cache Optimization**: Node modules dependencies are cached globally in GitHub runner storage using dependency lock keys to minimize build times.
 
 ---
 

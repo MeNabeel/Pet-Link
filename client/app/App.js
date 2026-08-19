@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { StyleSheet, View, Text, TouchableOpacity, SafeAreaView, Image } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity, SafeAreaView, Image, Platform } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { Feather, FontAwesome } from '@expo/vector-icons';
 import { useFonts } from 'expo-font';
@@ -27,6 +27,9 @@ import { COLORS } from './src/constants/theme';
 const oldRender = Text.render;
 Text.render = function (...args) {
   const origin = oldRender.call(this, ...args);
+  if (typeof window !== 'undefined') {
+    return origin;
+  }
   const flatStyle = StyleSheet.flatten(origin.props.style) || {};
   
   let family = 'Outfit-Regular';
@@ -50,6 +53,7 @@ export default function App() {
   const [user, setUser] = useState(null);
   const [petSubView, setPetSubView] = useState('list');
   const [selectedPetId, setSelectedPetId] = useState(null);
+  const [storeInitialMode, setStoreInitialMode] = useState('products');
 
   const [fontsLoaded] = useFonts({
     'Outfit-Regular': Outfit_400Regular,
@@ -151,6 +155,7 @@ export default function App() {
       setPetSubView('list');
       setScreen('mypets');
     } else if (tabName === 'store') {
+      setStoreInitialMode('products');
       setScreen('store');
     } else if (tabName === 'services') {
       alert('Navigating to PetLink Vet & Shelter Services...');
@@ -173,10 +178,12 @@ export default function App() {
       <View style={styles.container}>
         <StatusBar style="dark" />
 
-        {/* Top Header Brand (Clean and Static) */}
         {showNav && user && (
           <View style={styles.headerBar}>
-            <Text style={styles.headerTitle}>PetLink Workspace</Text>
+            <TouchableOpacity style={styles.headerBrandRow} onPress={() => setScreen('dashboard')}>
+              <Image source={require('./assets/logo/logo.jpeg')} style={styles.headerLogo} />
+              <Text style={styles.headerTitle}>PetLink</Text>
+            </TouchableOpacity>
             <TouchableOpacity style={styles.headerNotification} onPress={() => alert('No new notifications')}>
               <Feather name="bell" size={18} color={COLORS.dark} />
             </TouchableOpacity>
@@ -219,6 +226,14 @@ export default function App() {
             <Dashboard
               user={user}
               onLogout={handleLogout}
+              onNavigate={(scr, subView = 'list') => {
+                setScreen(scr);
+                if (scr === 'mypets') {
+                  setPetSubView(subView);
+                } else if (scr === 'store') {
+                  setStoreInitialMode(subView);
+                }
+              }}
             />
           )}
 
@@ -289,6 +304,7 @@ export default function App() {
             <Store
               user={user}
               onBack={() => setScreen('dashboard')}
+              initialMode={storeInitialMode}
             />
           )}
         </View>
@@ -386,6 +402,16 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     zIndex: 99,
+  },
+  headerBrandRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  headerLogo: {
+    width: 26,
+    height: 26,
+    borderRadius: 6,
   },
   headerTitle: {
     fontSize: 16,

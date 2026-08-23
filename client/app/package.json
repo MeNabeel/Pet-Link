@@ -20,7 +20,7 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "test": "jest --passWithNoTests",
-    "lint": "eslint . --ext .js --max-warnings=0",
+    "lint": "eslint .",
     "build": "expo export"
   },
   "devDependencies": {

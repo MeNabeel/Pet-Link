@@ -317,10 +317,10 @@ export default function Store({ user, onBack, initialMode }) {
               <Text style={styles.modalDesc}>{selectedProductForModal.description || selectedProductForModal.shortDescription || 'No description specs configured for this product catalog entry.'}</Text>
 
               <View style={styles.modalSpecsGrid}>
-                {selectedProductForModal.sku ? <Text style={specText}>SKU: {selectedProductForModal.sku}</Text> : null}
-                {selectedProductForModal.stockStatus ? <Text style={specText}>Stock: {selectedProductForModal.stockStatus}</Text> : null}
-                {selectedProductForModal.weight ? <Text style={specText}>Weight: {selectedProductForModal.weight}</Text> : null}
-                {selectedProductForModal.dimensions ? <Text style={specText}>Size: {selectedProductForModal.dimensions}</Text> : null}
+                {selectedProductForModal.sku ? <Text style={styles.specText}>SKU: {selectedProductForModal.sku}</Text> : null}
+                {selectedProductForModal.stockStatus ? <Text style={styles.specText}>Stock: {selectedProductForModal.stockStatus}</Text> : null}
+                {selectedProductForModal.weight ? <Text style={styles.specText}>Weight: {selectedProductForModal.weight}</Text> : null}
+                {selectedProductForModal.dimensions ? <Text style={styles.specText}>Size: {selectedProductForModal.dimensions}</Text> : null}
               </View>
 
               <TouchableOpacity style={styles.modalAddBtn} onPress={() => { handleAddToCart(selectedProductForModal); setSelectedProductForModal(null); }}>

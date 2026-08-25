@@ -27,21 +27,21 @@ jobs:
 
       # Backend Linting
       - name: Install Backend Dependencies
-        run: npm install --no-audit --no-fund --prefix server/backend
+        run: npm ci --no-audit --no-fund --prefix server/backend
 
       - name: Lint Backend Codebase
         run: npm run lint --prefix server/backend
 
       # Web Client Linting
       - name: Install Web Client Dependencies
-        run: npm install --no-audit --no-fund --prefix client/web
+        run: npm ci --no-audit --no-fund --prefix client/web
 
       - name: Lint Web Client Codebase
         run: npm run lint --prefix client/web
 
       # Mobile App Client Linting
       - name: Install Mobile App Dependencies
-        run: npm install --no-audit --no-fund --prefix client/app
+        run: npm ci --no-audit --no-fund --prefix client/app
 
       - name: Lint Mobile Client Codebase
         run: npm run lint --prefix client/app
@@ -67,7 +67,7 @@ jobs:
 
       # Backend Tests & Coverage
       - name: Install Backend Dependencies
-        run: npm install --no-audit --no-fund --prefix server/backend
+        run: npm ci --no-audit --no-fund --prefix server/backend
 
       - name: Run Backend Tests
         env:
@@ -77,14 +77,14 @@ jobs:
 
       # Web Client Tests
       - name: Install Web Client Dependencies
-        run: npm install --no-audit --no-fund --prefix client/web
+        run: npm ci --no-audit --no-fund --prefix client/web
 
       - name: Run Web Client Tests
         run: npm run test --prefix client/web
 
       # Mobile App Client Tests
       - name: Install Mobile App Dependencies
-        run: npm install --no-audit --no-fund --prefix client/app
+        run: npm ci --no-audit --no-fund --prefix client/app
 
       - name: Run Mobile App Tests
         run: npm run test --prefix client/app
@@ -110,14 +110,14 @@ jobs:
 
       # Compile Web Client Build
       - name: Install Web Client Dependencies
-        run: npm install --no-audit --no-fund --prefix client/web
+        run: npm ci --no-audit --no-fund --prefix client/web
 
       - name: Build Web Client Production Bundle
         run: npm run build --prefix client/web
 
       # Compile Mobile Client Build (Expo Export)
       - name: Install Mobile App Dependencies
-        run: npm install --no-audit --no-fund --prefix client/app
+        run: npm ci --no-audit --no-fund --prefix client/app
 
       - name: Build Mobile Client Bundle
         run: npm run build --prefix client/app

@@ -1,0 +1,228 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+}
+
+model User {
+  id                 String     @id @default(uuid())
+  name               String
+  email              String     @unique
+  phone              String
+  address            String
+  role               String     @default("buyer")
+  password           String
+  resetPasswordToken String?
+  resetPasswordExpire DateTime?
+  username           String     @default("")
+  recoveryEmail      String     @default("")
+  gender             String     @default("male")
+  dob                String     @default("")
+  city               String     @default("")
+  province           String     @default("")
+  country            String     @default("")
+  bio                String     @default("")
+  profilePic         String     @default("")
+  coverPhoto         String     @default("")
+  status             String     @default("Active")
+  createdAt          DateTime   @default(now())
+  updatedAt          DateTime   @updatedAt
+
+  pets               Pet[]
+  reports            Report[]
+  wishlists          Wishlist[]
+
+  @@map("users")
+}
+
+model Category {
+  id             String     @id @default(uuid())
+  name           String
+  slug           String     @unique
+  description    String     @default("")
+  image          String     @default("")
+  icon           String     @default("")
+  parentCategoryId String?
+  displayOrder   Int        @default(0)
+  featured       Boolean    @default(false)
+  showOnHomepage Boolean    @default(false)
+  status         String     @default("Active")
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  parentCategory Category?  @relation("CategoryToCategory", fields: [parentCategoryId], references: [id], onDelete: Cascade)
+  childCategories Category[] @relation("CategoryToCategory")
+  products       Product[]
+
+  @@map("categories")
+}
+
+model Pet {
+  id                  String     @id @default(uuid())
+  ownerId             String
+  name                String
+  species             String     @default("Dog")
+  breed               String
+  age                 String
+  weight              String
+  gender              String     @default("Male")
+  color               String     @default("")
+  size                String     @default("")
+  isVaccinated        Boolean    @default(false)
+  vaccinationDate     String     @default("")
+  nextVaccinationDate String     @default("")
+  medicalHistory      String     @default("")
+  allergies           String     @default("")
+  diseases            String     @default("")
+  bloodGroup          String     @default("")
+  friendlyWithKids    Boolean    @default(false)
+  friendlyWithPets    Boolean    @default(false)
+  trainingLevel       String     @default("None")
+  neuteredSpayed      Boolean    @default(false)
+  microchipNumber     String     @default("")
+  foodPreference      String     @default("")
+  behaviour           String     @default("")
+  personality         String     @default("")
+  aboutPet            String     @default("")
+  adoptionStatus      String     @default("Available")
+  activeStatus        String     @default("ACTIVE")
+  country             String     @default("Pakistan")
+  province            String     @default("Punjab")
+  city                String     @default("Lahore")
+  address             String     @default("")
+  image               String     @default("")
+  imageSettings       Json?
+  documents           Json?
+  vaccines            Json?
+  medicalRecords      Json?
+  price               Float      @default(0)
+  negotiable          Boolean    @default(true)
+  moderationStatus    String     @default("Published")
+  isFeatured          Boolean    @default(false)
+  viewsCount          Int        @default(0)
+  favoritesCount      Int        @default(0)
+  reportsCount        Int        @default(0)
+  createdAt           DateTime   @default(now())
+  updatedAt           DateTime   @updatedAt
+
+  owner               User       @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  reports             Report[]
+  wishlists          Wishlist[]
+
+  @@map("pets")
+}
+
+model Product {
+  id                     String    @id @default(uuid())
+  name                   String
+  categoryId             String
+  images                 String[]  @default([])
+  brand                  String    @default("")
+  sku                    String    @unique
+  barcode                String    @default("")
+  description            String    @default("")
+  shortDescription       String    @default("")
+  regularPrice           Float
+  salePrice              Float?
+  discount               Float     @default(0)
+  stockQuantity          Int       @default(0)
+  stockStatus            String    @default("In Stock")
+  weight                 String    @default("")
+  dimensions             String    @default("")
+  petType                String    @default("")
+  ageGroup               String    @default("")
+  tags                   String[]  @default([])
+  sizes                  String[]  @default([])
+  gender                 String    @default("")
+  visibility             String    @default("Public")
+  featured               Boolean   @default(false)
+  recommended            Boolean   @default(false)
+  status                 String    @default("Published")
+  productType            String    @default("Other")
+  clothingSpecs          Json?
+  toySpecs               Json?
+  foodSpecs              Json?
+  supplementSpecs        Json?
+  medicineSpecs          Json?
+  groomingSpecs          Json?
+  costPrice              Float     @default(0)
+  compareAtPrice         Float     @default(0)
+  profitMargin           Float     @default(0)
+  tax                    Float     @default(0)
+  shippingCost           Float     @default(0)
+  saleStartDate          DateTime?
+  saleEndDate            DateTime?
+  trackInventory         Boolean   @default(true)
+  lowStockAlert          Int       @default(5)
+  warehouse              String    @default("")
+  supplier               String    @default("")
+  allowBackorder         Boolean   @default(false)
+  reservedStock          Int       @default(0)
+  restockDate            DateTime?
+  length                 Float     @default(0)
+  width                  Float     @default(0)
+  height                 Float     @default(0)
+  shippingClass          String    @default("")
+  fragile                Boolean   @default(false)
+  freeShipping           Boolean   @default(false)
+  cashOnDelivery         Boolean   @default(true)
+  seoTitle               String    @default("")
+  metaDescription        String    @default("")
+  seoKeywords            String[]  @default([])
+  ogImage                String    @default("")
+  gtin                   String    @default("")
+  vendor                 String    @default("")
+  countryOfOrigin        String    @default("Pakistan")
+  warranty               String    @default("")
+  internalNotes          String    @default("")
+  searchKeywords         String[]  @default([])
+  breedCompat            String[]  @default([])
+  ageCompat              String[]  @default([])
+  weightCompat           String    @default("")
+  genderCompat           String    @default("")
+  variants               Json?
+  frequentlyBoughtTogether String[] @default([])
+  relatedProducts        String[]  @default([])
+  crossSell              String[]  @default([])
+  upsell                 String[]  @default([])
+  enableReviews          Boolean   @default(true)
+  enableRatings          Boolean   @default(true)
+  verifiedPurchaseOnly   Boolean   @default(true)
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
+
+  category               Category  @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@map("products")
+}
+
+model Report {
+  id         String   @id @default(uuid())
+  reporterId String
+  petId      String
+  reason     String
+  status     String   @default("Pending")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  reporter   User     @relation(fields: [reporterId], references: [id], onDelete: Cascade)
+  pet        Pet      @relation(fields: [petId], references: [id], onDelete: Cascade)
+
+  @@map("reports")
+}
+
+model Wishlist {
+  id        String   @id @default(uuid())
+  userId    String
+  petId     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  pet       Pet      @relation(fields: [petId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, petId])
+  @@map("wishlists")
+}

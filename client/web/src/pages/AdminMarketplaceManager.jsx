@@ -1,3 +1,4 @@
+import API_URL from '@/config';
 import React, { useState, useEffect, useCallback } from 'react';
 import { 
   Search, SlidersHorizontal, LayoutGrid, Table, Eye, Edit, Trash2, 
@@ -97,7 +98,7 @@ export default function AdminMarketplaceManager({ user }) {
         if (maxPrice) queryParams.append('maxPrice', maxPrice);
       }
 
-      const response = await fetch(`http://localhost:5000/api/admin/marketplace?${queryParams.toString()}`);
+      const response = await fetch(`${API_URL}/api/admin/marketplace?${queryParams.toString()}`);
       if (!response.ok) {
         throw new Error('Failed to load administrative listings database.');
       }
@@ -128,7 +129,7 @@ export default function AdminMarketplaceManager({ user }) {
   const fetchAnalytics = async () => {
     try {
       setLoadingAnalytics(true);
-      const res = await fetch('http://localhost:5000/api/admin/marketplace/analytics');
+      const res = await fetch(`${API_URL}/api/admin/marketplace/analytics`);
       if (res.ok) {
         const data = await res.json();
         setAnalytics(data.analytics);
@@ -152,7 +153,7 @@ export default function AdminMarketplaceManager({ user }) {
   // Status modification action
   const handleUpdateStatus = async (petId, fieldsPayload, textLabel) => {
     try {
-      const response = await fetch(`http://localhost:5000/api/admin/marketplace/${petId}/status`, {
+      const response = await fetch(`${API_URL}/api/admin/marketplace/${petId}/status`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(fieldsPayload)
@@ -178,7 +179,7 @@ export default function AdminMarketplaceManager({ user }) {
   // Toggle Featured status
   const handleToggleFeatured = async (petId) => {
     try {
-      const response = await fetch(`http://localhost:5000/api/admin/marketplace/${petId}/feature`, {
+      const response = await fetch(`${API_URL}/api/admin/marketplace/${petId}/feature`, {
         method: 'PUT'
       });
 
@@ -223,7 +224,7 @@ export default function AdminMarketplaceManager({ user }) {
     if (!window.confirm(confirmText)) return;
 
     try {
-      const response = await fetch('http://localhost:5000/api/admin/marketplace/bulk-action', {
+      const response = await fetch(`${API_URL}/api/admin/marketplace/bulk-action`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ids, action: actionName })

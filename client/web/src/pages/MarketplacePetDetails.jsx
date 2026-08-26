@@ -1,3 +1,4 @@
+import API_URL from '@/config';
 import React, { useState, useEffect } from 'react';
 import { 
   ArrowLeft, MapPin, ShieldCheck, Heart, User, Calendar, 
@@ -30,7 +31,7 @@ export default function MarketplacePetDetails({ user, petId, onBack }) {
         setLoading(true);
         setError('');
         
-        const response = await fetch(`http://localhost:5000/api/pets/${petId}`);
+        const response = await fetch(`${API_URL}/api/pets/${petId}`);
         if (!response.ok) {
           throw new Error('Pet profile not found or server is unreachable.');
         }
@@ -39,7 +40,7 @@ export default function MarketplacePetDetails({ user, petId, onBack }) {
         setPet(data);
 
         // Fetch similar recommendation listings
-        const similarRes = await fetch(`http://localhost:5000/api/marketplace/similar/${petId}`);
+        const similarRes = await fetch(`${API_URL}/api/marketplace/similar/${petId}`);
         if (similarRes.ok) {
           const similarData = await similarRes.json();
           setSimilarPets(similarData.similarPets || []);

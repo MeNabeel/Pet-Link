@@ -1,3 +1,4 @@
+import API_URL from '../config';
 import React, { useState, useEffect } from 'react';
 import { 
   StyleSheet, Text, View, Image, TouchableOpacity, ScrollView, 
@@ -17,14 +18,14 @@ export default function Dashboard({ user, onLogout, onNavigate }) {
   useEffect(() => {
     if (!user || !user._id) return;
     
-    const fetchPets = fetch(`http://localhost:5000/api/pets/owner/${user._id}`)
+    const fetchPets = fetch(`${API_URL}/api/pets/owner/${user._id}`)
       .then(res => res.json())
       .catch(err => {
         console.log('Error loading dashboard pets:', err);
         return [];
       });
 
-    const fetchProducts = fetch(`http://localhost:5000/api/products?status=Published&visibility=Public`)
+    const fetchProducts = fetch(`${API_URL}/api/products?status=Published&visibility=Public`)
       .then(res => res.json())
       .catch(err => {
         console.log('Error loading dashboard products:', err);

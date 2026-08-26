@@ -1,3 +1,4 @@
+import API_URL from '@/config';
 import React, { useState, useEffect, useCallback } from 'react';
 import { 
   Search, Heart, Eye, MapPin, Sparkles, AlertTriangle, 
@@ -76,7 +77,7 @@ export default function Marketplace({ user, onViewDetails }) {
   const fetchWishlist = useCallback(async () => {
     if (!user || !user._id) return;
     try {
-      const response = await fetch(`http://localhost:5000/api/wishlist/owner/${user._id}`);
+      const response = await fetch(`${API_URL}/api/wishlist/owner/${user._id}`);
       if (response.ok) {
         const data = await response.json();
         const ids = new Set(data.wishlist.map(p => p._id));
@@ -123,7 +124,7 @@ export default function Marketplace({ user, onViewDetails }) {
         if (maxPrice) queryParams.append('maxPrice', maxPrice);
       }
 
-      const response = await fetch(`http://localhost:5000/api/marketplace?${queryParams.toString()}`);
+      const response = await fetch(`${API_URL}/api/marketplace?${queryParams.toString()}`);
       if (!response.ok) {
         throw new Error('Failed to load marketplace data. Please try again.');
       }
@@ -170,7 +171,7 @@ export default function Marketplace({ user, onViewDetails }) {
 
     try {
       const endpoint = isFavorited ? 'remove' : 'add';
-      const response = await fetch(`http://localhost:5000/api/wishlist/${endpoint}`, {
+      const response = await fetch(`${API_URL}/api/wishlist/${endpoint}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId: user._id, petId })
@@ -202,7 +203,7 @@ export default function Marketplace({ user, onViewDetails }) {
     
     setIsSubmittingReport(true);
     try {
-      const response = await fetch('http://localhost:5000/api/marketplace/report', {
+      const response = await fetch(`${API_URL}/api/marketplace/report`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

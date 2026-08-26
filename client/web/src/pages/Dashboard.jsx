@@ -1,3 +1,4 @@
+import API_URL from '@/config';
 import React, { useEffect, useState } from 'react';
 import { 
   LayoutDashboard, PawPrint, Store, CalendarClock, 
@@ -49,7 +50,7 @@ export default function Dashboard({ onLogout }) {
   // Pull freshest profile data from MongoDB backend on tab transitions
   useEffect(() => {
     if (user && user._id && ['overview', 'profile'].includes(activeTab)) {
-      fetch(`http://localhost:5000/api/auth/profile/${user._id}`)
+      fetch(`${API_URL}/api/auth/profile/${user._id}`)
         .then(res => res.json())
         .then(data => {
           if (data && data._id) {
@@ -68,7 +69,7 @@ export default function Dashboard({ onLogout }) {
 
   useEffect(() => {
     if (user && user._id) {
-      fetch(`http://localhost:5000/api/pets/owner/${user._id}`)
+      fetch(`${API_URL}/api/pets/owner/${user._id}`)
         .then(res => res.json())
         .then(petsData => {
           if (Array.isArray(petsData)) {
@@ -98,7 +99,7 @@ export default function Dashboard({ onLogout }) {
 
   const handleUpdateUser = async (updatedUser) => {
     try {
-      const response = await fetch('http://localhost:5000/api/auth/profile', {
+      const response = await fetch(`${API_URL}/api/auth/profile`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

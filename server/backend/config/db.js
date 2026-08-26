@@ -6,7 +6,9 @@ const connectDB = async () => {
     console.log(`MongoDB Connected successfully to host: ${conn.connection.host}`);
   } catch (error) {
     console.error(`Database connection failure: ${error.message}`);
-    process.exit(1);
+    if (process.env.DB_TYPE !== 'supabase') {
+      process.exit(1);
+    }
   }
 };
 

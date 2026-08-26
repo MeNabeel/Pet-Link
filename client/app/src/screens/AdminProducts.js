@@ -1,3 +1,4 @@
+import API_URL from '../config';
 import React, { useState, useEffect } from 'react';
 import { 
   StyleSheet, Text, View, Image, TouchableOpacity, 
@@ -45,13 +46,13 @@ export default function AdminProducts({ user, onBack }) {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const catRes = await fetch('http://localhost:5000/api/categories');
+      const catRes = await fetch(`${API_URL}/api/categories`);
       if (catRes.ok) {
         const catData = await catRes.json();
         setCategories(catData.filter(c => c.status === 'Active'));
       }
 
-      const prodRes = await fetch('http://localhost:5000/api/products');
+      const prodRes = await fetch(`${API_URL}/api/products`);
       if (prodRes.ok) {
         const prodData = await prodRes.json();
         setProducts(prodData);
@@ -115,8 +116,8 @@ export default function AdminProducts({ user, onBack }) {
 
     try {
       const url = editingProduct
-        ? `http://localhost:5000/api/products/${editingProduct._id}`
-        : 'http://localhost:5000/api/products';
+        ? `${API_URL}/api/products/${editingProduct._id}`
+        : `${API_URL}/api/products`;
       const method = editingProduct ? 'PUT' : 'POST';
 
       const response = await fetch(url, {
@@ -142,7 +143,7 @@ export default function AdminProducts({ user, onBack }) {
 
   const handleDuplicate = async (id) => {
     try {
-      const res = await fetch(`http://localhost:5000/api/products/${id}/duplicate`, {
+      const res = await fetch(`${API_URL}/api/products/${id}/duplicate`, {
         method: 'POST',
         headers: { 'x-requester-id': user._id }
       });
@@ -165,7 +166,7 @@ export default function AdminProducts({ user, onBack }) {
           style: "destructive", 
           onPress: async () => {
             try {
-              const res = await fetch(`http://localhost:5000/api/products/${id}`, {
+              const res = await fetch(`${API_URL}/api/products/${id}`, {
                 method: 'DELETE',
                 headers: { 'x-requester-id': user._id }
               });
@@ -183,7 +184,7 @@ export default function AdminProducts({ user, onBack }) {
 
   const handleArchive = async (prod) => {
     try {
-      const res = await fetch(`http://localhost:5000/api/products/${prod._id}`, {
+      const res = await fetch(`${API_URL}/api/products/${prod._id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

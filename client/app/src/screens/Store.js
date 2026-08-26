@@ -1,3 +1,4 @@
+import API_URL from '../config';
 import React, { useState, useEffect } from 'react';
 import { 
   StyleSheet, Text, View, Image, TouchableOpacity, 
@@ -32,19 +33,19 @@ export default function Store({ user, onBack, initialMode }) {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const catRes = await fetch('http://localhost:5000/api/categories');
+      const catRes = await fetch(`${API_URL}/api/categories`);
       if (catRes.ok) {
         const catData = await catRes.json();
         setCategories(catData.filter(c => c.status === 'Active'));
       }
 
-      const prodRes = await fetch('http://localhost:5000/api/products?status=Published&visibility=Public');
+      const prodRes = await fetch(`${API_URL}/api/products?status=Published&visibility=Public`);
       if (prodRes.ok) {
         const prodData = await prodRes.json();
         setProducts(prodData || []);
       }
 
-      const petsRes = await fetch('http://localhost:5000/api/pets');
+      const petsRes = await fetch(`${API_URL}/api/pets`);
       if (petsRes.ok) {
         const petsData = await petsRes.json();
         setPets(petsData || []);

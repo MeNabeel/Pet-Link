@@ -1,3 +1,4 @@
+import API_URL from '@/config';
 import React, { useState, useEffect } from 'react';
 import { 
   Search, Plus, Edit, Trash2, Folder, Archive, CheckCircle, XCircle, 
@@ -107,7 +108,7 @@ export default function AdminCategoryManager({ user }) {
   const fetchCategories = async () => {
     try {
       setLoading(true);
-      const response = await fetch('http://localhost:5000/api/categories', {
+      const response = await fetch(`${API_URL}/api/categories`, {
         headers: {
           'x-requester-id': user._id
         }
@@ -192,8 +193,8 @@ export default function AdminCategoryManager({ user }) {
     e.preventDefault();
     try {
       const url = editingCategory 
-        ? `http://localhost:5000/api/categories/${editingCategory._id}`
-        : 'http://localhost:5000/api/categories';
+        ? `${API_URL}/api/categories/${editingCategory._id}`
+        : `${API_URL}/api/categories`;
       const method = editingCategory ? 'PUT' : 'POST';
 
       const payload = {
@@ -231,7 +232,7 @@ export default function AdminCategoryManager({ user }) {
       isDanger: true,
       onConfirm: async () => {
         try {
-          const response = await fetch(`http://localhost:5000/api/categories/${id}`, {
+          const response = await fetch(`${API_URL}/api/categories/${id}`, {
             method: 'DELETE',
             headers: {
               'x-requester-id': user._id
@@ -249,7 +250,7 @@ export default function AdminCategoryManager({ user }) {
 
   const handleToggleStatus = async (cat, targetStatus) => {
     try {
-      const response = await fetch(`http://localhost:5000/api/categories/${cat._id}`, {
+      const response = await fetch(`${API_URL}/api/categories/${cat._id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -273,7 +274,7 @@ export default function AdminCategoryManager({ user }) {
       isDanger: action === 'delete',
       onConfirm: async () => {
         try {
-          const response = await fetch('http://localhost:5000/api/categories/bulk', {
+          const response = await fetch(`${API_URL}/api/categories/bulk`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',

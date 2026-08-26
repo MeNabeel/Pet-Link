@@ -1,3 +1,4 @@
+import API_URL from '../config';
 import React, { useState, useEffect } from 'react';
 import { 
   StyleSheet, Text, View, Image, TouchableOpacity, 
@@ -41,7 +42,7 @@ export default function PetDetails({ user, petId, onBack, onEdit, onDeleteSucces
 
   const fetchPetDetails = async () => {
     try {
-      const response = await fetch(`http://localhost:5000/api/pets/${petId}`);
+      const response = await fetch(`${API_URL}/api/pets/${petId}`);
       const data = await response.json();
       if (response.ok) {
         setPet(data);
@@ -61,7 +62,7 @@ export default function PetDetails({ user, petId, onBack, onEdit, onDeleteSucces
 
   const handleDelete = async () => {
     try {
-      const response = await fetch(`http://localhost:5000/api/pets/${petId}`, {
+      const response = await fetch(`${API_URL}/api/pets/${petId}`, {
         method: 'DELETE',
         headers: {
           'x-requester-id': user._id
@@ -85,7 +86,7 @@ export default function PetDetails({ user, petId, onBack, onEdit, onDeleteSucces
     }
 
     try {
-      const response = await fetch(`http://localhost:5000/api/pets/${petId}/vaccine`, {
+      const response = await fetch(`${API_URL}/api/pets/${petId}/vaccine`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
@@ -120,7 +121,7 @@ export default function PetDetails({ user, petId, onBack, onEdit, onDeleteSucces
     }
 
     try {
-      const response = await fetch(`http://localhost:5000/api/pets/${petId}/medical-record`, {
+      const response = await fetch(`${API_URL}/api/pets/${petId}/medical-record`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',

@@ -1,3 +1,4 @@
+import API_URL from '../config';
 import React, { useState, useEffect } from 'react';
 import { 
   StyleSheet, Text, View, Image, TouchableOpacity, ScrollView, 
@@ -29,7 +30,7 @@ export default function AdminDashboard({ user, onLogout }) {
   const fetchAnalytics = async () => {
     try {
       setLoadingStats(true);
-      const res = await fetch('http://localhost:5000/api/auth/analytics', {
+      const res = await fetch(`${API_URL}/api/auth/analytics`, {
         headers: { 'x-requester-id': user._id }
       });
       if (res.ok) {
@@ -46,7 +47,7 @@ export default function AdminDashboard({ user, onLogout }) {
   const fetchUsers = async () => {
     try {
       setLoadingUsers(true);
-      const res = await fetch('http://localhost:5000/api/auth/users', {
+      const res = await fetch(`${API_URL}/api/auth/users`, {
         headers: { 'x-requester-id': user._id }
       });
       if (res.ok) {
@@ -82,7 +83,7 @@ export default function AdminDashboard({ user, onLogout }) {
           text: "Proceed",
           onPress: async () => {
             try {
-              const res = await fetch(`http://localhost:5000/api/auth/users/${targetUserId}/status`, {
+              const res = await fetch(`${API_URL}/api/auth/users/${targetUserId}/status`, {
                 method: 'PUT',
                 headers: {
                   'Content-Type': 'application/json',
@@ -117,7 +118,7 @@ export default function AdminDashboard({ user, onLogout }) {
           style: "destructive",
           onPress: async () => {
             try {
-              const res = await fetch(`http://localhost:5000/api/auth/users/${targetUserId}`, {
+              const res = await fetch(`${API_URL}/api/auth/users/${targetUserId}`, {
                 method: 'DELETE',
                 headers: { 'x-requester-id': user._id }
               });

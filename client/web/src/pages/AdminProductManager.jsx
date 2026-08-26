@@ -1,3 +1,4 @@
+import API_URL from '@/config';
 import React, { useState, useEffect } from 'react';
 import { 
   Search, Plus, Edit, Trash2, Copy, Archive, Eye, CheckCircle, 
@@ -261,7 +262,7 @@ export default function AdminProductManager({ user }) {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const catRes = await fetch('http://localhost:5000/api/categories', {
+      const catRes = await fetch(`${API_URL}/api/categories`, {
         headers: { 'x-requester-id': user._id }
       });
       if (catRes.ok) {
@@ -269,7 +270,7 @@ export default function AdminProductManager({ user }) {
         setCategories(catData.filter(c => c.status === 'Active'));
       }
 
-      const prodRes = await fetch('http://localhost:5000/api/products', {
+      const prodRes = await fetch(`${API_URL}/api/products`, {
         headers: { 'x-requester-id': user._id }
       });
       if (prodRes.ok) {
@@ -636,8 +637,8 @@ export default function AdminProductManager({ user }) {
 
     try {
       const url = view === 'edit'
-        ? `http://localhost:5000/api/products/${selectedProduct._id}`
-        : 'http://localhost:5000/api/products';
+        ? `${API_URL}/api/products/${selectedProduct._id}`
+        : `${API_URL}/api/products`;
       const method = view === 'edit' ? 'PUT' : 'POST';
 
       const response = await fetch(url, {
@@ -665,7 +666,7 @@ export default function AdminProductManager({ user }) {
 
   const handleDuplicate = async (id) => {
     try {
-      const response = await fetch(`http://localhost:5000/api/products/${id}/duplicate`, {
+      const response = await fetch(`${API_URL}/api/products/${id}/duplicate`, {
         method: 'POST',
         headers: {
           'x-requester-id': user._id
@@ -686,7 +687,7 @@ export default function AdminProductManager({ user }) {
       isDanger: true,
       onConfirm: async () => {
         try {
-          const response = await fetch(`http://localhost:5000/api/products/${id}`, {
+          const response = await fetch(`${API_URL}/api/products/${id}`, {
             method: 'DELETE',
             headers: {
               'x-requester-id': user._id
@@ -846,7 +847,7 @@ export default function AdminProductManager({ user }) {
       isDanger: action === 'delete',
       onConfirm: async () => {
         try {
-          const response = await fetch('http://localhost:5000/api/products/bulk', {
+          const response = await fetch(`${API_URL}/api/products/bulk`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',

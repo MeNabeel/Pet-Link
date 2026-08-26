@@ -1,3 +1,4 @@
+import API_URL from '@/config';
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   Heart, ShieldAlert, Award, FileText, MapPin, 
@@ -89,7 +90,7 @@ export default function PetForm({ user, petId, onCancel, onSaveSuccess }) {
   useEffect(() => {
     if (petId) {
       setFetchingData(true);
-      fetch(`http://localhost:5000/api/pets/${petId}`)
+      fetch(`${API_URL}/api/pets/${petId}`)
         .then((res) => res.json())
         .then((data) => {
           if (data && data._id) {
@@ -263,7 +264,7 @@ export default function PetForm({ user, petId, onCancel, onSaveSuccess }) {
 
       let response;
       if (petId) {
-        response = await fetch(`http://localhost:5000/api/pets/${petId}`, {
+        response = await fetch(`${API_URL}/api/pets/${petId}`, {
           method: 'PUT',
           headers: { 
             'Content-Type': 'application/json',
@@ -272,7 +273,7 @@ export default function PetForm({ user, petId, onCancel, onSaveSuccess }) {
           body: JSON.stringify(payload),
         });
       } else {
-        response = await fetch(`http://localhost:5000/api/pets`, {
+        response = await fetch(`${API_URL}/api/pets`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),

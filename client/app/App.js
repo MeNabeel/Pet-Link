@@ -1,3 +1,4 @@
+import API_URL from './src/config';
 import React, { useState } from 'react';
 import { StyleSheet, View, Text, TouchableOpacity, SafeAreaView, Image, Platform } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
@@ -85,7 +86,7 @@ export default function App() {
 
   const handleUpdateUser = async (updatedUser) => {
     try {
-      const response = await fetch('http://localhost:5000/api/auth/profile', {
+      const response = await fetch(`${API_URL}/api/auth/profile`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -129,7 +130,7 @@ export default function App() {
   // Pull freshest profile data from MongoDB backend on screen transitions
   React.useEffect(() => {
     if (user && user._id && ['dashboard', 'profile'].includes(screen)) {
-      fetch(`http://localhost:5000/api/auth/profile/${user._id}`)
+      fetch(`${API_URL}/api/auth/profile/${user._id}`)
         .then(res => res.json())
         .then(data => {
           if (data && data._id) {

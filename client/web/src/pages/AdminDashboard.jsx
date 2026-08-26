@@ -1,3 +1,4 @@
+import API_URL from '@/config';
 import React, { useState, useEffect } from 'react';
 import { 
   BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer 
@@ -59,7 +60,7 @@ export default function AdminDashboard({ user, onLogout }) {
   const fetchAnalytics = async () => {
     try {
       setLoading(true);
-      const response = await fetch('http://localhost:5000/api/auth/analytics', {
+      const response = await fetch(`${API_URL}/api/auth/analytics`, {
         headers: {
           'x-requester-id': user._id
         }

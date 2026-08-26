@@ -1,3 +1,4 @@
+import API_URL from '../config';
 import React, { useState, useEffect } from 'react';
 import { 
   StyleSheet, Text, View, Image, TouchableOpacity, 
@@ -31,7 +32,7 @@ export default function AdminCategories({ user, onBack }) {
     try {
       setLoading(true);
       const query = statusFilter === 'Archived' ? '?status=Archived' : '';
-      const response = await fetch(`http://localhost:5000/api/categories${query}`);
+      const response = await fetch(`${API_URL}/api/categories${query}`);
       const data = await response.json();
       if (response.ok) {
         setCategories(data);
@@ -96,8 +97,8 @@ export default function AdminCategories({ user, onBack }) {
 
     try {
       const url = editingCategory 
-        ? `http://localhost:5000/api/categories/${editingCategory._id}`
-        : 'http://localhost:5000/api/categories';
+        ? `${API_URL}/api/categories/${editingCategory._id}`
+        : `${API_URL}/api/categories`;
       const method = editingCategory ? 'PUT' : 'POST';
 
       const response = await fetch(url, {
@@ -132,7 +133,7 @@ export default function AdminCategories({ user, onBack }) {
           style: "destructive", 
           onPress: async () => {
             try {
-              const res = await fetch(`http://localhost:5000/api/categories/${id}`, {
+              const res = await fetch(`${API_URL}/api/categories/${id}`, {
                 method: 'DELETE',
                 headers: { 'x-requester-id': user._id }
               });
@@ -150,7 +151,7 @@ export default function AdminCategories({ user, onBack }) {
 
   const handleToggleStatus = async (cat, nextStatus) => {
     try {
-      const res = await fetch(`http://localhost:5000/api/categories/${cat._id}`, {
+      const res = await fetch(`${API_URL}/api/categories/${cat._id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

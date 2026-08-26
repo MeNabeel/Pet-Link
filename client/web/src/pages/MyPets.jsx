@@ -1,3 +1,4 @@
+import API_URL from '@/config';
 import React, { useState, useEffect } from 'react';
 import { Plus, Search, Eye, Pencil, Trash2, ShieldCheck, Heart, User, Sparkles } from 'lucide-react';
 import './MyPets.css';
@@ -17,7 +18,7 @@ export default function MyPets({ user, onViewDetails, onAddPet, onEditPet, onDel
 
   const fetchPets = async () => {
     try {
-      const response = await fetch(`http://localhost:5000/api/pets/owner/${user._id}`);
+      const response = await fetch(`${API_URL}/api/pets/owner/${user._id}`);
       const data = await response.json();
       if (response.ok) {
         setPets(data);
@@ -43,7 +44,7 @@ export default function MyPets({ user, onViewDetails, onAddPet, onEditPet, onDel
   const proceedDelete = async () => {
     if (!deletePetId) return;
     try {
-      const response = await fetch(`http://localhost:5000/api/pets/${deletePetId}`, {
+      const response = await fetch(`${API_URL}/api/pets/${deletePetId}`, {
         method: 'DELETE',
       });
       if (response.ok) {

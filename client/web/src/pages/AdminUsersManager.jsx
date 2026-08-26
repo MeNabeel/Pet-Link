@@ -1,3 +1,4 @@
+import API_URL from '@/config';
 import React, { useState, useEffect } from 'react';
 import { Search, ShieldAlert, CheckCircle, Ban, Trash2, UserCheck, ShieldCheck, Mail, Phone, MapPin } from 'lucide-react';
 import { 
@@ -25,7 +26,7 @@ export default function AdminUsersManager({ user }) {
   const fetchUsers = async () => {
     try {
       setLoading(true);
-      const response = await fetch('http://localhost:5000/api/auth/users', {
+      const response = await fetch(`${API_URL}/api/auth/users`, {
         headers: {
           'x-requester-id': user._id
         }
@@ -54,7 +55,7 @@ export default function AdminUsersManager({ user }) {
       isDanger: false,
       onConfirm: async () => {
         try {
-          const response = await fetch(`http://localhost:5000/api/auth/users/${targetUserId}/status`, {
+          const response = await fetch(`${API_URL}/api/auth/users/${targetUserId}/status`, {
             method: 'PUT',
             headers: {
               'Content-Type': 'application/json',
@@ -81,7 +82,7 @@ export default function AdminUsersManager({ user }) {
       isDanger: false,
       onConfirm: async () => {
         try {
-          const response = await fetch(`http://localhost:5000/api/auth/users/${targetUserId}/role`, {
+          const response = await fetch(`${API_URL}/api/auth/users/${targetUserId}/role`, {
             method: 'PUT',
             headers: {
               'Content-Type': 'application/json',
@@ -108,7 +109,7 @@ export default function AdminUsersManager({ user }) {
       isDanger: true,
       onConfirm: async () => {
         try {
-          const response = await fetch(`http://localhost:5000/api/auth/users/${targetUserId}`, {
+          const response = await fetch(`${API_URL}/api/auth/users/${targetUserId}`, {
             method: 'DELETE',
             headers: {
               'x-requester-id': user._id

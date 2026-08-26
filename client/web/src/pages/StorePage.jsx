@@ -1,3 +1,4 @@
+import API_URL from '@/config';
 import React, { useState, useEffect } from 'react';
 import { 
   Search, Heart, ShoppingBag, Eye, Star, Filter, SlidersHorizontal, Tag, 
@@ -27,14 +28,14 @@ export default function StorePage({ user }) {
       try {
         setLoading(true);
         // Fetch categories
-        const catRes = await fetch('http://localhost:5000/api/categories');
+        const catRes = await fetch(`${API_URL}/api/categories`);
         if (catRes.ok) {
           const catData = await catRes.json();
           setCategories(catData.filter(c => c.status === 'Active'));
         }
 
         // Fetch products (only Published & Public for store)
-        const prodRes = await fetch('http://localhost:5000/api/products?status=Published&visibility=Public');
+        const prodRes = await fetch(`${API_URL}/api/products?status=Published&visibility=Public`);
         if (prodRes.ok) {
           const prodData = await prodRes.json();
           setProducts(prodData);

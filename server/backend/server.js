@@ -17,13 +17,16 @@ require('./config/db')();
 
 const app = express();
 
+const rawFrontendUrl = process.env.FRONTEND_URL;
+const frontendUrl = rawFrontendUrl && rawFrontendUrl.endsWith('/') ? rawFrontendUrl.slice(0, -1) : rawFrontendUrl;
+
 const allowedOrigins = [
   'http://localhost:5173', // Vite default port
   'http://localhost:3000',
-  process.env.FRONTEND_URL
+  frontendUrl
 ].filter(Boolean);
 
-app.use(cors({
+const corsOptions = {
   origin: function (origin, callback) {
     if (!origin) return callback(null, true);
     if (allowedOrigins.indexOf(origin) === -1) {
@@ -33,7 +36,10 @@ app.use(cors({
     return callback(null, true);
   },
   credentials: true
-}));
+};
+
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
 
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));

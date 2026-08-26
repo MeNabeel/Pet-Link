@@ -23,17 +23,18 @@ const frontendUrl = rawFrontendUrl && rawFrontendUrl.endsWith('/') ? rawFrontend
 const allowedOrigins = [
   'http://localhost:5173', // Vite default port
   'http://localhost:3000',
+  'https://pet-link-ashen.vercel.app',
+  'https://pet-link-git-main-mrnabeel.vercel.app',
   frontendUrl
 ].filter(Boolean);
 
 const corsOptions = {
   origin: function (origin, callback) {
-    if (!origin) return callback(null, true);
-    if (allowedOrigins.indexOf(origin) === -1) {
-      const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
-      return callback(new Error(msg), false);
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
     }
-    return callback(null, true);
   },
   credentials: true
 };

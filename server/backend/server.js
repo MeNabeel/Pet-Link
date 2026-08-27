@@ -53,14 +53,25 @@ app.use('/api/products', require('./routes/productRoutes'));
 app.use('/api/marketplace', require('./routes/marketplaceRoutes'));
 app.use('/api/wishlist', require('./routes/wishlistRoutes'));
 app.use('/api/admin/marketplace', require('./routes/adminMarketplaceRoutes'));
+app.use('/api/shelter', require('./routes/shelterRoutes'));
 
 // Server Health Endpoint
 app.get('/', (req, res) => {
   res.send('PetLink Layered Authentication Backend Server is running...');
 });
 
+const initDB = require('./database/supabase/init');
+
 // Configure Active Listening Port
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`PetLink Server running in ${process.env.NODE_ENV || 'development'} mode on port: ${PORT}`);
+
+initDB().then(() => {
+  app.listen(PORT, () => {
+    console.log(`PetLink Server running in ${process.env.NODE_ENV || 'development'} mode on port: ${PORT}`);
+  });
+}).catch(err => {
+  console.error('Failed to initialize database tables:', err.message);
+  app.listen(PORT, () => {
+    console.log(`PetLink Server running in ${process.env.NODE_ENV || 'development'} mode on port: ${PORT}`);
+  });
 });

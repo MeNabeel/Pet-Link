@@ -22,6 +22,9 @@ import PetForm from './src/screens/PetForm';
 import PetDetails from './src/screens/PetDetails';
 import AdminDashboard from './src/screens/AdminDashboard';
 import Store from './src/screens/Store';
+import ShelterProviderDashboard from './src/screens/ShelterProviderDashboard';
+import FindShelters from './src/screens/FindShelters';
+import ShelterDetails from './src/screens/ShelterDetails';
 import { COLORS } from './src/constants/theme';
 
 // Override global Text rendering styles to map standard font family and weights
@@ -54,6 +57,7 @@ export default function App() {
   const [user, setUser] = useState(null);
   const [petSubView, setPetSubView] = useState('list');
   const [selectedPetId, setSelectedPetId] = useState(null);
+  const [selectedShelterId, setSelectedShelterId] = useState(null);
   const [storeInitialMode, setStoreInitialMode] = useState('products');
 
   const [fontsLoaded] = useFonts({
@@ -145,7 +149,7 @@ export default function App() {
     return null;
   }
 
-  const showNav = ['dashboard', 'profile', 'settings', 'mypets', 'store'].includes(screen) && !(user && user.role === 'admin');
+  const showNav = ['dashboard', 'profile', 'settings', 'mypets', 'store', 'findShelters', 'shelterDetails'].includes(screen) && !(user && (user.role === 'admin' || user.role === 'shelter_provider'));
 
   const handleTabPress = (tabName) => {
     if (tabName === 'home') {
@@ -159,7 +163,7 @@ export default function App() {
       setStoreInitialMode('products');
       setScreen('store');
     } else if (tabName === 'services') {
-      alert('Navigating to PetLink Vet & Shelter Services...');
+      setScreen('findShelters');
     }
   };
 
@@ -169,6 +173,7 @@ export default function App() {
     if (screen === 'profile' || screen === 'settings') return 'profile';
     if (screen === 'mypets') return 'pets';
     if (screen === 'store') return 'store';
+    if (screen === 'findShelters' || screen === 'shelterDetails') return 'services';
     return '';
   };
 
@@ -218,7 +223,12 @@ export default function App() {
             />
           )}
 
-          {screen === 'dashboard' && user && user.role === 'admin' ? (
+          {screen === 'dashboard' && user && user.role === 'shelter_provider' ? (
+            <ShelterProviderDashboard
+              user={user}
+              onLogout={handleLogout}
+            />
+          ) : screen === 'dashboard' && user && user.role === 'admin' ? (
             <AdminDashboard
               user={user}
               onLogout={handleLogout}
@@ -306,6 +316,24 @@ export default function App() {
               user={user}
               onBack={() => setScreen('dashboard')}
               initialMode={storeInitialMode}
+            />
+          )}
+
+          {screen === 'findShelters' && (
+            <FindShelters
+              user={user}
+              onNavigate={(scr, id) => {
+                setSelectedShelterId(id);
+                setScreen(scr);
+              }}
+            />
+          )}
+
+          {screen === 'shelterDetails' && (
+            <ShelterDetails
+              user={user}
+              shelterId={selectedShelterId}
+              onBack={() => setScreen('findShelters')}
             />
           )}
         </View>

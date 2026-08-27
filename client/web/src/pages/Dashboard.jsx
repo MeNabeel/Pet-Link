@@ -15,6 +15,9 @@ import PetDetails from './PetDetails';
 import AdminDashboard from './AdminDashboard';
 import Marketplace from './Marketplace';
 import MarketplacePetDetails from './MarketplacePetDetails';
+import ShelterProviderDashboard from './ShelterProviderDashboard';
+import ShelterServices from './ShelterServices';
+import ShelterDetails from './ShelterDetails';
 import { 
   AlertDialog, AlertDialogContent, AlertDialogHeader, 
   AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, 
@@ -26,6 +29,7 @@ export default function Dashboard({ onLogout }) {
   const [activeTab, setActiveTab] = useState('overview');
   const [petSubView, setPetSubView] = useState('list'); // 'list' | 'form' | 'details'
   const [selectedPetId, setSelectedPetId] = useState(null);
+  const [selectedShelterId, setSelectedShelterId] = useState(null);
   const [isSignoutOpen, setIsSignoutOpen] = useState(false);
 
   useEffect(() => {
@@ -149,6 +153,10 @@ export default function Dashboard({ onLogout }) {
     return <AdminDashboard user={user} onLogout={onLogout} />;
   }
 
+  if (user && user.role === 'shelter_provider') {
+    return <ShelterProviderDashboard user={user} onLogout={onLogout} />;
+  }
+
   // Role display formatter
   const formatRole = (roleKey) => {
     switch(roleKey) {
@@ -226,11 +234,11 @@ export default function Dashboard({ onLogout }) {
             Marketplace
           </span>
           <span 
-            className={`dash-side-link ${activeTab === 'shelter' ? 'active' : ''}`}
-            onClick={() => handleActionClick('Shelter Boarding')}
+            className={`dash-side-link ${['shelter', 'shelter-details'].includes(activeTab) ? 'active' : ''}`}
+            onClick={() => setActiveTab('shelter')}
           >
             <CalendarClock size={18} />
-            Shelter Booking
+            Shelter Boarding
           </span>
           <span 
             className={`dash-side-link ${activeTab === 'shop' ? 'active' : ''}`}
@@ -437,6 +445,24 @@ export default function Dashboard({ onLogout }) {
               user={user} 
               petId={selectedPetId} 
               onBack={() => setActiveTab('marketplace')} 
+            />
+          )}
+
+          {activeTab === 'shelter' && (
+            <ShelterServices 
+              user={user} 
+              onViewDetails={(id) => {
+                setSelectedShelterId(id);
+                setActiveTab('shelter-details');
+              }}
+            />
+          )}
+
+          {activeTab === 'shelter-details' && (
+            <ShelterDetails 
+              user={user} 
+              shelterId={selectedShelterId} 
+              onBack={() => setActiveTab('shelter')} 
             />
           )}
         </main>

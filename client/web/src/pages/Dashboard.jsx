@@ -18,6 +18,8 @@ import MarketplacePetDetails from './MarketplacePetDetails';
 import ShelterProviderDashboard from './ShelterProviderDashboard';
 import ShelterServices from './ShelterServices';
 import ShelterDetails from './ShelterDetails';
+import ClinicsServices from './ClinicsServices';
+import ClinicDetails from './ClinicDetails';
 import { 
   AlertDialog, AlertDialogContent, AlertDialogHeader, 
   AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, 
@@ -30,6 +32,7 @@ export default function Dashboard({ onLogout }) {
   const [petSubView, setPetSubView] = useState('list'); // 'list' | 'form' | 'details'
   const [selectedPetId, setSelectedPetId] = useState(null);
   const [selectedShelterId, setSelectedShelterId] = useState(null);
+  const [selectedClinicId, setSelectedClinicId] = useState(null);
   const [isSignoutOpen, setIsSignoutOpen] = useState(false);
 
   useEffect(() => {
@@ -239,6 +242,13 @@ export default function Dashboard({ onLogout }) {
           >
             <CalendarClock size={18} />
             Shelter Boarding
+          </span>
+          <span 
+            className={`dash-side-link ${['clinics', 'clinic-details'].includes(activeTab) ? 'active' : ''}`}
+            onClick={() => setActiveTab('clinics')}
+          >
+            <Activity size={18} />
+            Find Nearby Clinics
           </span>
           <span 
             className={`dash-side-link ${activeTab === 'shop' ? 'active' : ''}`}
@@ -463,6 +473,28 @@ export default function Dashboard({ onLogout }) {
               user={user} 
               shelterId={selectedShelterId} 
               onBack={() => setActiveTab('shelter')} 
+            />
+          )}
+
+          {activeTab === 'clinics' && (
+            <ClinicsServices 
+              user={user} 
+              onViewDetails={(id) => {
+                setSelectedClinicId(id);
+                setActiveTab('clinic-details');
+              }}
+            />
+          )}
+
+          {activeTab === 'clinic-details' && (
+            <ClinicDetails 
+              user={user} 
+              clinicId={selectedClinicId} 
+              onBack={() => setActiveTab('clinics')}
+              onNavigateToAddPet={() => {
+                setActiveTab('pets');
+                setPetSubView('form');
+              }}
             />
           )}
         </main>

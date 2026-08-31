@@ -231,7 +231,10 @@ export default function Dashboard({ user, onLogout, onNavigate }) {
             </View>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.gridCard} onPress={() => handleAction('Nearby Vet')}>
+          <TouchableOpacity 
+            style={styles.gridCard} 
+            onPress={() => onNavigate ? onNavigate('findClinics') : handleAction('Nearby Vet')}
+          >
             <View style={[styles.iconCircle, { backgroundColor: '#FFF5F5' }]}>
               <Feather name="activity" size={18} color="#EF4444" />
             </View>

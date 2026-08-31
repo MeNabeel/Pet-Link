@@ -25,6 +25,9 @@ import Store from './src/screens/Store';
 import ShelterProviderDashboard from './src/screens/ShelterProviderDashboard';
 import FindShelters from './src/screens/FindShelters';
 import ShelterDetails from './src/screens/ShelterDetails';
+import ServicesChooser from './src/screens/ServicesChooser';
+import FindClinics from './src/screens/FindClinics';
+import ClinicDetails from './src/screens/ClinicDetails';
 import { COLORS } from './src/constants/theme';
 
 // Override global Text rendering styles to map standard font family and weights
@@ -58,6 +61,7 @@ export default function App() {
   const [petSubView, setPetSubView] = useState('list');
   const [selectedPetId, setSelectedPetId] = useState(null);
   const [selectedShelterId, setSelectedShelterId] = useState(null);
+  const [selectedClinicId, setSelectedClinicId] = useState(null);
   const [storeInitialMode, setStoreInitialMode] = useState('products');
 
   const [fontsLoaded] = useFonts({
@@ -149,7 +153,7 @@ export default function App() {
     return null;
   }
 
-  const showNav = ['dashboard', 'profile', 'settings', 'mypets', 'store', 'findShelters', 'shelterDetails'].includes(screen) && !(user && (user.role === 'admin' || user.role === 'shelter_provider'));
+  const showNav = ['dashboard', 'profile', 'settings', 'mypets', 'store', 'findShelters', 'shelterDetails', 'services', 'findClinics', 'clinicDetails'].includes(screen) && !(user && (user.role === 'admin' || user.role === 'shelter_provider'));
 
   const handleTabPress = (tabName) => {
     if (tabName === 'home') {
@@ -163,7 +167,7 @@ export default function App() {
       setStoreInitialMode('products');
       setScreen('store');
     } else if (tabName === 'services') {
-      setScreen('findShelters');
+      setScreen('services');
     }
   };
 
@@ -173,7 +177,7 @@ export default function App() {
     if (screen === 'profile' || screen === 'settings') return 'profile';
     if (screen === 'mypets') return 'pets';
     if (screen === 'store') return 'store';
-    if (screen === 'findShelters' || screen === 'shelterDetails') return 'services';
+    if (screen === 'findShelters' || screen === 'shelterDetails' || screen === 'services' || screen === 'findClinics' || screen === 'clinicDetails') return 'services';
     return '';
   };
 
@@ -334,6 +338,30 @@ export default function App() {
               user={user}
               shelterId={selectedShelterId}
               onBack={() => setScreen('findShelters')}
+            />
+          )}
+
+          {screen === 'services' && (
+            <ServicesChooser
+              onNavigate={(scr) => setScreen(scr)}
+            />
+          )}
+
+          {screen === 'findClinics' && (
+            <FindClinics
+              user={user}
+              onNavigate={(scr, id) => {
+                setSelectedClinicId(id);
+                setScreen(scr);
+              }}
+            />
+          )}
+
+          {screen === 'clinicDetails' && (
+            <ClinicDetails
+              user={user}
+              clinicId={selectedClinicId}
+              onBack={() => setScreen('findClinics')}
             />
           )}
         </View>

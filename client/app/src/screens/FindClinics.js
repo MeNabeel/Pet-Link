@@ -2,9 +2,9 @@ import API_URL from '../config';
 import React, { useState, useEffect } from 'react';
 import { 
   StyleSheet, Text, View, TextInput, TouchableOpacity, FlatList, 
-  ActivityIndicator, Image, Alert, ScrollView
+  ActivityIndicator, Image, ScrollView
 } from 'react-native';
-import { Feather, FontAwesome5 } from '@expo/vector-icons';
+import { Feather } from '@expo/vector-icons';
 import { COLORS } from '../constants/theme';
 
 export default function FindClinics({ user, onNavigate }) {
@@ -14,8 +14,7 @@ export default function FindClinics({ user, onNavigate }) {
   const [cityFilter, setCityFilter] = useState('');
   const [emergencyFilter, setEmergencyFilter] = useState(false);
 
-  // Mock location simulation for simulator/testing compatibility
-  const [latitude, setLatitude] = useState(31.5204); // Default to Lahore coordinates
+  const [latitude, setLatitude] = useState(31.5204);
   const [longitude, setLongitude] = useState(74.3587);
 
   const fetchClinics = async () => {
@@ -35,12 +34,11 @@ export default function FindClinics({ user, onNavigate }) {
       const res = await fetch(url);
       if (res.ok) {
         const data = await res.json();
-        
         let filtered = data;
         if (searchTerm) {
           filtered = filtered.filter(c => 
             c.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-            c.address.toLowerCase().includes(searchTerm.toLowerCase())
+            c.formattedAddress.toLowerCase().includes(searchTerm.toLowerCase())
           );
         }
         setClinics(filtered);
@@ -66,11 +64,10 @@ export default function FindClinics({ user, onNavigate }) {
             style={styles.searchInput} 
             value={searchTerm} 
             onChangeText={setSearchTerm} 
-            placeholder="Search clinic name or area..." 
+            placeholder="Search real clinics by name or area..." 
           />
         </View>
 
-        {/* Quick Filters Scroll */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll}>
           <TouchableOpacity 
             style={[styles.filterBtn, cityFilter === '' && styles.filterBtnActive]}
@@ -99,11 +96,10 @@ export default function FindClinics({ user, onNavigate }) {
         </ScrollView>
       </View>
 
-      {/* List */}
       {loading ? (
         <View style={styles.centerContainer}>
           <ActivityIndicator size="large" color={COLORS.primary} />
-          <Text style={styles.loadingText}>Locating nearest veterinary clinics...</Text>
+          <Text style={styles.loadingText}>Fetching places near you...</Text>
         </View>
       ) : clinics.length === 0 ? (
         <View style={styles.emptyContainer}>
@@ -113,26 +109,28 @@ export default function FindClinics({ user, onNavigate }) {
       ) : (
         <FlatList 
           data={clinics}
-          keyExtractor={(item) => item.id}
+          keyExtractor={(item) => item.googlePlaceId}
           contentContainerStyle={styles.listPadding}
           renderItem={({ item }) => (
             <TouchableOpacity 
               style={styles.card}
-              onPress={() => onNavigate('clinicDetails', item.id)}
+              onPress={() => onNavigate('clinicDetails', item.googlePlaceId)}
             >
-              <Image source={{ uri: item.logo || 'https://images.unsplash.com/photo-1584132967334-10e028bd69f7?auto=format&fit=crop&q=80&w=320' }} style={styles.cardImage} />
+              <Image source={{ uri: item.photo || 'https://images.unsplash.com/photo-1584132967334-10e028bd69f7?auto=format&fit=crop&q=80&w=320' }} style={styles.cardImage} />
               
               <View style={styles.cardInfo}>
                 <View style={styles.titleRow}>
-                  <Text style={styles.cardTitle}>{item.name}</Text>
-                  <View style={styles.ratingBox}>
-                    <Feather name="star" size={12} color="#F59E0B" />
-                    <Text style={styles.ratingVal}>{item.rating}</Text>
-                  </View>
+                  <Text style={styles.cardTitle} numberOfLines={1}>{item.name}</Text>
+                  {item.rating && (
+                    <View style={styles.ratingBox}>
+                      <Feather name="star" size={12} color="#F59E0B" fill="#F59E0B" />
+                      <Text style={styles.ratingVal}>{item.rating}</Text>
+                    </View>
+                  )}
                 </View>
 
-                <Text style={styles.cardLocation}>
-                  <Feather name="map-pin" size={11} /> {item.address}, {item.city}
+                <Text style={styles.cardLocation} numberOfLines={1}>
+                  <Feather name="map-pin" size={11} /> {item.formattedAddress}
                 </Text>
 
                 {item.distance && (
@@ -142,9 +140,20 @@ export default function FindClinics({ user, onNavigate }) {
                 )}
 
                 <View style={styles.cardFooter}>
-                  <Text style={styles.feeText}>Consultation: {item.startingFee} PKR</Text>
-                  {item.providesEmergency && (
-                    <Badge style={styles.emergencyBadge}>24/7 ER</Badge>
+                  {item.connected ? (
+                    <>
+                      <Text style={styles.feeText}>Consultation: {item.startingFee} PKR</Text>
+                      <View style={[styles.badgeContainer, { backgroundColor: '#F0FDF4' }]}>
+                        <Text style={[styles.badgeText, { color: '#16A34A' }]}>Connected</Text>
+                      </View>
+                    </>
+                  ) : (
+                    <>
+                      <Text style={styles.feeText}>External Listing</Text>
+                      <View style={[styles.badgeContainer, { backgroundColor: '#F1F5F9' }]}>
+                        <Text style={[styles.badgeText, { color: '#475569' }]}>Google Place</Text>
+                      </View>
+                    </>
                   )}
                 </View>
               </View>
@@ -152,15 +161,6 @@ export default function FindClinics({ user, onNavigate }) {
           )}
         />
       )}
-    </View>
-  );
-}
-
-// Simple Badge mock for mobile layout
-function Badge({ children, style }) {
-  return (
-    <View style={[styles.badgeContainer, style]}>
-      <Text style={styles.badgeText}>{children}</Text>
     </View>
   );
 }
@@ -264,7 +264,8 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: 'bold',
     color: '#0F172A',
-    flex: 1
+    flex: 1,
+    marginRight: 8
   },
   ratingBox: {
     flexDirection: 'row',
@@ -304,12 +305,10 @@ const styles = StyleSheet.create({
   badgeContainer: {
     paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: 6,
-    backgroundColor: '#FEF2F2'
+    borderRadius: 6
   },
   badgeText: {
     fontSize: 10,
-    fontWeight: '700',
-    color: '#EF4444'
+    fontWeight: '700'
   }
 });

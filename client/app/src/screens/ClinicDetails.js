@@ -2,9 +2,10 @@ import API_URL from '../config';
 import React, { useState, useEffect } from 'react';
 import { 
   StyleSheet, Text, View, ScrollView, TouchableOpacity, 
-  ActivityIndicator, Image, Modal, TextInput, Alert, Platform 
+  ActivityIndicator, Image, Modal, TextInput, Alert, Platform,
+  Linking
 } from 'react-native';
-import { Feather, FontAwesome5 } from '@expo/vector-icons';
+import { Feather } from '@expo/vector-icons';
 import { COLORS } from '../constants/theme';
 
 export default function ClinicDetails({ user, clinicId, onBack }) {
@@ -73,7 +74,7 @@ export default function ClinicDetails({ user, clinicId, onBack }) {
     setSubmitting(true);
     try {
       const payload = {
-        clinicId: clinic.id,
+        clinicId: clinic.clinicId,
         serviceId: selectedServiceId,
         doctorId: selectedDoctorId || null,
         petId: selectedPetId,
@@ -109,6 +110,22 @@ export default function ClinicDetails({ user, clinicId, onBack }) {
     }
   };
 
+  const handleDirections = () => {
+    if (!clinic) return;
+    const url = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(clinic.formattedAddress)}`;
+    Linking.openURL(url).catch(() => Alert.alert('Error', 'Could not open maps.'));
+  };
+
+  const handlePhone = () => {
+    if (!clinic?.phone) return;
+    Linking.openURL(`tel:${clinic.phone}`).catch(() => Alert.alert('Error', 'Could not initiate phone call.'));
+  };
+
+  const handleWebsite = () => {
+    if (!clinic?.website) return;
+    Linking.openURL(clinic.website).catch(() => Alert.alert('Error', 'Could not open website URL.'));
+  };
+
   if (loading) {
     return (
       <View style={styles.centerContainer}>
@@ -122,9 +139,8 @@ export default function ClinicDetails({ user, clinicId, onBack }) {
   return (
     <View style={styles.container}>
       <ScrollView>
-        {/* Banner Cover */}
         <Image 
-          source={{ uri: clinic.coverImage || 'https://images.unsplash.com/photo-1584132967334-10e028bd69f7?auto=format&fit=crop&q=80&w=320' }} 
+          source={{ uri: clinic.photo || 'https://images.unsplash.com/photo-1584132967334-10e028bd69f7?auto=format&fit=crop&q=80&w=320' }} 
           style={styles.bannerImage} 
         />
         <TouchableOpacity style={styles.btnBack} onPress={onBack}>
@@ -133,52 +149,122 @@ export default function ClinicDetails({ user, clinicId, onBack }) {
 
         {/* Profile Card */}
         <View style={styles.infoWrapper}>
-          <Text style={styles.name}>{clinic.name}</Text>
-          <Text style={styles.location}>
-            <Feather name="map-pin" size={12} /> {clinic.address}, {clinic.city}
-          </Text>
-
-          <View style={styles.ratingRow}>
-            <Feather name="star" size={14} color="#F59E0B" fill="#F59E0B" />
-            <Text style={styles.ratingVal}>{clinic.rating} ({clinic.reviewCount} reviews)</Text>
+          <View style={styles.titleRow}>
+            <Text style={styles.name}>{clinic.name}</Text>
+            {clinic.connected ? (
+              <View style={[styles.badgeContainer, { backgroundColor: '#F0FDF4' }]}>
+                <Text style={[styles.badgeText, { color: '#16A34A' }]}>Connected</Text>
+              </View>
+            ) : (
+              <View style={[styles.badgeContainer, { backgroundColor: '#F1F5F9' }]}>
+                <Text style={[styles.badgeText, { color: '#475569' }]}>Google Place</Text>
+              </View>
+            )}
           </View>
 
-          {/* Description */}
-          <Text style={styles.sectionTitle}>About Our Clinic</Text>
-          <Text style={styles.description}>{clinic.description || 'No description available.'}</Text>
+          <Text style={styles.location}>
+            <Feather name="map-pin" size={12} /> {clinic.formattedAddress}
+          </Text>
 
-          {/* Doctors */}
-          <Text style={styles.sectionTitle}>Our Veterinary Doctors</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.doctorsScroll}>
-            {clinic.doctors?.map(d => (
-              <View key={d.id} style={styles.doctorItem}>
-                <Image source={{ uri: d.image || 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?auto=format&fit=crop&q=80&w=150' }} style={styles.doctorImg} />
-                <Text style={styles.doctorName}>{d.name}</Text>
-                <Text style={styles.doctorSpec}>{d.specialization}</Text>
-              </View>
-            ))}
-          </ScrollView>
-
-          {/* Services */}
-          <Text style={styles.sectionTitle}>Services Offered</Text>
-          {clinic.services?.map(s => (
-            <View key={s.id} style={styles.serviceRow}>
-              <View>
-                <Text style={styles.serviceName}>{s.name}</Text>
-                <Text style={styles.serviceDuration}>Duration: {s.duration} mins</Text>
-              </View>
-              <Text style={styles.servicePrice}>{s.price} PKR</Text>
+          {clinic.rating && (
+            <View style={styles.ratingRow}>
+              <Feather name="star" size={14} color="#F59E0B" fill="#F59E0B" />
+              <Text style={styles.ratingVal}>{clinic.rating} ({clinic.reviewCount} reviews)</Text>
             </View>
-          ))}
+          )}
+
+          {/* External partner warning */}
+          {!clinic.connected && (
+            <View style={styles.warningBox}>
+              <Feather name="alert-triangle" size={16} color="#3B82F6" />
+              <Text style={styles.warningText}>
+                Direct booking is only supported for PetLink-connected clinics. You can still reach out via contact actions below.
+              </Text>
+            </View>
+          )}
+
+          {/* Quick contact actions */}
+          <Text style={styles.sectionTitle}>Contact & Navigation</Text>
+          <View style={styles.actionRow}>
+            {clinic.phone && (
+              <TouchableOpacity style={styles.actionBtn} onPress={handlePhone}>
+                <Feather name="phone" size={16} color="#475569" />
+                <Text style={styles.actionBtnText}>Call Clinic</Text>
+              </TouchableOpacity>
+            )}
+            {clinic.website && (
+              <TouchableOpacity style={styles.actionBtn} onPress={handleWebsite}>
+                <Feather name="globe" size={16} color="#475569" />
+                <Text style={styles.actionBtnText}>Website</Text>
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity style={[styles.actionBtn, { backgroundColor: '#EFF6FF' }]} onPress={handleDirections}>
+              <Feather name="map" size={16} color="var(--color-primary)" />
+              <Text style={[styles.actionBtnText, { color: 'var(--color-primary)' }]}>Directions</Text>
+            </TouchableOpacity>
+          </View>
+
+          <Text style={styles.sectionTitle}>Description</Text>
+          <Text style={styles.description}>
+            {clinic.description || `Real-world veterinary clinic listed via Google Places API in ${clinic.formattedAddress}.`}
+          </Text>
+
+          {/* Doctors list (Connected Only) */}
+          {clinic.connected && clinic.doctors?.length > 0 && (
+            <>
+              <Text style={styles.sectionTitle}>Our Veterinary Doctors</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.doctorsScroll}>
+                {clinic.doctors.map(d => (
+                  <View key={d.id} style={styles.doctorItem}>
+                    <Image source={{ uri: d.image || 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?auto=format&fit=crop&q=80&w=150' }} style={styles.doctorImg} />
+                    <Text style={styles.doctorName}>{d.name}</Text>
+                    <Text style={styles.doctorSpec}>{d.specialization}</Text>
+                  </View>
+                ))}
+              </ScrollView>
+            </>
+          )}
+
+          {/* Services Offered (Connected Only) */}
+          {clinic.connected && clinic.services?.length > 0 && (
+            <>
+              <Text style={styles.sectionTitle}>Services Offered</Text>
+              {clinic.services.map(s => (
+                <View key={s.id} style={styles.serviceRow}>
+                  <View>
+                    <Text style={styles.serviceName}>{s.name}</Text>
+                    <Text style={styles.serviceDuration}>Duration: {s.duration} mins</Text>
+                  </View>
+                  <Text style={styles.servicePrice}>{s.price} PKR</Text>
+                </View>
+              ))}
+            </>
+          )}
+
+          {/* Weekday opening hours */}
+          <Text style={styles.sectionTitle}>Opening Hours</Text>
+          {clinic.weekdayDescriptions && clinic.weekdayDescriptions.length > 0 ? (
+            clinic.weekdayDescriptions.map(desc => (
+              <View key={desc} style={styles.hoursRow}>
+                <Text style={styles.hoursText}>{desc}</Text>
+              </View>
+            ))
+          ) : (
+            <View style={styles.hoursRow}>
+              <Text style={styles.hoursText}>Monday - Saturday: 09:00 AM - 09:00 PM</Text>
+            </View>
+          )}
         </View>
       </ScrollView>
 
       {/* Footer CTA */}
-      <View style={styles.footer}>
-        <TouchableOpacity style={styles.btnBook} onPress={() => setIsBookModalVisible(true)}>
-          <Text style={styles.btnBookText}>Book Appointment</Text>
-        </TouchableOpacity>
-      </View>
+      {clinic.connected && (
+        <View style={styles.footer}>
+          <TouchableOpacity style={styles.btnBook} onPress={() => setIsBookModalVisible(true)}>
+            <Text style={styles.btnBookText}>Book Appointment</Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
       {/* Booking Stepper Modal */}
       <Modal visible={isBookModalVisible} animationType="slide" transparent>
@@ -191,7 +277,6 @@ export default function ClinicDetails({ user, clinicId, onBack }) {
               </TouchableOpacity>
             </View>
 
-            {/* Stepper Progress */}
             <View style={styles.progressBarWrapper}>
               <View style={[styles.progressBar, { width: `${(bookStep / 5) * 100}%` }]} />
             </View>
@@ -328,10 +413,18 @@ const styles = StyleSheet.create({
   infoWrapper: {
     padding: 20
   },
+  titleRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 8
+  },
   name: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#0F172A'
+    color: '#0F172A',
+    flex: 1
   },
   location: {
     fontSize: 12,
@@ -347,6 +440,43 @@ const styles = StyleSheet.create({
   ratingVal: {
     fontSize: 12,
     fontWeight: '700',
+    color: '#475569'
+  },
+  warningBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    padding: 14,
+    backgroundColor: '#EFF6FF',
+    borderLeftWidth: 4,
+    borderLeftColor: '#3B82F6',
+    borderRadius: 8,
+    marginTop: 14
+  },
+  warningText: {
+    fontSize: 11,
+    color: '#1E40AF',
+    flex: 1,
+    lineHeight: 16
+  },
+  actionRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 8,
+    flexWrap: 'wrap'
+  },
+  actionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    backgroundColor: '#F1F5F9',
+    borderRadius: 8
+  },
+  actionBtnText: {
+    fontSize: 12,
+    fontWeight: '600',
     color: '#475569'
   },
   sectionTitle: {
@@ -413,6 +543,15 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: 'bold',
     color: '#0F172A'
+  },
+  hoursRow: {
+    paddingVertical: 6,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9'
+  },
+  hoursText: {
+    fontSize: 12,
+    color: '#475569'
   },
   footer: {
     padding: 16,
@@ -566,5 +705,14 @@ const styles = StyleSheet.create({
   btnConfirmText: {
     color: COLORS.white,
     fontWeight: 'bold'
+  },
+  badgeContainer: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6
+  },
+  badgeText: {
+    fontSize: 10,
+    fontWeight: '700'
   }
 });

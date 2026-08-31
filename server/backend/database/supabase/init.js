@@ -11,7 +11,7 @@ const initDB = async () => {
     console.log('Initializing PostgreSQL schema in public schema...');
 
     // ----------------------------------------------------
-    // SHELTER TABLES (Pre-existing)
+    // SHELTER TABLES
     // ----------------------------------------------------
     await pool.query(`
       CREATE TABLE IF NOT EXISTS shelter_profiles (
@@ -145,21 +145,18 @@ const initDB = async () => {
     `);
 
     // ----------------------------------------------------
-    // CLINIC TABLES & GEOSPATIAL HELPER (New)
+    // CLINIC TABLES & GEOSPATIAL HELPER
     // ----------------------------------------------------
-    
-    // Geospatial Distance function creation (Haversine formula)
     await pool.query(`
       CREATE OR REPLACE FUNCTION calculate_distance(lat1 double precision, lon1 double precision, lat2 double precision, lon2 double precision)
       RETURNS double precision AS $$
       DECLARE
-          r double precision := 6371; -- Earth radius in km
+          r double precision := 6371;
           dlat double precision;
           dlon double precision;
           a double precision;
           c double precision;
       BEGIN
-          -- Handle possible nulls
           IF lat1 IS NULL OR lon1 IS NULL OR lat2 IS NULL OR lon2 IS NULL THEN
               RETURN 0.0;
           END IF;
@@ -172,7 +169,6 @@ const initDB = async () => {
       $$ LANGUAGE plpgsql;
     `);
 
-    // 1. Create clinics
     await pool.query(`
       CREATE TABLE IF NOT EXISTS clinics (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -199,12 +195,17 @@ const initDB = async () => {
         "daysOpen" TEXT[] DEFAULT '{"Mon","Tue","Wed","Thu","Fri","Sat"}',
         facilities TEXT[] DEFAULT '{}',
         status VARCHAR(50) DEFAULT 'Active',
+        "googlePlaceId" VARCHAR(255) UNIQUE,
         "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
         "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT NOW()
       );
     `);
 
-    // 2. Create clinic_services
+    // Run Migration: Ensure googlePlaceId column is present on existing tables
+    await pool.query(`
+      ALTER TABLE clinics ADD COLUMN IF NOT EXISTS "googlePlaceId" VARCHAR(255) UNIQUE;
+    `);
+
     await pool.query(`
       CREATE TABLE IF NOT EXISTS clinic_services (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -219,7 +220,6 @@ const initDB = async () => {
       );
     `);
 
-    // 3. Create clinic_doctors
     await pool.query(`
       CREATE TABLE IF NOT EXISTS clinic_doctors (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -238,7 +238,6 @@ const initDB = async () => {
       );
     `);
 
-    // 4. Create clinic_appointments
     await pool.query(`
       CREATE TABLE IF NOT EXISTS clinic_appointments (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -256,7 +255,6 @@ const initDB = async () => {
       );
     `);
 
-    // 5. Create clinic_reviews
     await pool.query(`
       CREATE TABLE IF NOT EXISTS clinic_reviews (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -269,7 +267,6 @@ const initDB = async () => {
       );
     `);
 
-    // 6. Create clinic_wishlist
     await pool.query(`
       CREATE TABLE IF NOT EXISTS clinic_wishlist (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -280,7 +277,6 @@ const initDB = async () => {
       );
     `);
 
-    // 7. Create clinic_messages
     await pool.query(`
       CREATE TABLE IF NOT EXISTS clinic_messages (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -293,7 +289,6 @@ const initDB = async () => {
       );
     `);
 
-    // 8. Create notifications
     await pool.query(`
       CREATE TABLE IF NOT EXISTS notifications (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -306,20 +301,19 @@ const initDB = async () => {
       );
     `);
 
-    // Add indexes for geospatial sorting and fast lookups
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_clinics_city ON clinics(city);`);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_clinics_status ON clinics(status);`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_clinics_google_place_id ON clinics("googlePlaceId");`);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_clinic_appointments_user ON clinic_appointments("userId");`);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_clinic_appointments_status ON clinic_appointments(status);`);
 
     // ----------------------------------------------------
-    // DATA SEEDING (Lahore, Karachi, Islamabad)
+    // DATA SEEDING
     // ----------------------------------------------------
     const { rows: clinicsCount } = await pool.query('SELECT count(*) FROM clinics');
     if (parseInt(clinicsCount[0].count) === 0) {
       console.log('Seeding mock clinic profiles...');
       
-      // Insert mock clinics
       const clinicsData = [
         {
           name: 'DHA Animal Hospital & Emergency Care',
@@ -340,6 +334,7 @@ const initDB = async () => {
           emergencyPhone: '03009999999',
           providesEmergency: true,
           isAlwaysOpen: true,
+          googlePlaceId: 'ChIJ53w4fF353zgRkC0lK6YFz5k', // A real place id for connection mapping
           facilities: '{"24/7 Emergency Room", "Surgery Room", "ICU", "Laboratory", "Pharmacy", "Waiting Area", "Parking"}'
         },
         {
@@ -361,6 +356,7 @@ const initDB = async () => {
           emergencyPhone: '',
           providesEmergency: false,
           isAlwaysOpen: false,
+          googlePlaceId: 'ChIJ_yGpg60FGTkRZk99oO6xNRE',
           facilities: '{"Consultation Room", "Pharmacy", "Grooming Area", "Parking"}'
         },
         {
@@ -382,6 +378,7 @@ const initDB = async () => {
           emergencyPhone: '03331112223',
           providesEmergency: true,
           isAlwaysOpen: false,
+          googlePlaceId: 'ChIJm7_Bv9g9sTkRl_iN1p961-A',
           facilities: '{"Surgery Room", "Diagnostics", "Ultrasound", "X-Ray", "Pharmacy", "Parking"}'
         },
         {
@@ -403,22 +400,22 @@ const initDB = async () => {
           emergencyPhone: '',
           providesEmergency: false,
           isAlwaysOpen: false,
+          googlePlaceId: 'ChIJV4qPZ-d3tTkRs8D8T72xXwE',
           facilities: '{"Consultation Room", "Pharmacy", "Laboratory", "Parking"}'
         }
       ];
 
       for (const clinic of clinicsData) {
         const { rows: insertedClinic } = await pool.query(`
-          INSERT INTO clinics (name, logo, "coverImage", description, phone, email, address, city, province, area, latitude, longitude, rating, "reviewCount", "startingFee", "emergencyPhone", "providesEmergency", "isAlwaysOpen", facilities)
-          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
+          INSERT INTO clinics (name, logo, "coverImage", description, phone, email, address, city, province, area, latitude, longitude, rating, "reviewCount", "startingFee", "emergencyPhone", "providesEmergency", "isAlwaysOpen", "googlePlaceId", facilities)
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)
           RETURNING id;
         `, [
-          clinic.name, clinic.logo, clinic.coverImage, clinic.description, clinic.phone, clinic.email, clinic.address, clinic.city, clinic.province, clinic.area, clinic.latitude, clinic.longitude, clinic.rating, clinic.reviewCount, clinic.startingFee, clinic.emergencyPhone, clinic.providesEmergency, clinic.isAlwaysOpen, clinic.facilities
+          clinic.name, clinic.logo, clinic.coverImage, clinic.description, clinic.phone, clinic.email, clinic.address, clinic.city, clinic.province, clinic.area, clinic.latitude, clinic.longitude, clinic.rating, clinic.reviewCount, clinic.startingFee, clinic.emergencyPhone, clinic.providesEmergency, clinic.isAlwaysOpen, clinic.googlePlaceId, clinic.facilities
         ]);
 
         const clinicId = insertedClinic[0].id;
 
-        // Add standard services for each clinic
         const services = [
           { name: 'General Consultation', description: 'Comprehensive physical health examination and advice.', price: clinic.startingFee, duration: 20 },
           { name: 'Vaccination Package', description: 'Standard yearly core booster vaccines for dogs and cats.', price: clinic.startingFee + 1200, duration: 15 },
@@ -433,7 +430,6 @@ const initDB = async () => {
           `, [clinicId, s.name, s.description, s.price, s.duration]);
         }
 
-        // Add standard doctors for each clinic
         const doctors = [
           { name: 'Dr. Ahmed Khan', specialization: 'Veterinary Surgeon', experience: 8, image: 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?auto=format&fit=crop&q=80&w=150' },
           { name: 'Dr. Sarah Ali', specialization: 'General Physician & Feline Care', experience: 5, image: 'https://images.unsplash.com/photo-1594824813573-246434de83fb?auto=format&fit=crop&q=80&w=150' }
@@ -446,7 +442,13 @@ const initDB = async () => {
           `, [clinicId, d.name, d.specialization, d.experience, d.image]);
         }
       }
-      console.log('Seeded mock clinic profiles, services, and doctors successfully.');
+      console.log('Seeded mock clinic profiles successfully.');
+    } else {
+      // If table exists but googlePlaceId isn't populated, let's map them
+      await pool.query(`UPDATE clinics SET "googlePlaceId" = 'ChIJ53w4fF353zgRkC0lK6YFz5k' WHERE name = 'DHA Animal Hospital & Emergency Care' AND "googlePlaceId" IS NULL`);
+      await pool.query(`UPDATE clinics SET "googlePlaceId" = 'ChIJ_yGpg60FGTkRZk99oO6xNRE' WHERE name = 'Gulberg Pet Wellness Clinic' AND "googlePlaceId" IS NULL`);
+      await pool.query(`UPDATE clinics SET "googlePlaceId" = 'ChIJm7_Bv9g9sTkRl_iN1p961-A' WHERE name = 'Clifton Veterinary Hospital & Surgery Center' AND "googlePlaceId" IS NULL`);
+      await pool.query(`UPDATE clinics SET "googlePlaceId" = 'ChIJV4qPZ-d3tTkRs8D8T72xXwE' WHERE name = 'Islamabad Animal Wellness Center' AND "googlePlaceId" IS NULL`);
     }
 
     console.log('All PostgreSQL tables and lookup functions checked.');

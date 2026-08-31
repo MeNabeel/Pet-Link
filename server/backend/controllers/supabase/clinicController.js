@@ -1,12 +1,40 @@
 const { Pool } = require('pg');
 const dotenv = require('dotenv');
+const fetch = require('node-fetch'); // Standard fetch package on node environment
 
 dotenv.config();
 
 const connectionString = process.env.DIRECT_URL || process.env.DATABASE_URL;
 const pool = new Pool({ connectionString });
 
-// Helper to send system notification
+// In-Memory Search Caching Strategy (6-hour expiration)
+const searchCache = new Map();
+const CACHE_EXPIRY_MS = 6 * 60 * 60 * 1000; // 6 Hours
+
+const getCacheKey = (lat, lng, radius, query = '') => {
+  const roundedLat = lat ? parseFloat(lat).toFixed(3) : '0';
+  const roundedLng = lng ? parseFloat(lng).toFixed(3) : '0';
+  return `${roundedLat}_${roundedLng}_${radius}_${query.trim().toLowerCase()}`;
+};
+
+const getCachedSearch = (key) => {
+  const entry = searchCache.get(key);
+  if (!entry) return null;
+  if (Date.now() - entry.timestamp > CACHE_EXPIRY_MS) {
+    searchCache.delete(key);
+    return null;
+  }
+  return entry.data;
+};
+
+const cacheSearch = (key, data) => {
+  searchCache.set(key, {
+    timestamp: Date.now(),
+    data
+  });
+};
+
+// Helper: Dispatch system notification
 const createNotification = async (userId, title, message, type = 'General') => {
   try {
     await pool.query(`
@@ -18,118 +46,350 @@ const createNotification = async (userId, title, message, type = 'General') => {
   }
 };
 
-// @desc    Get clinics sorted by geographical distance
+// Helper: Map Google Places response items and link with Supabase connected state
+const mapGooglePlacesAndCheckConnections = async (googlePlaces, userLat, userLng) => {
+  const mapped = [];
+
+  for (const place of googlePlaces) {
+    const placeId = place.id;
+    if (!placeId) continue;
+
+    // Check if this Place ID is connected to PetLink in Supabase
+    const { rows: connectedClinics } = await pool.query(
+      'SELECT id, "startingFee", "providesEmergency" FROM clinics WHERE "googlePlaceId" = $1 AND status = \'Active\'',
+      [placeId]
+    );
+
+    const isConnected = connectedClinics.length > 0;
+    const connectedClinicId = isConnected ? connectedClinics[0].id : null;
+    const startingFee = isConnected ? connectedClinics[0].startingFee : null;
+    const providesEmergency = isConnected ? connectedClinics[0].providesEmergency : false;
+
+    // Calculate distance if user lat/long is provided
+    let calculatedDistance = null;
+    if (userLat && userLng && place.location?.latitude && place.location?.longitude) {
+      const { rows: distRows } = await pool.query(
+        'SELECT calculate_distance($1, $2, $3, $4) AS distance',
+        [parseFloat(userLat), parseFloat(userLng), parseFloat(place.location.latitude), parseFloat(place.location.longitude)]
+      );
+      calculatedDistance = distRows[0]?.distance || null;
+    }
+
+    // Map photo URL
+    let photoUrl = 'https://images.unsplash.com/photo-1584132967334-10e028bd69f7?auto=format&fit=crop&q=80&w=600';
+    if (place.photos && place.photos.length > 0 && process.env.GOOGLE_PLACES_API_KEY) {
+      photoUrl = `https://places.googleapis.com/v1/${place.photos[0].name}/media?key=${process.env.GOOGLE_PLACES_API_KEY}&maxHeightPx=400`;
+    }
+
+    mapped.push({
+      googlePlaceId: placeId,
+      name: place.displayName?.text || 'Veterinary Clinic',
+      formattedAddress: place.formattedAddress || 'Address not available',
+      latitude: place.location?.latitude || null,
+      longitude: place.location?.longitude || null,
+      rating: place.rating || null,
+      reviewCount: place.userRatingCount || 0,
+      phone: place.nationalPhoneNumber || null,
+      website: place.websiteUri || null,
+      photo: photoUrl,
+      openNow: place.regularOpeningHours?.openNow ?? null,
+      weekdayDescriptions: place.regularOpeningHours?.weekdayDescriptions || [],
+      connected: isConnected,
+      clinicId: connectedClinicId,
+      startingFee,
+      providesEmergency,
+      distance: calculatedDistance
+    });
+  }
+
+  return mapped;
+};
+
+// Fallback/Simulated Google Places results for offline development testing
+const getSimulatedPlaces = () => {
+  return [
+    {
+      id: 'ChIJ53w4fF353zgRkC0lK6YFz5k',
+      displayName: { text: 'DHA Animal Hospital & Emergency Care' },
+      formattedAddress: 'Sector XX, DHA Phase 3, Lahore, Pakistan',
+      location: { latitude: 31.4697, longitude: 74.4084 },
+      rating: 4.9,
+      userRatingCount: 42,
+      nationalPhoneNumber: '03001234567',
+      websiteUri: 'https://dhavet.petlink.com',
+      regularOpeningHours: {
+        openNow: true,
+        weekdayDescriptions: ['Monday: 24 Hours', 'Tuesday: 24 Hours', 'Wednesday: 24 Hours', 'Thursday: 24 Hours', 'Friday: 24 Hours', 'Saturday: 24 Hours', 'Sunday: 24 Hours']
+      }
+    },
+    {
+      id: 'ChIJ_yGpg60FGTkRZk99oO6xNRE',
+      displayName: { text: 'Gulberg Pet Wellness Clinic' },
+      formattedAddress: 'Block K, Gulberg 2, Lahore, Pakistan',
+      location: { latitude: 31.5204, longitude: 74.3587 },
+      rating: 4.7,
+      userRatingCount: 28,
+      nationalPhoneNumber: '03217654321',
+      websiteUri: 'https://gulbergvet.petlink.com',
+      regularOpeningHours: {
+        openNow: true,
+        weekdayDescriptions: ['Monday: 9:00 AM – 9:00 PM', 'Tuesday: 9:00 AM – 9:00 PM', 'Wednesday: 9:00 AM – 9:00 PM', 'Thursday: 9:00 AM – 9:00 PM', 'Friday: 9:00 AM – 9:00 PM', 'Saturday: 9:00 AM – 9:00 PM', 'Sunday: Closed']
+      }
+    },
+    {
+      id: 'ChIJm7_Bv9g9sTkRl_iN1p961-A',
+      displayName: { text: 'Clifton Veterinary Hospital & Surgery Center' },
+      formattedAddress: 'Block 5, Clifton, Karachi, Pakistan',
+      location: { latitude: 24.8138, longitude: 67.0336 },
+      rating: 4.8,
+      userRatingCount: 35,
+      nationalPhoneNumber: '03338765432',
+      websiteUri: 'https://cliftonvet.petlink.com',
+      regularOpeningHours: {
+        openNow: false,
+        weekdayDescriptions: ['Monday: 9:00 AM – 8:00 PM', 'Tuesday: 9:00 AM – 8:00 PM', 'Wednesday: 9:00 AM – 8:00 PM', 'Thursday: 9:00 AM – 8:00 PM', 'Friday: 9:00 AM – 8:00 PM', 'Saturday: 9:00 AM – 8:00 PM', 'Sunday: Closed']
+      }
+    },
+    {
+      id: 'ChIJV4qPZ-d3tTkRs8D8T72xXwE',
+      displayName: { text: 'Islamabad Animal Wellness Center' },
+      formattedAddress: 'Street 12, F-7/2, Islamabad, Pakistan',
+      location: { latitude: 33.7215, longitude: 73.0564 },
+      rating: 4.6,
+      userRatingCount: 19,
+      nationalPhoneNumber: '03154567890',
+      websiteUri: 'https://islamabadvets.petlink.com',
+      regularOpeningHours: {
+        openNow: true,
+        weekdayDescriptions: ['Monday: 9:00 AM – 9:00 PM', 'Tuesday: 9:00 AM – 9:00 PM', 'Wednesday: 9:00 AM – 9:00 PM', 'Thursday: 9:00 AM – 9:00 PM', 'Friday: 9:00 AM – 9:00 PM', 'Saturday: 9:00 AM – 5:00 PM', 'Sunday: Closed']
+      }
+    }
+  ];
+};
+
+// @desc    Geospatial nearby clinic search using Google Places API (New)
 // @route   GET /api/clinics/nearby
 // @access  Public
 exports.getNearbyClinics = async (req, res) => {
   try {
     const { lat, lng, city, service, providesEmergency, rating, distanceLimit } = req.query;
+    const radius = distanceLimit ? parseInt(distanceLimit) * 1000 : 25000; // in meters (default 25km)
 
-    let query;
-    let params = [];
+    const cacheKey = getCacheKey(lat, lng, radius, city || '');
+    const cachedData = getCachedSearch(cacheKey);
+
+    if (cachedData) {
+      console.log('Serving clinic search results from cache...');
+      return res.status(200).json(cachedData);
+    }
+
+    const apiKey = process.env.GOOGLE_PLACES_API_KEY;
+
+    if (!apiKey) {
+      console.log('Google Places API Key missing. Returning simulation demo clinics...');
+      const simulated = getSimulatedPlaces();
+      
+      // Filter list for matching criteria
+      let filteredSimulated = simulated;
+      if (city) {
+        filteredSimulated = simulated.filter(c => c.formattedAddress.toLowerCase().includes(city.toLowerCase()));
+      }
+
+      const responseData = await mapGooglePlacesAndCheckConnections(filteredSimulated, lat, lng);
+      
+      // Tag response with key missing metadata
+      res.setHeader('x-places-api-key-missing', 'true');
+      return res.status(200).json(responseData);
+    }
+
+    let googlePlaces = [];
 
     if (lat && lng) {
-      // With GPS location coordinates
-      params = [parseFloat(lat), parseFloat(lng)];
-      query = `
-        SELECT *, calculate_distance($1, $2, latitude, longitude) AS distance
-        FROM clinics
-        WHERE status = 'Active'
-      `;
+      // 1. Coordinates Search: Call Nearby Search (New) API
+      const response = await fetch('https://places.googleapis.com/v1/places:searchNearby', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Goog-Api-Key': apiKey,
+          'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.location,places.rating,places.userRatingCount,places.nationalPhoneNumber,places.websiteUri,places.regularOpeningHours,places.photos'
+        },
+        body: JSON.stringify({
+          includedTypes: ['veterinary_care'],
+          maxResultCount: 20,
+          locationRestriction: {
+            circle: {
+              center: {
+                latitude: parseFloat(lat),
+                longitude: parseFloat(lng)
+              },
+              radius: parseFloat(radius)
+            }
+          }
+        })
+      });
+
+      if (response.ok) {
+        const body = await response.json();
+        googlePlaces = body.places || [];
+      } else {
+        const errorBody = await response.text();
+        console.error('Google Places Nearby API error:', errorBody);
+        return res.status(502).json({ message: 'Google Places Nearby API search failure.' });
+      }
     } else {
-      // Without GPS coordinates
-      query = `
-        SELECT *, 0.0 AS distance
-        FROM clinics
-        WHERE status = 'Active'
-      `;
+      // 2. City Fallback Search: Call Text Search (New) API
+      const textQuery = city ? `veterinary care clinics in ${city}` : 'veterinary clinics near me';
+      const response = await fetch('https://places.googleapis.com/v1/places:searchText', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Goog-Api-Key': apiKey,
+          'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.location,places.rating,places.userRatingCount,places.nationalPhoneNumber,places.websiteUri,places.regularOpeningHours,places.photos'
+        },
+        body: JSON.stringify({
+          textQuery,
+          includedType: 'veterinary_care',
+          maxResultCount: 20
+        })
+      });
+
+      if (response.ok) {
+        const body = await response.json();
+        googlePlaces = body.places || [];
+      } else {
+        const errorBody = await response.text();
+        console.error('Google Places Text API error:', errorBody);
+        return res.status(502).json({ message: 'Google Places Text API search failure.' });
+      }
     }
 
-    // Add city filter
-    if (city) {
-      params.push(city);
-      query += ` AND city = $${params.length}`;
-    }
+    // Map Google fields & resolve Supabase connection keys
+    let finalClinics = await mapGooglePlacesAndCheckConnections(googlePlaces, lat, lng);
 
-    // Add emergency availability filter
-    if (providesEmergency === 'true') {
-      query += ` AND "providesEmergency" = true`;
-    }
-
-    // Add rating filter
+    // Apply local rating filters
     if (rating) {
-      params.push(parseFloat(rating));
-      query += ` AND rating >= $${params.length}`;
+      const minRating = parseFloat(rating);
+      finalClinics = finalClinics.filter(c => c.rating >= minRating);
     }
 
-    // Distance sorting
+    // Sort by distance (if coords exist) or rating (descending)
     if (lat && lng) {
-      query += ` ORDER BY distance ASC`;
+      finalClinics.sort((a, b) => (a.distance || 9999) - (b.distance || 9999));
     } else {
-      query += ` ORDER BY rating DESC, name ASC`;
+      finalClinics.sort((a, b) => (b.rating || 0) - (a.rating || 0));
     }
 
-    const { rows: clinics } = await pool.query(query, params);
+    // Store in-memory cache
+    cacheSearch(cacheKey, finalClinics);
 
-    // Apply distance limit filtering
-    let filtered = clinics;
-    if (lat && lng && distanceLimit) {
-      const limit = parseFloat(distanceLimit);
-      filtered = clinics.filter(c => parseFloat(c.distance) <= limit);
-    }
-
-    // Apply service filter (as database check or simple mapping)
-    if (service) {
-      // Filter out clinics that do not offer this service name
-      const { rows: serviceClinics } = await pool.query(`
-        SELECT DISTINCT "clinicId" FROM clinic_services 
-        WHERE name ILIKE $1 AND status = 'Active'
-      `, [`%${service}%`]);
-      const validClinicIds = serviceClinics.map(s => s.clinicId);
-      filtered = filtered.filter(c => validClinicIds.includes(c.id));
-    }
-
-    res.status(200).json(filtered);
+    res.status(200).json(finalClinics);
   } catch (error) {
-    res.status(500).json({ message: 'Error retrieving nearby clinics', error: error.message });
+    res.status(500).json({ message: 'Error fetching nearby clinics', error: error.message });
   }
 };
 
-// @desc    Get detailed clinic profile by ID
+// @desc    Get Place Details by Google Place ID
 // @route   GET /api/clinics/:id
 // @access  Public
 exports.getClinicDetails = async (req, res) => {
   try {
-    const { id } = req.params;
+    const { id } = req.params; // Expects Google Place ID
+    const apiKey = process.env.GOOGLE_PLACES_API_KEY;
 
-    const { rows: clinics } = await pool.query('SELECT * FROM clinics WHERE id = $1', [id]);
-    if (clinics.length === 0) {
-      return res.status(404).json({ message: 'Clinic profile not found' });
+    let placeData = null;
+
+    if (!apiKey) {
+      console.log('Google Places API Key missing. Returning simulation details...');
+      const simulated = getSimulatedPlaces();
+      placeData = simulated.find(c => c.id === id);
+
+      if (!placeData) {
+        return res.status(404).json({ message: 'Clinic details not found in simulation database.' });
+      }
+    } else {
+      // Call Google Place Details (New) API
+      const response = await fetch(`https://places.googleapis.com/v1/places/${id}?key=${apiKey}`, {
+        headers: {
+          'X-Goog-FieldMask': 'id,displayName,formattedAddress,location,rating,userRatingCount,nationalPhoneNumber,websiteUri,regularOpeningHours,photos'
+        }
+      });
+
+      if (response.ok) {
+        placeData = await response.json();
+      } else {
+        const errorBody = await response.text();
+        console.error('Google Place Details API error:', errorBody);
+        return res.status(502).json({ message: 'Google Place Details API retrieval failure.' });
+      }
     }
 
-    const clinic = clinics[0];
+    // Map properties
+    let photoUrl = 'https://images.unsplash.com/photo-1584132967334-10e028bd69f7?auto=format&fit=crop&q=80&w=800';
+    if (placeData.photos && placeData.photos.length > 0 && apiKey) {
+      photoUrl = `https://places.googleapis.com/v1/${placeData.photos[0].name}/media?key=${apiKey}&maxHeightPx=600`;
+    }
 
-    // Fetch services
-    const { rows: services } = await pool.query('SELECT * FROM clinic_services WHERE "clinicId" = $1 AND status = \'Active\'', [id]);
+    const clinicProfile = {
+      googlePlaceId: placeData.id,
+      name: placeData.displayName?.text || 'Veterinary Clinic',
+      formattedAddress: placeData.formattedAddress || 'Address not available',
+      latitude: placeData.location?.latitude || null,
+      longitude: placeData.location?.longitude || null,
+      rating: placeData.rating || null,
+      reviewCount: placeData.userRatingCount || 0,
+      phone: placeData.nationalPhoneNumber || null,
+      website: placeData.websiteUri || null,
+      photo: photoUrl,
+      openNow: placeData.regularOpeningHours?.openNow ?? null,
+      weekdayDescriptions: placeData.regularOpeningHours?.weekdayDescriptions || [],
+      connected: false,
+      clinicId: null,
+      services: [],
+      doctors: [],
+      reviews: []
+    };
 
-    // Fetch doctors
-    const { rows: doctors } = await pool.query('SELECT * FROM clinic_doctors WHERE "clinicId" = $1 AND status = \'Active\'', [id]);
+    // Query connected credentials in Supabase using the Place ID
+    const { rows: connectedClinics } = await pool.query(
+      'SELECT id, description, logo, "startingFee", "providesEmergency" FROM clinics WHERE "googlePlaceId" = $1 AND status = \'Active\'',
+      [placeData.id]
+    );
 
-    // Fetch reviews
-    const { rows: reviews } = await pool.query(`
-      SELECT r.*, u.name as "userName", u."profilePic" as "userAvatar"
-      FROM clinic_reviews r
-      JOIN users u ON r."userId" = u.id
-      WHERE r."clinicId" = $1
-      ORDER BY r."createdAt" DESC
-    `, [id]);
+    if (connectedClinics.length > 0) {
+      const conn = connectedClinics[0];
+      clinicProfile.connected = true;
+      clinicProfile.clinicId = conn.id;
+      clinicProfile.logo = conn.logo || '';
+      clinicProfile.description = conn.description || '';
+      clinicProfile.startingFee = conn.startingFee || 0;
+      clinicProfile.providesEmergency = conn.providesEmergency || false;
 
-    res.status(200).json({
-      ...clinic,
-      services,
-      doctors,
-      reviews
-    });
+      // Load PetLink connected services
+      const { rows: services } = await pool.query(
+        'SELECT * FROM clinic_services WHERE "clinicId" = $1 AND status = \'Active\'',
+        [conn.id]
+      );
+      clinicProfile.services = services;
+
+      // Load PetLink connected doctors
+      const { rows: doctors } = await pool.query(
+        'SELECT * FROM clinic_doctors WHERE "clinicId" = $1 AND status = \'Active\'',
+        [conn.id]
+      );
+      clinicProfile.doctors = doctors;
+
+      // Load PetLink user reviews
+      const { rows: reviews } = await pool.query(`
+        SELECT r.*, u.name as "userName", u."profilePic" as "userAvatar"
+        FROM clinic_reviews r
+        JOIN users u ON r."userId" = u.id
+        WHERE r."clinicId" = $1
+        ORDER BY r."createdAt" DESC
+      `, [conn.id]);
+      clinicProfile.reviews = reviews;
+    }
+
+    res.status(200).json(clinicProfile);
   } catch (error) {
     res.status(500).json({ message: 'Error retrieving clinic details', error: error.message });
   }
@@ -233,7 +493,6 @@ exports.updateAppointmentStatus = async (req, res) => {
     const { id } = req.params;
     const { status } = req.body;
 
-    // Fetch appointment details
     const { rows: appts } = await pool.query('SELECT * FROM clinic_appointments WHERE id = $1', [id]);
     if (appts.length === 0) {
       return res.status(404).json({ message: 'Appointment not found' });
@@ -241,7 +500,6 @@ exports.updateAppointmentStatus = async (req, res) => {
 
     const appointment = appts[0];
 
-    // Authorize: users can only cancel their own appointments
     if (status === 'Cancelled' && appointment.userId !== requesterId) {
       return res.status(403).json({ message: 'Unauthorized status operation' });
     }
@@ -255,7 +513,6 @@ exports.updateAppointmentStatus = async (req, res) => {
 
     const updatedAppointment = updated[0];
 
-    // Send status notification
     const { rows: clinic } = await pool.query('SELECT name FROM clinics WHERE id = $1', [appointment.clinicId]);
     const clinicName = clinic[0]?.name || 'the clinic';
 
@@ -284,7 +541,6 @@ exports.createClinicReview = async (req, res) => {
       return res.status(400).json({ message: 'Required fields are missing' });
     }
 
-    // Verify appointment status is Completed and owned by user
     const { rows: appts } = await pool.query(`
       SELECT id FROM clinic_appointments 
       WHERE id = $1 AND "userId" = $2 AND status = 'Completed'
@@ -294,14 +550,12 @@ exports.createClinicReview = async (req, res) => {
       return res.status(400).json({ message: 'Reviews can only be created for completed appointments' });
     }
 
-    // Insert review
     const { rows: review } = await pool.query(`
       INSERT INTO clinic_reviews ("clinicId", "appointmentId", "userId", rating, comment)
       VALUES ($1, $2, $3, $4, $5)
       RETURNING *;
     `, [clinicId, appointmentId, requesterId, parseInt(rating), comment || '']);
 
-    // Recompute clinic rating
     await pool.query(`
       UPDATE clinics
       SET rating = (SELECT ROUND(AVG(rating)::numeric, 1) FROM clinic_reviews WHERE "clinicId" = $1),
@@ -321,21 +575,35 @@ exports.createClinicReview = async (req, res) => {
 exports.toggleClinicWishlist = async (req, res) => {
   try {
     const requesterId = req.headers['x-requester-id'];
-    const { clinicId } = req.body;
+    const { googlePlaceId } = req.body; // Expects Google Place ID for external discoverability
 
-    if (!requesterId || !clinicId) {
+    if (!requesterId || !googlePlaceId) {
       return res.status(400).json({ message: 'Missing user or clinic identifiers' });
     }
 
-    const { rows: exists } = await pool.query('SELECT id FROM clinic_wishlist WHERE "userId" = $1 AND "clinicId" = $2', [requesterId, clinicId]);
+    // Verify if clinic is registered in table; if not, create a skeleton clinic record in table to bind saves
+    const { rows: localClinics } = await pool.query('SELECT id FROM clinics WHERE "googlePlaceId" = $1', [googlePlaceId]);
+    let targetClinicId = null;
+
+    if (localClinics.length > 0) {
+      targetClinicId = localClinics[0].id;
+    } else {
+      // Create a skeleton clinic record
+      const { rows: newClinic } = await pool.query(`
+        INSERT INTO clinics (name, "googlePlaceId", status)
+        VALUES ($1, $2, 'Active')
+        RETURNING id;
+      `, [`GooglePlace_${googlePlaceId}`, googlePlaceId]);
+      targetClinicId = newClinic[0].id;
+    }
+
+    const { rows: exists } = await pool.query('SELECT id FROM clinic_wishlist WHERE "userId" = $1 AND "clinicId" = $2', [requesterId, targetClinicId]);
 
     if (exists.length > 0) {
-      // Remove
       await pool.query('DELETE FROM clinic_wishlist WHERE id = $1', [exists[0].id]);
       return res.status(200).json({ wishlisted: false, message: 'Removed clinic from wishlist' });
     } else {
-      // Add
-      await pool.query('INSERT INTO clinic_wishlist ("userId", "clinicId") VALUES ($1, $2)', [requesterId, clinicId]);
+      await pool.query('INSERT INTO clinic_wishlist ("userId", "clinicId") VALUES ($1, $2)', [requesterId, targetClinicId]);
       return res.status(200).json({ wishlisted: true, message: 'Clinic saved to wishlist' });
     }
   } catch (error) {
@@ -354,13 +622,29 @@ exports.getClinicWishlist = async (req, res) => {
     }
 
     const { rows: clinics } = await pool.query(`
-      SELECT c.*, 0.0 AS distance
+      SELECT c.*
       FROM clinic_wishlist w
       JOIN clinics c ON w."clinicId" = c.id
       WHERE w."userId" = $1 AND c.status = 'Active'
     `, [requesterId]);
 
-    res.status(200).json(clinics);
+    // Map local clinics to clean response matching search discovery properties
+    const mapped = clinics.map(c => ({
+      googlePlaceId: c.googlePlaceId,
+      name: c.name.startsWith('GooglePlace_') ? 'Saved Clinic' : c.name,
+      formattedAddress: c.address || 'Saved Clinic Profile',
+      latitude: c.latitude,
+      longitude: c.longitude,
+      rating: c.rating,
+      reviewCount: c.reviewCount,
+      phone: c.phone,
+      website: c.email,
+      photo: c.logo || 'https://images.unsplash.com/photo-1584132967334-10e028bd69f7?auto=format&fit=crop&q=80&w=320',
+      connected: !c.name.startsWith('GooglePlace_'),
+      clinicId: c.name.startsWith('GooglePlace_') ? null : c.id
+    }));
+
+    res.status(200).json(mapped);
   } catch (error) {
     res.status(500).json({ message: 'Error retrieving saved clinics', error: error.message });
   }

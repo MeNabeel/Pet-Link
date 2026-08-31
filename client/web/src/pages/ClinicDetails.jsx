@@ -2,7 +2,8 @@ import API_URL from '@/config';
 import React, { useState, useEffect } from 'react';
 import { 
   MapPin, Star, Truck, Calendar, Sparkles, Check, Clock, 
-  MessageSquare, AlertTriangle, X, ShieldAlert, ArrowRight, User
+  MessageSquare, AlertTriangle, X, ShieldAlert, ArrowRight, User,
+  Phone, Globe, Map
 } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -70,23 +71,22 @@ export default function ClinicDetails({ user, clinicId, onBack, onNavigateToAddP
     return (
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '64px', minHeight: '60vh', justifyContent: 'center' }}>
         <div className="spinner-loader" style={{ borderColor: 'var(--color-primary)' }}></div>
-        <p style={{ marginTop: '16px', color: '#64748B' }}>Loading veterinarian schedules and facility list...</p>
+        <p style={{ marginTop: '16px', color: '#64748B' }}>Fetching place coordinates from Google Platform API...</p>
       </div>
     );
   }
 
   if (!clinic) return null;
 
-  // Calculate pricing & summary
-  const service = clinic.services?.find(s => s.id === selectedServiceId) || { name: 'General Consultation', price: clinic.startingFee || 1000, duration: 20 };
-  const doctor = clinic.doctors?.find(d => d.id === selectedDoctorId) || { name: 'Any Available Doctor' };
+  const service = clinic.services?.find(s => s.id === selectedServiceId) || { name: 'General Consultation', price: clinic.startingFee || 1000 };
+  const doctor = clinic.doctors?.find(d => d.id === selectedDoctorId) || { name: 'Duty Veterinarian' };
   const pet = userPets.find(p => p._id === selectedPetId) || { name: 'Unnamed Pet' };
 
   const handleCreateBooking = async () => {
     setSubmitting(true);
     try {
       const payload = {
-        clinicId: clinic.id,
+        clinicId: clinic.clinicId, // maps to Supabase primary key
         serviceId: selectedServiceId || null,
         doctorId: selectedDoctorId || null,
         petId: selectedPetId,
@@ -105,7 +105,7 @@ export default function ClinicDetails({ user, clinicId, onBack, onNavigateToAddP
       });
 
       if (res.ok) {
-        alert('Appointment requested successfully! The clinic has been notified.');
+        alert('Appointment requested successfully!');
         setIsBookOpen(false);
         setBookStep(1);
         setAppointmentDate('');
@@ -122,6 +122,9 @@ export default function ClinicDetails({ user, clinicId, onBack, onNavigateToAddP
     }
   };
 
+  // Maps Directions URL
+  const directionsUrl = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(clinic.formattedAddress)}`;
+
   return (
     <div className="marketplace-container fade-in" style={{ padding: '24px' }}>
       <button 
@@ -134,7 +137,7 @@ export default function ClinicDetails({ user, clinicId, onBack, onNavigateToAddP
       {/* Hero Header */}
       <div style={{ position: 'relative', height: '260px', borderRadius: '16px', overflow: 'hidden', marginBottom: '32px' }}>
         <img 
-          src={clinic.coverImage || 'https://images.unsplash.com/photo-1584132967334-10e028bd69f7?auto=format&fit=crop&q=80&w=800'} 
+          src={clinic.photo || 'https://images.unsplash.com/photo-1584132967334-10e028bd69f7?auto=format&fit=crop&q=80&w=800'} 
           alt="Clinic Banner" 
           style={{ width: '100%', height: '100%', objectFit: 'cover' }}
         />
@@ -142,75 +145,123 @@ export default function ClinicDetails({ user, clinicId, onBack, onNavigateToAddP
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <h1 style={{ fontSize: '28px', fontWeight: '800', margin: 0 }}>{clinic.name}</h1>
-              <Badge variant="success">Verified Facility</Badge>
+              {clinic.connected ? (
+                <Badge variant="success">PetLink Connected</Badge>
+              ) : (
+                <Badge variant="secondary">Places Partner</Badge>
+              )}
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '6px', fontSize: '14px', opacity: 0.9 }}>
               <MapPin size={14} />
-              <span>{clinic.address}, {clinic.city}</span>
+              <span>{clinic.formattedAddress}</span>
             </div>
           </div>
-          <button 
-            onClick={() => setIsBookOpen(true)}
-            style={{ padding: '12px 28px', backgroundColor: 'var(--color-primary)', border: 'none', borderRadius: '8px', color: '#FFFFFF', fontWeight: '700', fontSize: '14px', cursor: 'pointer' }}
-          >
-            Book Appointment
-          </button>
+          {clinic.connected && (
+            <button 
+              onClick={() => setIsBookOpen(true)}
+              style={{ padding: '12px 28px', backgroundColor: 'var(--color-primary)', border: 'none', borderRadius: '8px', color: '#FFFFFF', fontWeight: '700', fontSize: '14px', cursor: 'pointer' }}
+            >
+              Book Appointment
+            </button>
+          )}
         </div>
       </div>
+
+      {/* External Places Info Warning Banner */}
+      {!clinic.connected && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '16px 20px', backgroundColor: '#EFF6FF', borderLeft: '4px solid #3B82F6', borderRadius: '8px', marginBottom: '24px' }}>
+          <AlertTriangle size={20} color="#3B82F6" />
+          <div style={{ flex: 1 }}>
+            <p style={{ margin: 0, fontSize: '13px', fontWeight: '700', color: '#1E3A8A' }}>External Clinic Listing</p>
+            <p style={{ margin: '2px 0 0 0', fontSize: '12px', color: '#1E40AF' }}>
+              This clinic is not connected to the PetLink Online Booking ecosystem. You can still reach out via phone, visit their website, or get map directions.
+            </p>
+          </div>
+        </div>
+      )}
 
       <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '32px' }}>
         {/* Left Column */}
         <div>
-          {/* About */}
+          {/* About / Description */}
           <Card style={{ marginBottom: '24px' }}>
-            <CardHeader><CardTitle>About Our Clinic</CardTitle></CardHeader>
+            <CardHeader><CardTitle>Description</CardTitle></CardHeader>
             <CardContent>
-              <p style={{ fontSize: '14px', lineHeight: '1.6', color: '#475569', margin: 0 }}>{clinic.description || 'No description provided.'}</p>
+              <p style={{ fontSize: '14px', lineHeight: '1.6', color: '#475569', margin: 0 }}>
+                {clinic.description || `Real-world veterinary clinic listed via Google Places API in ${clinic.formattedAddress}. Connect with them directly using standard communication channels.`}
+              </p>
             </CardContent>
           </Card>
 
-          {/* Veterinarians */}
+          {/* Quick Actions Panel */}
           <Card style={{ marginBottom: '24px' }}>
-            <CardHeader><CardTitle>Our Veterinary Doctors</CardTitle></CardHeader>
-            <CardContent style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
-              {clinic.doctors?.length > 0 ? (
-                clinic.doctors.map(d => (
-                  <div key={d.id} style={{ display: 'flex', alignItems: 'center', gap: '12px', border: '1px solid #E2E8F0', borderRadius: '10px', padding: '12px 16px', minWidth: '220px' }}>
-                    <img src={d.image || 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?auto=format&fit=crop&q=80&w=150'} alt="Doctor" style={{ width: '48px', height: '48px', borderRadius: '50%', objectFit: 'cover' }} />
-                    <div>
-                      <strong style={{ display: 'block', fontSize: '13px', color: '#0F172A' }}>{d.name}</strong>
-                      <span style={{ fontSize: '12px', color: '#64748B' }}>{d.specialization}</span>
-                      <small style={{ display: 'block', fontSize: '11px', color: '#059669', fontWeight: '600' }}>{d.experience} Years Exp.</small>
-                    </div>
-                  </div>
-                ))
+            <CardHeader><CardTitle>Contact & Navigation Actions</CardTitle></CardHeader>
+            <CardContent style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+              {clinic.phone ? (
+                <a 
+                  href={`tel:${clinic.phone}`}
+                  style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 16px', backgroundColor: '#F1F5F9', borderRadius: '8px', fontSize: '13px', fontWeight: '600', color: '#334155', textDecoration: 'none' }}
+                >
+                  <Phone size={14} />
+                  <span>Call: {clinic.phone}</span>
+                </a>
               ) : (
-                <p style={{ fontSize: '13px', color: '#64748B' }}>Any duty veterinarian will attend.</p>
+                <span style={{ fontSize: '13px', color: '#94A3B8', padding: '10px 16px' }}>Phone not listed</span>
               )}
+
+              {clinic.website && (
+                <a 
+                  href={clinic.website}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 16px', backgroundColor: '#F1F5F9', borderRadius: '8px', fontSize: '13px', fontWeight: '600', color: '#334155', textDecoration: 'none' }}
+                >
+                  <Globe size={14} />
+                  <span>Visit Website</span>
+                </a>
+              )}
+
+              <a 
+                href={directionsUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 16px', backgroundColor: '#EFF6FF', borderRadius: '8px', fontSize: '13px', fontWeight: '600', color: 'var(--color-primary)', textDecoration: 'none' }}
+              >
+                <Map size={14} />
+                <span>Get Directions</span>
+              </a>
             </CardContent>
           </Card>
 
-          {/* Emergency support */}
-          {clinic.providesEmergency && (
-            <Card style={{ marginBottom: '24px', borderColor: '#FCA5A5', backgroundColor: '#FEF2F2' }}>
-              <CardContent style={{ padding: '20px', display: 'flex', gap: '20px', alignItems: 'center' }}>
-                <ShieldAlert size={32} color="#EF4444" />
-                <div>
-                  <h4 style={{ margin: '0 0 4px 0', color: '#991B1B', fontWeight: '700', fontSize: '15px' }}>24/7 Critical Emergency Care</h4>
-                  <p style={{ margin: 0, fontSize: '13px', color: '#B91C1C' }}>
-                    Emergency Helpline: <strong>{clinic.emergencyPhone || clinic.phone}</strong>. Walk-ins accepted for urgent trauma/poisonings.
-                  </p>
-                </div>
+          {/* Veterinarians (Connected Clinics Only) */}
+          {clinic.connected && (
+            <Card style={{ marginBottom: '24px' }}>
+              <CardHeader><CardTitle>Our Veterinary Doctors</CardTitle></CardHeader>
+              <CardContent style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
+                {clinic.doctors?.length > 0 ? (
+                  clinic.doctors.map(d => (
+                    <div key={d.id} style={{ display: 'flex', alignItems: 'center', gap: '12px', border: '1px solid #E2E8F0', borderRadius: '10px', padding: '12px 16px', minWidth: '220px' }}>
+                      <img src={d.image || 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?auto=format&fit=crop&q=80&w=150'} alt="Doctor" style={{ width: '48px', height: '48px', borderRadius: '50%', objectFit: 'cover' }} />
+                      <div>
+                        <strong style={{ display: 'block', fontSize: '13px', color: '#0F172A' }}>{d.name}</strong>
+                        <span style={{ fontSize: '12px', color: '#64748B' }}>{d.specialization}</span>
+                        <small style={{ display: 'block', fontSize: '11px', color: '#059669', fontWeight: '600' }}>{d.experience} Years Exp.</small>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <p style={{ fontSize: '13px', color: '#64748B' }}>Any duty veterinarian will attend.</p>
+                )}
               </CardContent>
             </Card>
           )}
 
-          {/* Reviews Section */}
+          {/* User Reviews */}
           <Card>
-            <CardHeader><CardTitle>Patient Reviews</CardTitle></CardHeader>
+            <CardHeader><CardTitle>Reviews</CardTitle></CardHeader>
             <CardContent>
               {clinic.reviews?.length === 0 ? (
-                <p style={{ fontSize: '13px', color: '#64748B', textAlign: 'center', padding: '16px' }}>No reviews posted yet.</p>
+                <p style={{ fontSize: '13px', color: '#64748B', textAlign: 'center', padding: '16px' }}>No PetLink patient reviews posted yet.</p>
               ) : (
                 clinic.reviews?.map(r => (
                   <div key={r.id} style={{ marginBottom: '16px', borderBottom: '1px solid #F1F5F9', paddingBottom: '12px' }}>
@@ -232,51 +283,47 @@ export default function ClinicDetails({ user, clinicId, onBack, onNavigateToAddP
 
         {/* Right Column */}
         <div>
-          {/* Services list */}
-          <Card style={{ marginBottom: '24px' }}>
-            <CardHeader><CardTitle>Clinic Services</CardTitle></CardHeader>
-            <CardContent>
-              {clinic.services?.map(s => (
-                <div key={s.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px solid #F1F5F9' }}>
-                  <div>
-                    <strong style={{ fontSize: '13px' }}>{s.name}</strong>
-                    <small style={{ display: 'block', fontSize: '11px', color: '#64748B' }}>Duration: {s.duration} mins</small>
+          {/* Services list (Connected Only) */}
+          {clinic.connected && (
+            <Card style={{ marginBottom: '24px' }}>
+              <CardHeader><CardTitle>PetLink Booking Services</CardTitle></CardHeader>
+              <CardContent>
+                {clinic.services?.map(s => (
+                  <div key={s.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px solid #F1F5F9' }}>
+                    <div>
+                      <strong style={{ fontSize: '13px' }}>{s.name}</strong>
+                      <small style={{ display: 'block', fontSize: '11px', color: '#64748B' }}>Duration: {s.duration} mins</small>
+                    </div>
+                    <strong>{s.price} PKR</strong>
                   </div>
-                  <strong>{s.price} PKR</strong>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
+                ))}
+              </CardContent>
+            </Card>
+          )}
 
-          {/* Opening hours */}
+          {/* Operating hours */}
           <Card style={{ marginBottom: '24px' }}>
-            <CardHeader><CardTitle>Opening Hours</CardTitle></CardHeader>
+            <CardHeader><CardTitle>Operating Hours</CardTitle></CardHeader>
             <CardContent>
-              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', fontSize: '13px' }}>
-                <span>Mon - Sat</span>
-                <span>{clinic.openingTime} - {clinic.closingTime}</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', fontSize: '13px', color: '#EF4444' }}>
-                <span>Sunday</span>
-                <span>Closed</span>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Facilities list */}
-          <Card>
-            <CardHeader><CardTitle>Facilities</CardTitle></CardHeader>
-            <CardContent style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-              {clinic.facilities?.map(f => (
-                <Badge key={f} style={{ backgroundColor: '#F1F5F9', color: '#334155', borderRadius: '4px', fontSize: '11px' }}>{f}</Badge>
-              ))}
+              {clinic.weekdayDescriptions && clinic.weekdayDescriptions.length > 0 ? (
+                clinic.weekdayDescriptions.map(desc => (
+                  <div key={desc} style={{ padding: '6px 0', fontSize: '13px', borderBottom: '1px dashed #F1F5F9', color: desc.toLowerCase().includes('closed') ? '#EF4444' : '#334155' }}>
+                    {desc}
+                  </div>
+                ))
+              ) : (
+                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', fontSize: '13px' }}>
+                  <span>Mon - Sat</span>
+                  <span>09:00 AM - 09:00 PM</span>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
       </div>
 
-      {/* Stepper Dialog for Booking */}
-      {isBookOpen && (
+      {/* Stepper dialog */}
+      {isBookOpen && clinic.connected && (
         <div className="dialog-overlay">
           <div className="dialog-box" style={{ maxWidth: '520px' }}>
             <div className="dialog-header">
@@ -284,7 +331,6 @@ export default function ClinicDetails({ user, clinicId, onBack, onNavigateToAddP
               <button onClick={() => setIsBookOpen(false)}><X size={16} /></button>
             </div>
             <div className="dialog-body" style={{ padding: '24px' }}>
-              {/* Progress bar */}
               <div className="stepper-progress" style={{ marginBottom: '16px' }}>
                 <div className="progress-bar" style={{ width: `${(bookStep / 5) * 100}%` }}></div>
               </div>

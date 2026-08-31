@@ -3,14 +3,14 @@ import React, { useState, useEffect } from 'react';
 import { 
   Search, MapPin, Star, Truck, Calendar, Activity, 
   Clock, ShieldAlert, Heart, Eye, AlertCircle, X, Check,
-  MessageSquare, User, Filter, RefreshCw
+  MessageSquare, User, Filter, RefreshCw, Phone, Globe
 } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 
 export default function ClinicsServices({ user, onViewDetails }) {
-  const [activeTab, setActiveTab] = useState('discovery'); // 'discovery' | 'appointments'
+  const [activeTab, setActiveTab] = useState('discovery');
   const [clinics, setClinics] = useState([]);
   const [appointments, setAppointments] = useState([]);
   const [wishlistIds, setWishlistIds] = useState([]);
@@ -19,7 +19,7 @@ export default function ClinicsServices({ user, onViewDetails }) {
   // User location states
   const [latitude, setLatitude] = useState(null);
   const [longitude, setLongitude] = useState(null);
-  const [locPermission, setLocPermission] = useState('prompt'); // 'prompt' | 'granted' | 'denied'
+  const [locPermission, setLocPermission] = useState('prompt');
 
   // Search & Filter state
   const [searchTerm, setSearchTerm] = useState('');
@@ -34,7 +34,6 @@ export default function ClinicsServices({ user, onViewDetails }) {
   const [chatMessages, setChatMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
 
-  // Request browser geolocation
   const requestLocation = () => {
     if (!navigator.geolocation) {
       setLocPermission('denied');
@@ -83,12 +82,11 @@ export default function ClinicsServices({ user, onViewDetails }) {
       if (res.ok) {
         const data = await res.json();
         
-        // Frontend name filter
         let filtered = data;
         if (searchTerm) {
           filtered = filtered.filter(c => 
             c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            c.address.toLowerCase().includes(searchTerm.toLowerCase())
+            c.formattedAddress.toLowerCase().includes(searchTerm.toLowerCase())
           );
         }
 
@@ -126,7 +124,7 @@ export default function ClinicsServices({ user, onViewDetails }) {
       });
       if (res.ok) {
         const data = await res.json();
-        setWishlistIds(data.map(c => c.id));
+        setWishlistIds(data.map(c => c.googlePlaceId));
       }
     } catch (err) {
       console.log(err);
@@ -146,7 +144,7 @@ export default function ClinicsServices({ user, onViewDetails }) {
   }, [activeTab]);
 
   // Toggle clinic wishlist
-  const handleToggleWishlist = async (clinicId, e) => {
+  const handleToggleWishlist = async (googlePlaceId, e) => {
     e.stopPropagation();
     if (!user || !user._id) return;
     try {
@@ -156,14 +154,14 @@ export default function ClinicsServices({ user, onViewDetails }) {
           'Content-Type': 'application/json',
           'x-requester-id': user._id
         },
-        body: JSON.stringify({ clinicId })
+        body: JSON.stringify({ googlePlaceId })
       });
       if (res.ok) {
         const data = await res.json();
         if (data.wishlisted) {
-          setWishlistIds([...wishlistIds, clinicId]);
+          setWishlistIds([...wishlistIds, googlePlaceId]);
         } else {
-          setWishlistIds(wishlistIds.filter(id => id !== clinicId));
+          setWishlistIds(wishlistIds.filter(id => id !== googlePlaceId));
         }
       }
     } catch (err) {
@@ -216,7 +214,7 @@ export default function ClinicsServices({ user, onViewDetails }) {
         },
         body: JSON.stringify({
           appointmentId: activeApptChat.id,
-          receiverId: activeApptChat.clinicId, // maps to clinic provider user
+          receiverId: activeApptChat.clinicId,
           message: newMessage.trim()
         })
       });
@@ -230,8 +228,8 @@ export default function ClinicsServices({ user, onViewDetails }) {
     }
   };
 
-  // Render rating badges
   const renderStars = (rating) => {
+    if (!rating) return <span style={{ fontSize: '11px', color: '#94A3B8' }}>No ratings yet</span>;
     return (
       <div style={{ display: 'flex', gap: '2px', alignItems: 'center' }}>
         {[...Array(5)].map((_, i) => (
@@ -246,10 +244,10 @@ export default function ClinicsServices({ user, onViewDetails }) {
       {/* Top Banner */}
       <div className="market-hero-banner" style={{ background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)' }}>
         <div className="market-hero-content">
-          <Badge className="market-hero-badge">Veterinary Locator Engine</Badge>
-          <h2 className="market-hero-title">Find Clinics & Animal Hospitals</h2>
+          <Badge className="market-hero-badge">Google Places Discovery Engine</Badge>
+          <h2 className="market-hero-title">Find Real-World Clinics Near You</h2>
           <p className="market-hero-subtitle">
-            Secure lodging, preventative consultations and critical surgery care at verified facilities.
+            Discover real local animal care clinics using real-time Google Places nearby coordinates matching.
           </p>
         </div>
       </div>
@@ -261,7 +259,7 @@ export default function ClinicsServices({ user, onViewDetails }) {
           <div style={{ flex: 1 }}>
             <p style={{ margin: 0, fontSize: '13px', fontWeight: '700', color: '#B45309' }}>Location access is disabled</p>
             <p style={{ margin: '2px 0 0 0', fontSize: '12px', color: '#D97706' }}>
-              We cannot estimate distance automatically. Please select your city or filter manually.
+              Using default area queries. Enter your city or area manually to find clinics.
             </p>
           </div>
           <button onClick={requestLocation} style={{ padding: '6px 12px', backgroundColor: '#FFFFFF', border: '1px solid #D97706', borderRadius: '6px', fontSize: '11px', fontWeight: '600', color: '#B45309', cursor: 'pointer' }}>
@@ -296,7 +294,7 @@ export default function ClinicsServices({ user, onViewDetails }) {
               <h3 style={{ fontSize: '14px', fontWeight: '700', color: '#0F172A', margin: 0 }}>Filter Criteria</h3>
             </div>
 
-            <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '6px' }}>City Location</label>
+            <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '6px' }}>Search by City</label>
             <select 
               value={cityFilter} 
               onChange={(e) => setCityFilter(e.target.value)}
@@ -306,20 +304,6 @@ export default function ClinicsServices({ user, onViewDetails }) {
               <option value="Lahore">Lahore</option>
               <option value="Karachi">Karachi</option>
               <option value="Islamabad">Islamabad</option>
-            </select>
-
-            <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#475569', marginBottom: '6px' }}>Service Offerings</label>
-            <select 
-              value={selectedService} 
-              onChange={(e) => setSelectedService(e.target.value)}
-              style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #CBD5E1', marginBottom: '16px', outline: 'none' }}
-            >
-              <option value="">All Services</option>
-              <option value="General Consultation">General Checkup</option>
-              <option value="Vaccination">Vaccination</option>
-              <option value="Dental">Dental Care</option>
-              <option value="Surgery">Surgery Room</option>
-              <option value="Emergency">Emergency</option>
             </select>
 
             {latitude && longitude && (
@@ -371,56 +355,63 @@ export default function ClinicsServices({ user, onViewDetails }) {
                 type="text" 
                 value={searchTerm} 
                 onChange={(e) => setSearchTerm(e.target.value)} 
-                placeholder="Search clinics by hospital name, area..." 
+                placeholder="Search real clinics by hospital name, area..." 
               />
             </div>
 
             {loading ? (
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '64px' }}>
                 <RefreshCw size={32} className="spinner-loader" style={{ color: 'var(--color-primary)' }} />
-                <p style={{ marginTop: '16px', color: '#64748B', fontSize: '13px' }}>Locating nearby pet hospitals...</p>
+                <p style={{ marginTop: '16px', color: '#64748B', fontSize: '13px' }}>Discovering real local clinics...</p>
               </div>
             ) : clinics.length === 0 ? (
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '64px', border: '1px dashed #CBD5E1', borderRadius: '12px', backgroundColor: '#FFFFFF' }}>
                 <Activity size={36} color="#94A3B8" />
-                <p style={{ marginTop: '12px', fontSize: '14px', color: '#64748B' }}>No veterinary clinics matching filters found.</p>
+                <p style={{ marginTop: '12px', fontSize: '14px', color: '#64748B' }}>No veterinary clinics discovered near your location.</p>
               </div>
             ) : (
               <div className="market-grid">
                 {clinics.map(c => {
-                  const saved = wishlistIds.includes(c.id);
+                  const saved = wishlistIds.includes(c.googlePlaceId);
                   return (
-                    <Card key={c.id} className="pet-card fade-in">
+                    <Card key={c.googlePlaceId} className="pet-card fade-in">
                       <div className="pet-card-image-wrapper">
                         <img 
-                          src={c.coverImage || 'https://images.unsplash.com/photo-1584132967334-10e028bd69f7?auto=format&fit=crop&q=80&w=320'} 
+                          src={c.photo || 'https://images.unsplash.com/photo-1584132967334-10e028bd69f7?auto=format&fit=crop&q=80&w=320'} 
                           alt={c.name} 
                           className="pet-card-image"
                         />
                         <button 
                           className="pet-card-fav-btn" 
-                          onClick={(e) => handleToggleWishlist(c.id, e)}
+                          onClick={(e) => handleToggleWishlist(c.googlePlaceId, e)}
                         >
                           <Heart size={16} fill={saved ? '#EF4444' : 'none'} color={saved ? '#EF4444' : '#64748B'} />
                         </button>
                       </div>
 
                       <CardContent className="pet-card-content" style={{ padding: '20px' }}>
-                        <div className="pet-card-header">
-                          <h3 className="pet-card-name" style={{ fontSize: '16px', fontWeight: '700' }}>{c.name}</h3>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                          <h3 className="pet-card-name" style={{ fontSize: '16px', fontWeight: '700', flex: 1 }}>{c.name}</h3>
+                          {c.connected ? (
+                            <Badge variant="success" style={{ marginLeft: '8px' }}>PetLink Connected</Badge>
+                          ) : (
+                            <Badge variant="secondary" style={{ marginLeft: '8px' }}>Places Listing</Badge>
+                          )}
                         </div>
 
                         <div className="pet-card-location" style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#64748B', marginTop: '6px' }}>
                           <MapPin size={12} />
-                          <span>{c.address}, {c.city}</span>
+                          <span>{c.formattedAddress}</span>
                         </div>
 
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '10px' }}>
                           {renderStars(c.rating)}
-                          <span style={{ fontSize: '12px', fontWeight: '700', color: '#475569' }}>({c.reviewCount})</span>
+                          {c.rating && (
+                            <span style={{ fontSize: '12px', fontWeight: '700', color: '#475569' }}>({c.reviewCount})</span>
+                          )}
                         </div>
 
-                        {latitude && longitude && c.distance && (
+                        {c.distance && (
                           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: 'var(--color-primary)', fontWeight: '700', marginTop: '10px' }}>
                             <Activity size={12} />
                             <span>Estimated {parseFloat(c.distance).toFixed(1)} km away</span>
@@ -430,7 +421,7 @@ export default function ClinicsServices({ user, onViewDetails }) {
                         {c.providesEmergency && (
                           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: '#EF4444', backgroundColor: '#FEF2F2', padding: '4px 8px', borderRadius: '6px', marginTop: '8px', width: 'fit-content', fontWeight: '700' }}>
                             <ShieldAlert size={12} />
-                            <span>Emergency Care Available</span>
+                            <span>Emergency Room Available</span>
                           </div>
                         )}
 
@@ -438,16 +429,29 @@ export default function ClinicsServices({ user, onViewDetails }) {
 
                         <div className="pet-card-footer" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                           <div>
-                            <span style={{ fontSize: '11px', color: '#64748B', textTransform: 'uppercase', display: 'block' }}>Consultation Fee</span>
-                            <strong style={{ fontSize: '16px', color: '#0f172a' }}>{c.startingFee} PKR</strong>
+                            {c.connected ? (
+                              <>
+                                <span style={{ fontSize: '11px', color: '#64748B', textTransform: 'uppercase', display: 'block' }}>Consultation Fee</span>
+                                <strong style={{ fontSize: '16px', color: '#0f172a' }}>{c.startingFee} PKR</strong>
+                              </>
+                            ) : (
+                              <div style={{ display: 'flex', gap: '8px' }}>
+                                {c.phone && (
+                                  <a href={`tel:${c.phone}`} style={{ color: '#64748B' }} title="Call Clinic"><Phone size={16} /></a>
+                                )}
+                                {c.website && (
+                                  <a href={c.website} target="_blank" rel="noopener noreferrer" style={{ color: '#64748B' }} title="Visit Website"><Globe size={16} /></a>
+                                )}
+                              </div>
+                            )}
                           </div>
 
                           <button 
                             className="btn btn-primary"
-                            onClick={() => onViewDetails(c.id)}
+                            onClick={() => onViewDetails(c.googlePlaceId)}
                             style={{ padding: '8px 16px', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}
                           >
-                            <span>View Clinic</span>
+                            <span>{c.connected ? 'View & Book' : 'Details'}</span>
                             <Eye size={12} />
                           </button>
                         </div>
@@ -525,7 +529,7 @@ export default function ClinicsServices({ user, onViewDetails }) {
             )}
           </div>
 
-          {/* Inline Messaging Sidebar */}
+          {/* Chat Window */}
           {activeApptChat && (
             <div style={{ backgroundColor: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: '12px', display: 'flex', flexDirection: 'column', height: '500px' }}>
               <div style={{ padding: '16px', borderBottom: '1px solid #F1F5F9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -538,7 +542,7 @@ export default function ClinicsServices({ user, onViewDetails }) {
 
               <div style={{ flex: 1, padding: '16px', overflowY: 'auto', backgroundColor: '#F8FAFC', display: 'flex', flexDirection: 'column', gap: '12px' }}>
                 {chatMessages.length === 0 ? (
-                  <p style={{ textAlign: 'center', color: '#94A3B8', fontSize: '12px', marginTop: '24px' }}>No messages exchanged yet. Send a query regarding your slot.</p>
+                  <p style={{ textAlign: 'center', color: '#94A3B8', fontSize: '12px', marginTop: '24px' }}>No messages exchanged yet.</p>
                 ) : (
                   chatMessages.map(m => (
                     <div key={m.id} style={{

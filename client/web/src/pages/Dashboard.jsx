@@ -28,18 +28,49 @@ import {
   AlertDialogCancel, AlertDialogAction 
 } from '@/components/ui/alert-dialog';
 
-// Reusable SVG Background Pet Pattern (No Emojis - Low Opacity SVG)
+// Reusable SVG Background Pet Pattern (No Emojis - Vector SVG Outlines with High Contrast Opacity)
 function PetPattern() {
   return (
     <div className="dash-pet-pattern" aria-hidden="true">
-      <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
-        <defs>
-          <pattern id="pet-pattern" width="60" height="60" patternUnits="userSpaceOnUse">
-            <path d="M12 25c-3 0-5-2-5-5s2-5 5-5 5 2 5 5-2 5-5 5zm16 0c-3 0-5-2-5-5s2-5 5-5 5 2 5 5-2 5-5 5zm-21 7c-3 0-5-2-5-5s2-5 5-5 5 2 5 5-2 5-5 5zm26 0c-3 0-5-2-5-5s2-5 5-5 5 2 5 5-2 5-5 5zm-13 10c-6 0-10-4-10-9 0-3 3-6 7-6s7 2 7 5c0-3 3-5 7-5s7 3 7 6c0 5-4 9-10 9z" fill="currentColor" opacity="0.06"/>
-            <path d="M45 10c1.5-2.5 4.5-2.5 6 0 1.5-2.5 4.5-2.5 6 0 1.5 2.5 0 6.5-6 10-6-3.5-7.5-7.5-6-10z" fill="currentColor" opacity="0.04"/>
-          </pattern>
-        </defs>
-        <rect width="100%" height="100%" fill="url(#pet-pattern)" />
+      <svg width="100%" height="100%" viewBox="0 0 800 300" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+        <g stroke="#0066CC" fill="none" strokeWidth="1.8" opacity="0.14">
+          {/* Top-Right Large Rotated Paw Outline */}
+          <g transform="translate(670, -25) rotate(15) scale(1.4)">
+            <ellipse cx="30" cy="40" rx="15" ry="18" fill="#0066CC" opacity="0.08" />
+            <circle cx="9" cy="14" r="5" fill="#0066CC" opacity="0.08" />
+            <circle cx="23" cy="6" r="5.5" fill="#0066CC" opacity="0.08" />
+            <circle cx="37" cy="6" r="5.5" fill="#0066CC" opacity="0.08" />
+            <circle cx="51" cy="14" r="5" fill="#0066CC" opacity="0.08" />
+          </g>
+
+          {/* Right-Side Dotted Heart Outline */}
+          <path d="M 640 140 C 640 115, 665 105, 685 125 C 705 105, 730 115, 730 140 C 730 168, 685 195, 685 195 C 685 195, 640 168, 640 140 Z" strokeWidth="2" strokeDasharray="4 3" />
+
+          {/* Bottom-Right Small Paw */}
+          <g transform="translate(730, 195) rotate(-20) scale(0.95)">
+            <ellipse cx="30" cy="40" rx="12" ry="15" fill="#0066CC" opacity="0.06" />
+            <circle cx="10" cy="16" r="4.5" />
+            <circle cx="22" cy="9" r="5" />
+            <circle cx="36" cy="9" r="5" />
+            <circle cx="48" cy="16" r="4.5" />
+          </g>
+
+          {/* Center-Top Subtle Heart Outline */}
+          <path d="M 440 25 C 440 12, 458 8, 470 18 C 482 8, 500 12, 500 25 C 500 42, 470 58, 470 58 C 470 58, 440 42, 440 25 Z" strokeWidth="1.5" strokeDasharray="3 2" />
+
+          {/* Bottom-Left Subtle Paw */}
+          <g transform="translate(260, 205) rotate(22) scale(0.75)">
+            <ellipse cx="30" cy="40" rx="12" ry="15" />
+            <circle cx="10" cy="16" r="4.5" />
+            <circle cx="22" cy="9" r="5" />
+            <circle cx="36" cy="9" r="5" />
+            <circle cx="48" cy="16" r="4.5" />
+          </g>
+
+          {/* Background Decorative Curves / Waves */}
+          <path d="M -50 190 Q 220 90, 480 210 T 950 130" strokeWidth="1.5" opacity="0.5" strokeDasharray="6 4" />
+          <path d="M -30 230 Q 320 290, 640 150 T 980 250" strokeWidth="1" opacity="0.35" />
+        </g>
       </svg>
     </div>
   );
@@ -622,7 +653,7 @@ export default function Dashboard({ onLogout }) {
         <main className="dash-content fade-in">
           {activeTab === 'overview' && (
             <>
-              {/* ROW 1: REDESIGNED SOFT LIGHT-BLUE WELCOME HERO CARD (NO EMOJIS, SUBTLE SVG PATTERN, DIRECT START) */}
+              {/* ROW 1: REDESIGNED SOFT LIGHT-BLUE WELCOME HERO CARD (NO EMOJIS, VISIBLE SVG PET PATTERN, DIRECT START) */}
               <div className="dash-welcome-card">
                 <PetPattern />
                 <div className="dash-welcome-content">
@@ -696,7 +727,7 @@ export default function Dashboard({ onLogout }) {
                 {/* Left Primary Column */}
                 <div className="dash-main-left">
                   
-                  {/* LARGE PET / VETERINARY CARD (MATCHING SOFT LIGHT BLUE #EEF5FF STYLE WITH PATTERN) */}
+                  {/* LARGE PET / VETERINARY CARD (MATCHING SOFT LIGHT BLUE #EEF5FF STYLE WITH VISIBLE SVG PATTERN) */}
                   <div className="pet-vet-main-card">
                     <PetPattern />
                     <div className="pet-vet-card-content">

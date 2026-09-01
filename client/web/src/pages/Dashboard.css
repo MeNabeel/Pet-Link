@@ -33,15 +33,23 @@
   }
 }
 
-/* Decorative Background Pet Pattern */
+/* Decorative Background Pet Pattern (Absolute Layer 0) */
 .dash-pet-pattern {
   position: absolute;
-  inset: 0;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
   pointer-events: none;
-  opacity: 0.05;
   z-index: 0;
-  color: var(--color-primary);
   overflow: hidden;
+  border-radius: 20px;
+}
+
+.dash-pet-pattern svg {
+  width: 100%;
+  height: 100%;
+  display: block;
 }
 
 /* ----------------------------------------------------
@@ -534,7 +542,7 @@
   min-width: 0;
 }
 
-/* Welcome Hero Card (Soft Light Blue Theme #EEF5FF with Subtle Pet Pattern) */
+/* Welcome Hero Card (Soft Light Blue Theme #EEF5FF with Visible Pet SVG Pattern) */
 .dash-welcome-card {
   background-color: var(--color-bg-soft-blue);
   border: 1px solid rgba(0, 102, 204, 0.12);

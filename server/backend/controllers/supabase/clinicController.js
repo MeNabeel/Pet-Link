@@ -1,6 +1,6 @@
 const { Pool } = require('pg');
 const dotenv = require('dotenv');
-const fetch = require('node-fetch'); // Standard fetch package on node environment
+const fetch = require('node-fetch');
 
 dotenv.config();
 

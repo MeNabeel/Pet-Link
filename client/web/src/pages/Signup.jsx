@@ -79,7 +79,7 @@ export default function Signup({ onNavigateToLogin, onSignupSuccess }) {
   };
 
   const roles = [
-    { label: 'User (Pet Parent / Owner / Buyer / Seller)', value: 'user' },
+    { label: 'User', value: 'user' },
     { label: 'Shelter Provider', value: 'shelter_provider' },
     { label: 'Administrator', value: 'admin' },
   ];

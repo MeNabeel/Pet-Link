@@ -1,20 +1,62 @@
+/* ====================================================
+   PETLINK USER DASHBOARD DESIGN SYSTEM
+   Preserves existing PetLink brand tokens:
+   --color-primary: #0066CC
+   --color-dark: #111827
+   --color-muted: #64748B
+   --color-bg-light: #F9FAFB
+   --color-border: #E5E7EB
+==================================================== */
+
 .dash-container {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
   background-color: var(--color-bg-light);
+  color: var(--color-dark);
+  font-family: var(--font-sans);
 }
 
+/* ----------------------------------------------------
+   HEADER BAR
+---------------------------------------------------- */
 .dash-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   background-color: var(--color-white);
-  padding: 16px 32px;
+  padding: 14px 28px;
   border-bottom: 1px solid var(--color-border);
   position: sticky;
   top: 0;
-  z-index: 10;
+  z-index: 40;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.03);
+}
+
+.dash-header-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.dash-sidebar-toggle-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  border: 1px solid var(--color-border);
+  background-color: var(--color-white);
+  color: var(--color-dark);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.dash-sidebar-toggle-btn:hover {
+  background-color: var(--color-bg-light);
+  color: var(--color-primary);
+  border-color: var(--color-primary);
 }
 
 .dash-brand {
@@ -24,82 +66,178 @@
 }
 
 .dash-logo {
-  width: 40px;
-  height: 40px;
+  width: 36px;
+  height: 36px;
   border-radius: 10px;
   object-fit: cover;
   border: 1px solid var(--color-border);
 }
 
 .dash-brand-name {
-  font-size: 20px;
+  font-size: 18px;
   font-weight: 800;
   color: var(--color-dark);
+  letter-spacing: -0.02em;
 }
 
-.dash-user-nav {
+.dash-header-right {
   display: flex;
   align-items: center;
   gap: 16px;
 }
 
-.dash-profile-badge {
+.dash-notif-btn {
+  position: relative;
   display: flex;
   align-items: center;
-  gap: 8px;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  border: 1px solid var(--color-border);
+  background-color: var(--color-white);
+  color: var(--color-muted);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.dash-notif-btn:hover {
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+  background-color: rgba(0, 102, 204, 0.04);
+}
+
+.dash-notif-badge {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  background-color: #EF4444;
+  color: #FFFFFF;
+  font-size: 10px;
+  font-weight: 800;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--color-white);
+}
+
+.dash-user-profile-badge {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 14px 6px 8px;
   background-color: var(--color-bg-light);
-  padding: 6px 14px;
-  border-radius: 20px;
+  border: 1px solid var(--color-border);
+  border-radius: 99px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.dash-user-profile-badge:hover {
+  border-color: var(--color-primary);
+  background-color: var(--color-white);
+}
+
+.dash-user-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
   border: 1px solid var(--color-border);
 }
 
-.dash-profile-name {
+.dash-user-meta {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+
+.dash-user-name {
   font-size: 13px;
   font-weight: 700;
   color: var(--color-dark);
 }
 
-.dash-profile-role {
+.dash-user-role {
   font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
+  font-weight: 800;
+  letter-spacing: 0.05em;
   color: var(--color-primary);
-  background-color: rgba(0, 102, 204, 0.1);
-  padding: 2px 8px;
-  border-radius: 10px;
 }
 
+/* ----------------------------------------------------
+   BODY & COLLAPSIBLE SIDEBAR
+---------------------------------------------------- */
 .dash-body {
   display: flex;
   flex: 1;
+  position: relative;
+}
+
+.dash-sidebar-overlay {
+  display: none;
 }
 
 .dash-sidebar {
-  width: 240px;
+  width: 250px;
   background-color: var(--color-white);
   border-right: 1px solid var(--color-border);
-  padding: 24px;
+  padding: 20px 16px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
   position: sticky;
-  top: 73px;
-  height: calc(100vh - 73px);
+  top: 67px;
+  height: calc(100vh - 67px);
   overflow-y: auto;
+  transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1), padding 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 30;
+}
+
+.dash-sidebar.collapsed {
+  width: 76px;
+  padding: 20px 10px;
+}
+
+.dash-sidebar.collapsed .dash-side-link-text {
+  display: none;
+}
+
+.dash-sidebar.collapsed .dash-side-section-header {
+  display: none;
+}
+
+.dash-sidebar.collapsed .dash-side-link {
+  justify-content: center;
+  padding: 12px 0;
+  border-radius: 10px;
+}
+
+.dash-side-section-header {
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #94A3B8;
+  padding: 12px 12px 4px 12px;
 }
 
 .dash-side-link {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 12px 16px;
-  font-size: 14px;
+  padding: 11px 14px;
+  font-size: 13.5px;
   font-weight: 600;
   color: var(--color-muted);
-  border-radius: var(--border-radius);
+  border-radius: 10px;
   text-decoration: none;
   cursor: pointer;
   transition: all var(--transition-fast);
+  white-space: nowrap;
 }
 
 .dash-side-link:hover {
@@ -110,14 +248,39 @@
 .dash-side-link.active {
   background-color: rgba(0, 102, 204, 0.08);
   color: var(--color-primary);
+  font-weight: 700;
 }
 
+/* ----------------------------------------------------
+   MAIN CONTENT AREA
+---------------------------------------------------- */
 .dash-content {
   flex: 1;
   padding: 32px;
   overflow-y: auto;
+  min-width: 0;
 }
 
+/* Page Header */
+.dash-page-header {
+  margin-bottom: 24px;
+}
+
+.dash-page-title {
+  font-size: 26px;
+  font-weight: 800;
+  color: var(--color-dark);
+  letter-spacing: -0.02em;
+  margin-bottom: 4px;
+}
+
+.dash-page-subtitle {
+  font-size: 14px;
+  color: var(--color-muted);
+  font-weight: 500;
+}
+
+/* Welcome Hero Card */
 .dash-welcome-card {
   background-color: var(--color-white);
   border: 1px solid var(--color-border);
@@ -126,35 +289,49 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 28px;
+  margin-bottom: 24px;
   box-shadow: var(--shadow-sm);
+  position: relative;
+  overflow: hidden;
 }
 
 .dash-welcome-title {
-  font-size: 24px;
+  font-size: 22px;
   font-weight: 800;
   color: var(--color-dark);
-  margin-bottom: 4px;
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .dash-welcome-text {
   font-size: 14px;
   color: var(--color-muted);
   font-weight: 500;
+  max-width: 600px;
+  line-height: 1.5;
 }
 
 .dash-welcome-address {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  margin-top: 8px;
-  font-size: 13px;
-  color: var(--color-muted);
+  margin-top: 12px;
+  font-size: 12.5px;
+  color: var(--color-primary);
+  font-weight: 600;
+  background-color: rgba(0, 102, 204, 0.06);
+  padding: 6px 12px;
+  border-radius: 8px;
 }
 
+/* ----------------------------------------------------
+   4 SUMMARY STATISTICS CARDS
+---------------------------------------------------- */
 .dash-metrics-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  grid-template-columns: repeat(4, 1fr);
   gap: 20px;
   margin-bottom: 28px;
 }
@@ -168,17 +345,26 @@
   align-items: center;
   gap: 16px;
   box-shadow: var(--shadow-sm);
+  cursor: pointer;
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast), border-color var(--transition-fast);
+}
+
+.metric-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+  border-color: var(--color-primary);
 }
 
 .metric-icon-box {
   width: 48px;
   height: 48px;
   border-radius: 12px;
-  background-color: rgba(0, 102, 204, 0.08);
   display: flex;
   align-items: center;
   justify-content: center;
   color: var(--color-primary);
+  background-color: rgba(0, 102, 204, 0.08);
+  flex-shrink: 0;
 }
 
 .metric-info {
@@ -187,406 +373,662 @@
 }
 
 .metric-label {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--color-muted);
+  font-size: 11px;
+  font-weight: 800;
   text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-muted);
+  margin-bottom: 2px;
 }
 
 .metric-value {
-  font-size: 22px;
+  font-size: 24px;
   font-weight: 800;
   color: var(--color-dark);
+  line-height: 1;
 }
 
-.dash-actions-title {
-  font-size: 18px;
-  font-weight: 800;
-  color: var(--color-dark);
-  margin-bottom: 16px;
-}
-
-.dash-actions-grid {
+/* ----------------------------------------------------
+   MAIN TWO-COLUMN DASHBOARD GRID
+---------------------------------------------------- */
+.dash-main-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 20px;
+  grid-template-columns: 1fr 340px;
+  gap: 28px;
+  align-items: start;
 }
 
-.action-card {
-  background-color: var(--color-white);
-  border: 1px solid var(--color-border);
-  border-radius: 16px;
-  padding: 24px;
-  cursor: pointer;
-  box-shadow: var(--shadow-sm);
-  transition: all var(--transition-fast);
-  text-align: left;
-}
-
-.action-card:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-md);
-  border-color: var(--color-primary);
-}
-
-.action-title {
-  font-size: 16px;
-  font-weight: 700;
-  color: var(--color-dark);
-  margin-top: 14px;
-  margin-bottom: 6px;
-}
-
-.action-desc {
-  font-size: 13px;
-  color: var(--color-muted);
-  font-weight: 500;
-  line-height: 1.4;
-}
-
-@media (max-width: 768px) {
-  .dash-body {
-    flex-direction: column;
-  }
-  .dash-sidebar {
-    width: 100%;
-    border-right: none;
-    border-bottom: 1px solid var(--color-border);
-    padding: 16px;
-    flex-direction: row;
-    overflow-x: auto;
-    gap: 12px;
-  }
-  .dash-side-link {
-    white-space: nowrap;
-    padding: 8px 12px;
-  }
-  .dash-content {
-    padding: 16px;
-  }
-}
-
-/* Admin console overrides & Custom managers styling */
-.admin-users-container {
+.dash-main-left {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  min-width: 0;
 }
 
-.admin-title {
-  font-size: 20px;
-  font-weight: 800;
+.dash-main-right {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* ----------------------------------------------------
+   LARGE PET / VETERINARY CARD (CORE REDESIGN)
+---------------------------------------------------- */
+.pet-vet-main-card {
+  background-color: var(--color-white);
+  border: 1px solid var(--color-border);
+  border-radius: 20px;
+  padding: 28px;
+  margin-bottom: 28px;
+  box-shadow: var(--shadow-sm);
+  position: relative;
+}
+
+/* Glassmorphism Toggle Header */
+.pet-vet-toggle-bar {
+  display: flex;
+  gap: 8px;
+  background: rgba(241, 245, 249, 0.85);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  padding: 5px;
+  border-radius: 14px;
+  width: fit-content;
+  margin-bottom: 24px;
+  border: 1px solid var(--color-border);
+}
+
+.pet-vet-toggle-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 20px;
+  border-radius: 10px;
+  font-size: 13.5px;
+  font-weight: 700;
+  border: none;
+  background: transparent;
+  color: var(--color-muted);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.pet-vet-toggle-btn:hover {
   color: var(--color-dark);
 }
 
-.admin-subtitle {
-  font-size: 13px;
-  color: var(--color-muted);
-  margin-top: 4px;
-  font-weight: 500;
+.pet-vet-toggle-btn.active {
+  background-color: var(--color-white);
+  color: var(--color-primary);
+  box-shadow: 0 2px 8px rgba(0, 102, 204, 0.12);
 }
 
-.admin-filters-card {
+/* My Pets Tab Layout */
+.dash-pets-scroll {
+  display: flex;
+  gap: 24px;
+  overflow-x: auto;
+  padding: 4px 4px 12px 4px;
+  align-items: flex-start;
+}
+
+.dash-pet-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 84px;
+  cursor: pointer;
+  transition: transform var(--transition-fast);
+}
+
+.dash-pet-item:hover {
+  transform: translateY(-3px);
+}
+
+.dash-pet-avatar-wrapper {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  padding: 3px;
+  border: 2px solid var(--color-primary);
   background-color: var(--color-white);
-  border: 1px solid var(--color-border);
-  border-radius: 16px;
-  padding: 16px 24px;
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dash-pet-avatar {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.dash-pet-name {
+  margin-top: 10px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-dark);
+  text-align: center;
+}
+
+.dash-add-pet-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 84px;
+  cursor: pointer;
+}
+
+.dash-add-pet-circle {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  border: 2px dashed var(--color-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(0, 102, 204, 0.04);
+  color: var(--color-primary);
+  transition: all var(--transition-fast);
+}
+
+.dash-add-pet-card:hover .dash-add-pet-circle {
+  background-color: var(--color-primary);
+  color: var(--color-white);
+  border-style: solid;
+}
+
+.dash-add-pet-label {
+  margin-top: 10px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-primary);
+  text-align: center;
+}
+
+/* Veterinary Clinics Tab Layout */
+.dash-clinics-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 24px;
-  flex-wrap: wrap;
+  margin-bottom: 16px;
 }
 
-.search-box-wrapper {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+.dash-clinics-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+.dash-clinic-card {
   background-color: var(--color-bg-light);
   border: 1px solid var(--color-border);
-  border-radius: 24px;
-  padding: 8px 16px;
-  flex: 1;
-  min-width: 260px;
-}
-
-.admin-search-input {
-  border: none;
-  background: none;
-  outline: none;
-  width: 100%;
-  font-size: 13px;
-}
-
-.filters-group-row {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  flex-wrap: wrap;
-}
-
-.filter-item {
+  border-radius: 14px;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
-  gap: 4px;
-}
-
-.filter-item label {
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--color-muted);
-  text-transform: uppercase;
-}
-
-.admin-select {
-  border: 1.5px solid var(--color-border);
-  border-radius: 12px;
-  padding: 8px 32px 8px 12px;
-  font-size: 13px;
-  background-color: var(--color-white);
-  outline: none;
+  transition: transform var(--transition-fast), border-color var(--transition-fast);
   cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.admin-select:focus {
+.dash-clinic-card:hover {
+  transform: translateY(-2px);
   border-color: var(--color-primary);
 }
 
-/* Status dropdown selection colored badges */
-.status-select-colored {
-  appearance: none;
-  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%234B5563' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
-  background-repeat: no-repeat;
-  background-position: right 12px center;
-  background-size: 14px;
+.dash-clinic-img-wrapper {
+  position: relative;
+  height: 110px;
+  width: 100%;
 }
 
-.status-select-colored.published,
-.status-select-colored.active {
-  border-color: #10B981 !important;
-  color: #10B981 !important;
-  background-color: rgba(16, 185, 129, 0.05) !important;
+.dash-clinic-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.dash-clinic-badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background-color: rgba(15, 23, 42, 0.75);
+  color: #FFFFFF;
+  font-size: 10px;
   font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 6px;
+  backdrop-filter: blur(4px);
 }
 
-.status-select-colored.draft,
-.status-select-colored.inactive,
-.status-select-colored.suspended,
-.status-select-colored.blocked,
-.status-select-colored.pending-verification,
-.status-select-colored.pending_verification,
-.status-select-colored.pending {
-  border-color: #F59E0B !important;
-  color: #F59E0B !important;
-  background-color: rgba(245, 158, 11, 0.05) !important;
+.dash-clinic-body {
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.dash-clinic-name {
+  font-size: 13.5px;
   font-weight: 700;
+  color: var(--color-dark);
+  margin-bottom: 4px;
+  line-height: 1.3;
 }
 
-.status-select-colored.archived,
-.status-select-colored.deleted {
-  border-color: #9CA3AF !important;
-  color: #9CA3AF !important;
-  background-color: rgba(156, 163, 175, 0.05) !important;
+.dash-clinic-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 11.5px;
+  color: var(--color-muted);
+  margin-top: auto;
+  padding-top: 8px;
+}
+
+.dash-clinic-meta-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.dash-show-more-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background-color: var(--color-bg-light);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  font-size: 12.5px;
   font-weight: 700;
+  color: var(--color-primary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
 }
 
-.admin-table-wrapper {
+.dash-show-more-btn:hover {
+  background-color: var(--color-primary);
+  color: var(--color-white);
+  border-color: var(--color-primary);
+}
+
+/* ----------------------------------------------------
+   WIDGET CARDS (RIGHT SIDEBAR & LOWER DASHBOARD)
+---------------------------------------------------- */
+.dash-widget-card {
   background-color: var(--color-white);
   border: 1px solid var(--color-border);
   border-radius: 20px;
-  overflow: hidden;
+  padding: 24px;
   box-shadow: var(--shadow-sm);
 }
 
-.admin-table {
-  width: 100%;
-  border-collapse: collapse;
-  text-align: left;
+.dash-widget-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 18px;
 }
 
-.admin-table th {
-  background-color: var(--color-bg-light);
-  border-bottom: 1px solid var(--color-border);
-  padding: 14px 20px;
-  font-size: 12px;
+.dash-widget-title {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--color-dark);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dash-widget-link {
+  font-size: 12.5px;
   font-weight: 700;
-  color: var(--color-muted);
+  color: var(--color-primary);
+  text-decoration: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.dash-widget-link:hover {
+  text-decoration: underline;
+}
+
+/* Upcoming Appointments List */
+.dash-appt-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.dash-appt-item:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.dash-appt-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.dash-appt-date-box {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  background-color: rgba(0, 102, 204, 0.08);
+  color: var(--color-primary);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.dash-appt-date-day {
+  font-size: 15px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.dash-appt-date-month {
+  font-size: 10px;
+  font-weight: 700;
   text-transform: uppercase;
+  margin-top: 2px;
 }
 
-.admin-table td {
-  padding: 16px 20px;
-  border-bottom: 1px solid var(--color-bg-light);
+.dash-appt-title {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--color-dark);
+  margin-bottom: 2px;
+}
+
+.dash-appt-sub {
+  font-size: 11.5px;
+  color: var(--color-muted);
+}
+
+/* Recent Activity List */
+.dash-activity-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.dash-activity-item:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.dash-activity-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background-color: var(--color-bg-light);
+  color: var(--color-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.dash-activity-text {
+  font-size: 12.5px;
+  color: var(--color-dark);
+  line-height: 1.4;
+}
+
+.dash-activity-time {
+  font-size: 11px;
+  color: var(--color-muted);
+  margin-top: 2px;
+}
+
+/* Lower Dashboard Grid (Health & Quick Actions) */
+.dash-lower-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 28px;
+  margin-top: 28px;
+}
+
+/* Pet Health Overview Card */
+.health-overview-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 8px;
+}
+
+.health-bar-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.health-bar-label-group {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12.5px;
+  font-weight: 700;
+}
+
+.health-bar-track {
+  height: 8px;
+  border-radius: 99px;
+  background-color: #F1F5F9;
+  overflow: hidden;
+}
+
+.health-bar-fill {
+  height: 100%;
+  border-radius: 99px;
+  transition: width 0.4s ease;
+}
+
+/* Quick Actions Grid (4 Cards) */
+.dash-quick-actions-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.quick-action-card {
+  background-color: var(--color-bg-light);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.quick-action-card:hover {
+  background-color: var(--color-white);
+  border-color: var(--color-primary);
+  box-shadow: var(--shadow-sm);
+  transform: translateY(-2px);
+}
+
+.quick-action-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background-color: var(--color-white);
+  color: var(--color-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--color-border);
+}
+
+.quick-action-title {
   font-size: 13px;
-  vertical-align: middle;
-}
-
-.admin-avatar-img {
-  width: 38px;
-  height: 38px;
-  border-radius: 50%;
-  object-fit: cover;
-  border: 1.5px solid var(--color-border);
-}
-
-.user-table-name {
-  display: block;
   font-weight: 700;
   color: var(--color-dark);
 }
 
-.user-table-id {
-  display: block;
-  font-size: 10px;
-  color: var(--color-muted);
-  font-family: monospace;
-  margin-top: 2px;
-}
-
-.user-contact-item {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  color: var(--color-muted);
-  font-size: 12px;
-  margin-bottom: 4px;
-}
-
-.user-contact-item:last-child {
-  margin-bottom: 0;
-}
-
-.user-role-badge {
-  display: inline-block;
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: capitalize;
-  padding: 4px 10px;
-  border-radius: 8px;
-}
-
-.user-role-badge.buyer {
-  background-color: rgba(59, 130, 246, 0.08);
-  color: #3b82f6;
-}
-
-.user-role-badge.seller {
-  background-color: rgba(16, 185, 129, 0.08);
-  color: #10b981;
-}
-
-.user-role-badge.shelter_provider {
-  background-color: rgba(139, 92, 246, 0.08);
-  color: #8b5cf6;
-}
-
-.user-role-badge.admin {
-  background-color: rgba(234, 179, 8, 0.08);
-  color: #eab308;
-}
-
-.user-joined-date {
-  font-size: 12px;
-  color: var(--color-muted);
-  font-weight: 500;
-}
-
-.status-badge-pill {
-  display: inline-block;
-  font-size: 11px;
-  font-weight: 700;
-  padding: 4px 10px;
+/* AI PetCare Assistant Hero Callout */
+.dash-ai-callout {
+  background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%);
   border-radius: 20px;
+  padding: 28px;
+  color: #FFFFFF;
+  margin-top: 28px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.2);
 }
 
-.status-badge-pill.badge-success {
-  background-color: rgba(22, 163, 74, 0.1);
-  color: #16a34a;
-}
-
-.status-badge-pill.badge-warning {
-  background-color: rgba(234, 179, 8, 0.1);
-  color: #d97706;
-}
-
-.status-badge-pill.badge-danger {
-  background-color: rgba(220, 38, 38, 0.1);
-  color: #dc2626;
-}
-
-.status-badge-pill.badge-info {
-  background-color: rgba(59, 130, 246, 0.1);
-  color: #2563eb;
-}
-
-.admin-actions-cell {
+.dash-ai-callout-title {
+  font-size: 20px;
+  font-weight: 800;
+  margin-bottom: 6px;
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
-.action-btn {
+.dash-ai-callout-desc {
+  font-size: 13.5px;
+  opacity: 0.85;
+  max-width: 540px;
+  line-height: 1.5;
+}
+
+.dash-ai-callout-btn {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  border: 1.5px solid var(--color-border);
-  background-color: var(--color-white);
-  padding: 6px 12px;
-  font-size: 11px;
-  font-weight: 800;
+  gap: 8px;
+  padding: 12px 24px;
+  background-color: var(--color-primary);
+  color: #FFFFFF;
   border-radius: 10px;
+  font-size: 13.5px;
+  font-weight: 700;
+  border: none;
   cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  transition: all var(--transition-fast);
+  white-space: nowrap;
 }
 
-.action-btn:hover {
-  transform: translateY(-1px);
-}
-
-.suspend-btn {
-  color: #d97706;
-  border-color: rgba(234, 179, 8, 0.25);
-}
-
-.suspend-btn:hover {
-  background-color: rgba(234, 179, 8, 0.05);
-  border-color: #d97706;
-}
-
-.activate-btn {
-  color: #16a34a;
-  border-color: rgba(22, 163, 74, 0.25);
-}
-
-.activate-btn:hover {
-  background-color: rgba(22, 163, 74, 0.05);
-  border-color: #16a34a;
-}
-
-.delete-btn {
-  color: #dc2626;
-  border-color: rgba(220, 38, 38, 0.25);
-}
-
-.delete-btn:hover {
-  background-color: rgba(220, 38, 38, 0.05);
-  border-color: #dc2626;
-}
-
-.hover-lift {
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-.hover-lift:hover {
+.dash-ai-callout-btn:hover {
+  background-color: var(--color-primary-hover);
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
 
-.btn-signout:hover {
-  background-color: #FEF2F2 !important;
-  color: #EF4444 !important;
-  border-color: #EF4444 !important;
+/* ----------------------------------------------------
+   RESPONSIVE LAYOUT RULES
+---------------------------------------------------- */
+@media (max-width: 1200px) {
+  .dash-metrics-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .dash-main-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .dash-main-right {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 991px) {
+  .dash-sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    z-index: 50;
+    transform: translateX(-100%);
+    width: 260px;
+    height: 100vh;
+    transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2);
+  }
+
+  .dash-sidebar.mobile-open {
+    transform: translateX(0);
+  }
+
+  .dash-sidebar.collapsed {
+    width: 260px;
+    padding: 20px 16px;
+  }
+
+  .dash-sidebar.collapsed .dash-side-link-text,
+  .dash-sidebar.collapsed .dash-side-section-header {
+    display: block;
+  }
+
+  .dash-sidebar-overlay {
+    display: block;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(15, 23, 42, 0.4);
+    backdrop-filter: blur(4px);
+    z-index: 45;
+  }
+
+  .dash-content {
+    padding: 20px;
+  }
+
+  .dash-main-right {
+    grid-template-columns: 1fr;
+  }
+
+  .dash-clinics-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .dash-header {
+    padding: 12px 16px;
+  }
+
+  .dash-brand-name {
+    display: none;
+  }
+
+  .dash-user-meta {
+    display: none;
+  }
+
+  .dash-metrics-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .dash-clinics-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .dash-lower-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .dash-ai-callout {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
 }

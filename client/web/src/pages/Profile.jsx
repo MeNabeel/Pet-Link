@@ -2,7 +2,7 @@ import React, { useRef } from 'react';
 import { 
   Settings, ShoppingBag, CreditCard, HelpCircle, LogOut, 
   ChevronRight, Mail, Phone, Camera, MapPin, Calendar, 
-  User, PawPrint, Heart, MessageSquare, Pencil, Shield
+  BadgeCheck, PawPrint, Heart, MessageSquare, Pencil
 } from 'lucide-react';
 import './Profile.css';
 
@@ -47,110 +47,85 @@ export default function Profile({ user, onNavigateToSettings, onLogout, onUpdate
     <div className="profile-container">
       <div className="profile-card-wrapper fade-in">
         
-        {/* HERO & COVER BANNER (NO WELCOME BACK TEXT) */}
-        <div className="profile-hero-card">
-          <div className="profile-cover-banner">
-            {user.coverPhoto ? (
-              <img src={user.coverPhoto} alt="Profile Cover" className="profile-cover-img" />
-            ) : (
-              <div className="profile-cover-placeholder" />
-            )}
-            
-            <button 
-              type="button" 
-              className="profile-cover-edit-btn" 
-              onClick={() => coverInputRef.current.click()}
-              aria-label="Change Cover Photo"
-            >
-              <Camera size={14} />
-              <span>Change Cover Photo</span>
-            </button>
-            <input 
-              type="file" 
-              ref={coverInputRef} 
-              style={{ display: 'none' }} 
-              accept="image/*"
-              onChange={handleCoverPhotoChange}
-            />
-          </div>
-
-          {/* PROFILE HEADER OVERLAY & USER DETAILS */}
-          <div className="profile-header-body">
-            
-            {/* Avatar & Edit Settings Row */}
-            <div className="profile-avatar-row">
-              <div className="profile-avatar-wrapper">
-                <img 
-                  src={user.profilePic || "/logo/logo.jpeg"} 
-                  alt={user.name} 
-                  className="profile-avatar-img" 
-                />
-                <button 
-                  type="button" 
-                  className="profile-avatar-upload-btn" 
-                  onClick={() => profileInputRef.current.click()}
-                  title="Upload Profile Picture"
-                  aria-label="Upload Profile Picture"
-                >
-                  <Camera size={15} />
-                </button>
-                <input 
-                  type="file" 
-                  ref={profileInputRef} 
-                  style={{ display: 'none' }} 
-                  accept="image/*"
-                  onChange={handleProfilePicChange}
-                />
-              </div>
-
+        {/* COMPACT SINGLE HORIZONTAL PROFILE CARD / HEADER (MATCHES REFERENCE DESIGN) */}
+        <div className="profile-horizontal-header-card">
+          
+          {/* Left Section: Avatar, Name, Verified Badge, Username, Bio */}
+          <div className="profile-header-left">
+            <div className="profile-avatar-container">
+              <img 
+                src={user.profilePic || "/logo/logo.jpeg"} 
+                alt={user.name} 
+                className="profile-avatar-img" 
+              />
               <button 
                 type="button" 
-                className="profile-edit-settings-btn"
-                onClick={onNavigateToSettings}
+                className="profile-avatar-camera-btn" 
+                onClick={() => profileInputRef.current.click()}
+                title="Upload Profile Picture"
+                aria-label="Upload Profile Picture"
               >
-                <Pencil size={15} />
-                <span>Edit Profile</span>
+                <Camera size={14} />
               </button>
+              <input 
+                type="file" 
+                ref={profileInputRef} 
+                style={{ display: 'none' }} 
+                accept="image/*"
+                onChange={handleProfilePicChange}
+              />
             </div>
 
-            {/* User Identity Details */}
-            <div className="profile-user-identity">
-              <h2 className="profile-user-name">{user.name}</h2>
-              
-              <div className="profile-user-sub-row">
-                <span className="profile-username-tag">@{user.username || user.email.split('@')[0]}</span>
-                <span className="profile-role-badge">USER</span>
+            <div className="profile-user-info">
+              <div className="profile-name-badge-row">
+                <h2 className="profile-user-name">{user.name}</h2>
+                <BadgeCheck size={20} className="profile-verified-badge" fill="#0066CC" color="#FFFFFF" />
               </div>
-
-              {user.bio && <p className="profile-user-bio">{user.bio}</p>}
+              <span className="profile-username-tag">@{user.username || user.email.split('@')[0]}</span>
+              <p className="profile-user-bio">
+                {user.bio || 'Pet lover and advocate. Building a better world for our furry friends.'}
+              </p>
             </div>
-
-            {/* Metadata Strip */}
-            <div className="profile-meta-strip">
-              <div className="profile-meta-item">
-                <Mail size={15} color="var(--color-primary)" />
-                <span>{user.email}</span>
-              </div>
-
-              {user.phone && (
-                <div className="profile-meta-item">
-                  <Phone size={15} color="var(--color-primary)" />
-                  <span>{user.phone}</span>
-                </div>
-              )}
-
-              <div className="profile-meta-item">
-                <MapPin size={15} color="var(--color-primary)" />
-                <span>{user.address || `${user.city || 'Lahore'}, ${user.province || 'Punjab'}`}</span>
-              </div>
-
-              <div className="profile-meta-item">
-                <Calendar size={15} color="var(--color-primary)" />
-                <span>Joined {formattedDate}</span>
-              </div>
-            </div>
-
           </div>
+
+          {/* Vertical Divider 1 */}
+          <div className="profile-v-divider" />
+
+          {/* Middle Section: Email, Phone, Address */}
+          <div className="profile-header-middle">
+            <div className="profile-contact-item">
+              <Mail size={16} className="profile-contact-icon" />
+              <span>{user.email}</span>
+            </div>
+            
+            <div className="profile-contact-item">
+              <Phone size={16} className="profile-contact-icon" />
+              <span>{user.phone || '0345 9422999'}</span>
+            </div>
+
+            <div className="profile-contact-item">
+              <MapPin size={16} className="profile-contact-icon" />
+              <span>{user.address || `${user.city || 'Lahore'}, ${user.province || 'Punjab'}`}</span>
+            </div>
+          </div>
+
+          {/* Vertical Divider 2 */}
+          <div className="profile-v-divider" />
+
+          {/* Right Section: Member Since Soft Card */}
+          <div className="profile-header-right">
+            <div className="profile-member-since-card">
+              <div className="profile-member-icon-box">
+                <Calendar size={20} />
+              </div>
+              <div className="profile-member-info">
+                <span className="profile-member-label">Member Since</span>
+                <span className="profile-member-date">{formattedDate}</span>
+                <span className="profile-member-status">Active Member</span>
+              </div>
+            </div>
+          </div>
+
         </div>
 
         {/* QUICK ACCOUNT STATS GRID */}

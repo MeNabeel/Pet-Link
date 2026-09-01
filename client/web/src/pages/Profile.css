@@ -29,15 +29,15 @@
 .profile-hero-card {
   background-color: var(--color-white);
   border: 1px solid var(--color-border);
-  border-radius: 20px;
+  border-radius: 18px;
   overflow: hidden;
   box-shadow: var(--shadow-sm);
-  margin-bottom: 24px;
+  margin-bottom: 14px;
   position: relative;
 }
 
 .profile-cover-banner {
-  height: 240px;
+  height: 145px;
   width: 100%;
   position: relative;
   background: linear-gradient(135deg, var(--color-primary) 0%, #0F172A 100%);
@@ -58,19 +58,19 @@
 
 .profile-cover-edit-btn {
   position: absolute;
-  top: 16px;
-  right: 16px;
+  top: 12px;
+  right: 12px;
   background-color: rgba(15, 23, 42, 0.7);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   border: 1px solid rgba(255, 255, 255, 0.2);
   color: var(--color-white);
-  border-radius: 12px;
-  padding: 8px 16px;
+  border-radius: 10px;
+  padding: 6px 14px;
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 12.5px;
+  gap: 6px;
+  font-size: 11.5px;
   font-weight: 700;
   cursor: pointer;
   transition: all var(--transition-fast);
@@ -87,10 +87,10 @@
    PROFILE HEADER BODY & AVATAR OVERLAY
 ---------------------------------------------------- */
 .profile-header-body {
-  padding: 0 32px 28px 32px;
+  padding: 0 24px 16px 24px;
   display: flex;
   flex-direction: column;
-  margin-top: -64px;
+  margin-top: -48px;
   position: relative;
   z-index: 2;
 }
@@ -100,17 +100,17 @@
   justify-content: space-between;
   align-items: flex-end;
   flex-wrap: wrap;
-  gap: 16px;
-  margin-bottom: 16px;
+  gap: 12px;
+  margin-bottom: 10px;
 }
 
 .profile-avatar-wrapper {
   position: relative;
-  width: 128px;
-  height: 128px;
+  width: 96px;
+  height: 96px;
   border-radius: 50%;
-  border: 4px solid var(--color-white);
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.1);
+  border: 3.5px solid var(--color-white);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   background-color: var(--color-white);
   flex-shrink: 0;
 }
@@ -124,13 +124,13 @@
 
 .profile-avatar-upload-btn {
   position: absolute;
-  bottom: 4px;
-  right: 4px;
+  bottom: 2px;
+  right: 2px;
   background-color: var(--color-primary);
-  width: 34px;
-  height: 34px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
-  border: 2.5px solid var(--color-white);
+  border: 2px solid var(--color-white);
   color: var(--color-white);
   display: flex;
   align-items: center;
@@ -148,12 +148,12 @@
 .profile-edit-settings-btn {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 10px 20px;
+  gap: 6px;
+  padding: 8px 16px;
   background-color: var(--color-primary);
   color: var(--color-white);
-  border-radius: 12px;
-  font-size: 13px;
+  border-radius: 10px;
+  font-size: 12px;
   font-weight: 700;
   border: none;
   cursor: pointer;
@@ -171,11 +171,11 @@
 .profile-user-identity {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
 }
 
 .profile-user-name {
-  font-size: 26px;
+  font-size: 22px;
   font-weight: 800;
   color: var(--color-dark);
   letter-spacing: -0.02em;
@@ -185,34 +185,34 @@
 .profile-user-sub-row {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   flex-wrap: wrap;
-  margin-top: 2px;
+  margin-top: 1px;
 }
 
 .profile-username-tag {
-  font-size: 13.5px;
+  font-size: 12.5px;
   font-weight: 600;
   color: var(--color-muted);
 }
 
 .profile-role-badge {
-  font-size: 10.5px;
+  font-size: 9.5px;
   font-weight: 800;
   letter-spacing: 0.05em;
   background-color: rgba(0, 102, 204, 0.08);
   color: var(--color-primary);
-  padding: 3px 10px;
+  padding: 2px 8px;
   border-radius: 99px;
   border: 1px solid rgba(0, 102, 204, 0.15);
   text-transform: uppercase;
 }
 
 .profile-user-bio {
-  font-size: 14px;
+  font-size: 13px;
   color: #475569;
-  margin-top: 10px;
-  line-height: 1.5;
+  margin-top: 6px;
+  line-height: 1.4;
   font-weight: 500;
   max-width: 720px;
 }
@@ -221,12 +221,12 @@
 .profile-meta-strip {
   display: flex;
   align-items: center;
-  gap: 24px;
+  gap: 18px;
   flex-wrap: wrap;
-  margin-top: 18px;
-  padding-top: 16px;
+  margin-top: 10px;
+  padding-top: 10px;
   border-top: 1px solid var(--color-border);
-  font-size: 13px;
+  font-size: 12px;
   color: var(--color-muted);
   font-weight: 600;
 }
@@ -234,7 +234,7 @@
 .profile-meta-item {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
 }
 
 /* ----------------------------------------------------
@@ -243,18 +243,18 @@
 .profile-stats-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 16px;
-  margin-bottom: 24px;
+  gap: 12px;
+  margin-bottom: 14px;
 }
 
 .profile-stat-card {
   background-color: var(--color-white);
   border: 1px solid var(--color-border);
-  border-radius: 16px;
-  padding: 16px 18px;
+  border-radius: 14px;
+  padding: 12px 16px;
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 12px;
   box-shadow: var(--shadow-sm);
   transition: transform var(--transition-fast), border-color var(--transition-fast);
 }
@@ -265,9 +265,9 @@
 }
 
 .profile-stat-icon-box {
-  width: 42px;
-  height: 42px;
-  border-radius: 12px;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -280,16 +280,16 @@
 }
 
 .profile-stat-label {
-  font-size: 10.5px;
+  font-size: 10px;
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   color: var(--color-muted);
-  margin-bottom: 2px;
+  margin-bottom: 1px;
 }
 
 .profile-stat-value {
-  font-size: 20px;
+  font-size: 18px;
   font-weight: 800;
   color: var(--color-dark);
   line-height: 1;
@@ -301,11 +301,11 @@
 .profile-options-section {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 8px;
 }
 
 .profile-section-title {
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 800;
   color: var(--color-dark);
   letter-spacing: -0.01em;
@@ -314,14 +314,14 @@
 .profile-options-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 14px;
+  gap: 10px;
 }
 
 .profile-option-card {
   background-color: var(--color-white);
   border: 1px solid var(--color-border);
-  border-radius: 16px;
-  padding: 18px 20px;
+  border-radius: 14px;
+  padding: 12px 16px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -333,7 +333,7 @@
 .profile-option-card:hover {
   border-color: var(--color-primary);
   box-shadow: var(--shadow-md);
-  transform: translateY(-2px);
+  transform: translateY(-1px);
 }
 
 .profile-option-card.danger:hover {
@@ -344,13 +344,13 @@
 .profile-option-left {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 12px;
 }
 
 .profile-option-icon-box {
-  width: 44px;
-  height: 44px;
-  border-radius: 12px;
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -360,19 +360,19 @@
 .profile-option-text-group {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 1px;
 }
 
 .profile-option-title {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 700;
   color: var(--color-dark);
 }
 
 .profile-option-desc {
-  font-size: 12px;
+  font-size: 11.5px;
   color: var(--color-muted);
-  line-height: 1.3;
+  line-height: 1.2;
 }
 
 /* ----------------------------------------------------
@@ -390,17 +390,17 @@
 
 @media (max-width: 768px) {
   .profile-cover-banner {
-    height: 180px;
+    height: 140px;
   }
 
   .profile-header-body {
-    padding: 0 20px 20px 20px;
-    margin-top: -50px;
+    padding: 0 16px 16px 16px;
+    margin-top: -40px;
   }
 
   .profile-avatar-wrapper {
-    width: 100px;
-    height: 100px;
+    width: 84px;
+    height: 84px;
   }
 
   .profile-avatar-row {
@@ -408,13 +408,13 @@
   }
 
   .profile-user-name {
-    font-size: 22px;
+    font-size: 20px;
   }
 
   .profile-meta-strip {
     flex-direction: column;
     align-items: flex-start;
-    gap: 10px;
+    gap: 8px;
   }
 }
 

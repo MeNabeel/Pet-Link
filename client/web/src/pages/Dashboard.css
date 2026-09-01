@@ -17,8 +17,20 @@
   font-family: var(--font-sans);
 }
 
+/* Keyframe animations */
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 /* ----------------------------------------------------
-   HEADER BAR
+   HEADER BAR (DYNAMIC TITLE, PROFILES & NOTIFICATIONS)
 ---------------------------------------------------- */
 .dash-header {
   display: flex;
@@ -73,11 +85,21 @@
   border: 1px solid var(--color-border);
 }
 
+/* Dynamic Page Title Typography */
 .dash-brand-name {
   font-size: 18px;
   font-weight: 800;
   color: var(--color-dark);
   letter-spacing: -0.02em;
+  white-space: nowrap;
+}
+
+.dash-brand-title-full {
+  display: inline-block;
+}
+
+.dash-brand-title-short {
+  display: none;
 }
 
 .dash-header-right {
@@ -86,13 +108,20 @@
   gap: 16px;
 }
 
+/* ----------------------------------------------------
+   NOTIFICATION BELL & POPOVER PANEL
+---------------------------------------------------- */
+.dash-notif-wrapper {
+  position: relative;
+}
+
 .dash-notif-btn {
   position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 38px;
-  height: 38px;
+  width: 40px;
+  height: 40px;
   border-radius: 10px;
   border: 1px solid var(--color-border);
   background-color: var(--color-white);
@@ -101,7 +130,8 @@
   transition: all var(--transition-fast);
 }
 
-.dash-notif-btn:hover {
+.dash-notif-btn:hover,
+.dash-notif-btn.active {
   color: var(--color-primary);
   border-color: var(--color-primary);
   background-color: rgba(0, 102, 204, 0.04);
@@ -109,44 +139,211 @@
 
 .dash-notif-badge {
   position: absolute;
-  top: -2px;
-  right: -2px;
+  top: -4px;
+  right: -4px;
   background-color: #EF4444;
   color: #FFFFFF;
-  font-size: 10px;
+  font-size: 9.5px;
   font-weight: 800;
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  border-radius: 99px;
   display: flex;
   align-items: center;
   justify-content: center;
   border: 2px solid var(--color-white);
+  box-shadow: 0 2px 4px rgba(239, 68, 68, 0.2);
+}
+
+/* Notification Popover Panel */
+.dash-notif-panel {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 10px);
+  width: 340px;
+  max-width: 90vw;
+  background-color: var(--color-white);
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  box-shadow: var(--shadow-lg);
+  z-index: 50;
+  overflow: hidden;
+  animation: fadeInDown 0.15s ease-out;
+}
+
+.dash-notif-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--color-border);
+  background-color: var(--color-bg-light);
+}
+
+.dash-notif-panel-title {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--color-dark);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dash-notif-mark-all {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--color-primary);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.dash-notif-mark-all:hover {
+  opacity: 0.85;
+  text-decoration: underline;
+}
+
+.dash-notif-list {
+  max-height: 300px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.dash-notif-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--color-border);
+  transition: background-color 0.2s;
+  cursor: pointer;
+}
+
+.dash-notif-item:last-child {
+  border-bottom: none;
+}
+
+.dash-notif-item:hover {
+  background-color: var(--color-bg-light);
+}
+
+.dash-notif-item.unread {
+  background-color: rgba(0, 102, 204, 0.03);
+}
+
+.dash-notif-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: var(--color-primary);
+  flex-shrink: 0;
+  margin-top: 5px;
+}
+
+.dash-notif-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+}
+
+.dash-notif-item-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-dark);
+  line-height: 1.3;
+}
+
+.dash-notif-item-msg {
+  font-size: 12px;
+  color: var(--color-muted);
+  line-height: 1.4;
+}
+
+.dash-notif-item-time {
+  font-size: 10.5px;
+  color: #94A3B8;
+  margin-top: 3px;
+  font-weight: 500;
+}
+
+.dash-notif-empty {
+  padding: 32px 16px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  color: var(--color-muted);
+}
+
+.dash-notif-empty-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color-dark);
+}
+
+.dash-notif-empty-sub {
+  font-size: 12px;
+  color: var(--color-muted);
+}
+
+.dash-notif-panel-footer {
+  padding: 10px 16px;
+  border-top: 1px solid var(--color-border);
+  background-color: var(--color-bg-light);
+  text-align: center;
+}
+
+.dash-notif-footer-link {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--color-primary);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.dash-notif-footer-link:hover {
+  text-decoration: underline;
+}
+
+/* ----------------------------------------------------
+   USER PROFILE SECTION & DROPDOWN MENU
+---------------------------------------------------- */
+.dash-user-profile-wrapper {
+  position: relative;
 }
 
 .dash-user-profile-badge {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 6px 14px 6px 8px;
+  padding: 5px 12px 5px 6px;
   background-color: var(--color-bg-light);
   border: 1px solid var(--color-border);
   border-radius: 99px;
   cursor: pointer;
   transition: all var(--transition-fast);
+  user-select: none;
 }
 
-.dash-user-profile-badge:hover {
+.dash-user-profile-badge:hover,
+.dash-user-profile-badge.active {
   border-color: var(--color-primary);
   background-color: var(--color-white);
+  box-shadow: 0 2px 8px rgba(0, 102, 204, 0.08);
 }
 
 .dash-user-avatar {
-  width: 32px;
-  height: 32px;
+  width: 34px;
+  height: 34px;
   border-radius: 50%;
   object-fit: cover;
   border: 1px solid var(--color-border);
+  flex-shrink: 0;
 }
 
 .dash-user-meta {
@@ -159,6 +356,7 @@
   font-size: 13px;
   font-weight: 700;
   color: var(--color-dark);
+  white-space: nowrap;
 }
 
 .dash-user-role {
@@ -166,6 +364,66 @@
   font-weight: 800;
   letter-spacing: 0.05em;
   color: var(--color-primary);
+  margin-top: 1px;
+}
+
+.dash-profile-chevron {
+  color: var(--color-muted);
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), color 0.2s ease;
+  margin-left: 2px;
+}
+
+.dash-profile-chevron.open {
+  transform: rotate(180deg);
+  color: var(--color-primary);
+}
+
+/* Profile Dropdown Popover */
+.dash-profile-dropdown-menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 10px);
+  width: 210px;
+  background-color: var(--color-white);
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+  box-shadow: var(--shadow-md);
+  padding: 6px;
+  z-index: 50;
+  animation: fadeInDown 0.15s ease-out;
+}
+
+.dash-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-dark);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color var(--transition-fast), color var(--transition-fast);
+}
+
+.dash-dropdown-item:hover {
+  background-color: var(--color-bg-light);
+  color: var(--color-primary);
+}
+
+.dash-dropdown-item.danger {
+  color: #EF4444;
+}
+
+.dash-dropdown-item.danger:hover {
+  background-color: rgba(239, 68, 68, 0.06);
+  color: #DC2626;
+}
+
+.dash-dropdown-divider {
+  height: 1px;
+  background-color: var(--color-border);
+  margin: 4px 0;
 }
 
 /* ----------------------------------------------------
@@ -1006,12 +1264,12 @@
     padding: 12px 16px;
   }
 
-  .dash-brand-name {
+  .dash-brand-title-full {
     display: none;
   }
 
-  .dash-user-meta {
-    display: none;
+  .dash-brand-title-short {
+    display: inline-block;
   }
 
   .dash-metrics-grid {
@@ -1030,5 +1288,10 @@
     flex-direction: column;
     align-items: flex-start;
     gap: 16px;
+  }
+
+  .dash-notif-panel {
+    right: -50px;
+    width: 300px;
   }
 }

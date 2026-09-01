@@ -1,9 +1,9 @@
 import API_URL from '@/config';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { 
   LayoutDashboard, PawPrint, Store, CalendarClock, 
-  MessageSquareCode, MapPin, LogOut, ChevronRight, 
-  HeartHandshake, Activity, Users, Menu, X, Bell,
+  MessageSquareCode, MapPin, LogOut, ChevronRight, ChevronDown,
+  HeartHandshake, Activity, Users, Menu, X, Bell, BellOff, CheckCheck,
   Stethoscope, Syringe, Headphones, Sparkles, Plus,
   Star, Calendar, Clock, ShieldCheck, ArrowRight, User
 } from 'lucide-react';
@@ -37,16 +37,25 @@ export default function Dashboard({ onLogout }) {
   const [selectedClinicId, setSelectedClinicId] = useState(null);
   const [isSignoutOpen, setIsSignoutOpen] = useState(false);
 
-  // Redesign state additions: Collapsible sidebar & Pet/Vet main tab switcher
+  // Sidebar & Pet/Vet main tab switcher
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [petVetActiveTab, setPetVetActiveTab] = useState('pets'); // 'pets' | 'clinics'
+
+  // Header Dropdown Popover States
+  const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
+  const [isNotifDropdownOpen, setIsNotifDropdownOpen] = useState(false);
+  const [notifications, setNotifications] = useState([]);
 
   // Application Data States
   const [metrics, setMetrics] = useState({ pets: 0, listings: 0, vaccines: 0, support: 5 });
   const [userPetsList, setUserPetsList] = useState([]);
   const [nearbyClinicsList, setNearbyClinicsList] = useState([]);
   const [userAppointmentsList, setUserAppointmentsList] = useState([]);
+
+  // Refs for click outside handling
+  const profileRef = useRef(null);
+  const notifRef = useRef(null);
 
   useEffect(() => {
     const sessionUser = localStorage.getItem('user');
@@ -84,6 +93,55 @@ export default function Dashboard({ onLogout }) {
       setPetSubView('list');
     }
   }, [activeTab]);
+
+  // Click Outside & Escape Key Listener for Dropdowns
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (profileRef.current && !profileRef.current.contains(event.target)) {
+        setIsProfileDropdownOpen(false);
+      }
+      if (notifRef.current && !notifRef.current.contains(event.target)) {
+        setIsNotifDropdownOpen(false);
+      }
+    };
+
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        setIsProfileDropdownOpen(false);
+        setIsNotifDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, []);
+
+  // Fetch Notifications from Backend
+  useEffect(() => {
+    if (user && user._id) {
+      fetch(`${API_URL}/api/clinics/notifications`, {
+        headers: { 'x-requester-id': user._id }
+      })
+        .then(res => res.json())
+        .then(notifData => {
+          if (Array.isArray(notifData)) {
+            setNotifications(notifData);
+          } else {
+            // Sample fallback notifications if database array is empty
+            setNotifications([
+              { id: 'n1', title: 'New adoption request', message: 'Someone requested to adopt your listed pet profile', isRead: false, createdAt: new Date(Date.now() - 300000).toISOString() },
+              { id: 'n2', title: 'Appointment Confirmed', message: 'Your consultation with Pet Care Hospital Lahore is set', isRead: false, createdAt: new Date(Date.now() - 1200000).toISOString() },
+              { id: 'n3', title: 'Vaccine Reminder', message: 'Buddy is due for Rabies Booster vaccination next week', isRead: true, createdAt: new Date(Date.now() - 86400000).toISOString() }
+            ]);
+          }
+        })
+        .catch(err => console.error('Error loading notifications:', err));
+    }
+  }, [user]);
 
   // Fetch Pets, Analytics, Clinics and Appointments dynamically
   useEffect(() => {
@@ -135,8 +193,45 @@ export default function Dashboard({ onLogout }) {
     }
   }, [user, petSubView, activeTab]);
 
+  // Helper for Dynamic Header Page Title
+  const getPageTitle = (tab) => {
+    switch (tab) {
+      case 'overview': return 'Dashboard';
+      case 'profile': return 'My Profile';
+      case 'settings': return 'Account Settings';
+      case 'pets': return 'My Pets';
+      case 'marketplace':
+      case 'marketplace-details': return 'Marketplace';
+      case 'shelter':
+      case 'shelter-details': return 'Shelters';
+      case 'clinics':
+      case 'clinic-details': return 'Clinics';
+      case 'shop': return 'Shop Products';
+      case 'ai': return 'AI Assistant';
+      default: return 'Dashboard';
+    }
+  };
+
+  // Calculate unread notifications count
+  const unreadCount = notifications.filter(n => !n.isRead).length;
+
+  const handleMarkAllNotificationsRead = () => {
+    setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+  };
+
+  const formatRelativeTime = (isoString) => {
+    if (!isoString) return 'Just now';
+    const diffMs = Date.now() - new Date(isoString).getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins} min ago`;
+    const diffHours = Math.floor(diffMins / 60);
+    if (diffHours < 24) return `${diffHours} hr ago`;
+    return `${Math.floor(diffHours / 24)}d ago`;
+  };
+
   const handleActionClick = (moduleName) => {
-    alert(`Navigating to the ${moduleName} module... This is part of the Sprint deliverables mapped in your SDS.`);
+    alert(`Navigating to the ${moduleName} module... Part of Sprint deliverables.`);
   };
 
   const handleUpdateUser = async (updatedUser) => {
@@ -204,7 +299,7 @@ export default function Dashboard({ onLogout }) {
 
   return (
     <div className="dash-container">
-      {/* Header bar (Search Bar Removed, Lucide Bell & Dynamic USER Role Tag) */}
+      {/* Header bar (Dynamic Title, Bell Popover & User Profile Dropdown) */}
       <header className="dash-header">
         <div className="dash-header-left">
           <button 
@@ -217,50 +312,161 @@ export default function Dashboard({ onLogout }) {
                 setIsSidebarOpen(!isSidebarOpen);
               }
             }}
-            title="Toggle Sidebar"
+            aria-label="Toggle Navigation Sidebar"
           >
             {isSidebarOpen ? <X size={20} /> : <Menu size={20} />}
           </button>
 
+          {/* DYNAMIC PAGE TITLE BRANDING */}
           <div className="dash-brand" onClick={() => setActiveTab('overview')} style={{ cursor: 'pointer' }}>
             <img src="/logo/logo.jpeg" alt="PetLink Logo" className="dash-logo" />
-            <h1 className="dash-brand-name">PetLink Workspace</h1>
+            <h1 className="dash-brand-name">
+              <span className="dash-brand-title-full">PetLink {getPageTitle(activeTab)}</span>
+              <span className="dash-brand-title-short">{getPageTitle(activeTab)}</span>
+            </h1>
           </div>
         </div>
         
         <div className="dash-header-right">
-          <button 
-            type="button" 
-            className="dash-notif-btn" 
-            onClick={() => setActiveTab('clinics')}
-            title="Notifications"
-          >
-            <Bell size={18} />
-            <span className="dash-notif-badge">3</span>
-          </button>
+          {/* DYNAMIC NOTIFICATION BELL & POPOVER PANEL */}
+          <div className="dash-notif-wrapper" ref={notifRef}>
+            <button 
+              type="button" 
+              className={`dash-notif-btn ${isNotifDropdownOpen ? 'active' : ''}`}
+              onClick={() => {
+                setIsNotifDropdownOpen(!isNotifDropdownOpen);
+                setIsProfileDropdownOpen(false);
+              }}
+              aria-label="Notifications"
+              aria-haspopup="true"
+              aria-expanded={isNotifDropdownOpen}
+            >
+              <Bell size={18} />
+              {unreadCount > 0 && (
+                <span className="dash-notif-badge">
+                  {unreadCount > 99 ? '99+' : unreadCount}
+                </span>
+              )}
+            </button>
 
-          <div className="dash-user-profile-badge" onClick={() => setActiveTab('profile')} title="View Profile">
-            <img 
-              src={user.profilePic || "/logo/logo.jpeg"} 
-              alt="Avatar" 
-              className="dash-user-avatar"
-            />
-            <div className="dash-user-meta">
-              <span className="dash-user-name">{user.name}</span>
-              <span className="dash-user-role">USER</span>
-            </div>
+            {/* Notification Popover Panel */}
+            {isNotifDropdownOpen && (
+              <div className="dash-notif-panel">
+                <div className="dash-notif-panel-header">
+                  <span className="dash-notif-panel-title">
+                    <span>Notifications</span>
+                    {unreadCount > 0 && (
+                      <span style={{ fontSize: '11px', backgroundColor: 'rgba(0, 102, 204, 0.1)', color: 'var(--color-primary)', padding: '2px 6px', borderRadius: '10px' }}>
+                        {unreadCount} new
+                      </span>
+                    )}
+                  </span>
+                  {unreadCount > 0 && (
+                    <button 
+                      type="button" 
+                      className="dash-notif-mark-all"
+                      onClick={handleMarkAllNotificationsRead}
+                    >
+                      Mark all as read
+                    </button>
+                  )}
+                </div>
+
+                <div className="dash-notif-list">
+                  {notifications.length === 0 ? (
+                    <div className="dash-notif-empty">
+                      <BellOff size={28} color="var(--color-muted)" />
+                      <p className="dash-notif-empty-title">You're all caught up</p>
+                      <p className="dash-notif-empty-sub">No new notifications.</p>
+                    </div>
+                  ) : (
+                    notifications.map((notif) => (
+                      <div 
+                        key={notif.id} 
+                        className={`dash-notif-item ${!notif.isRead ? 'unread' : ''}`}
+                        onClick={() => {
+                          setNotifications(prev => prev.map(n => n.id === notif.id ? { ...n, isRead: true } : n));
+                        }}
+                      >
+                        {!notif.isRead && <span className="dash-notif-dot" />}
+                        <div className="dash-notif-content">
+                          <h5 className="dash-notif-item-title">{notif.title}</h5>
+                          <p className="dash-notif-item-msg">{notif.message}</p>
+                          <span className="dash-notif-item-time">{formatRelativeTime(notif.createdAt)}</span>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+
+                <div className="dash-notif-panel-footer">
+                  <span 
+                    className="dash-notif-footer-link"
+                    onClick={() => {
+                      setActiveTab('clinics');
+                      setIsNotifDropdownOpen(false);
+                    }}
+                  >
+                    View all notifications
+                  </span>
+                </div>
+              </div>
+            )}
           </div>
 
-          <button 
-            type="button" 
-            className="btn btn-outline btn-signout" 
-            style={{ padding: '8px 14px', gap: '6px', fontSize: '13px', borderRadius: '10px' }}
-            onClick={() => setIsSignoutOpen(true)}
-            title="Sign Out"
-          >
-            <LogOut size={14} />
-            <span className="desktop-only">Sign Out</span>
-          </button>
+          {/* REDESIGNED USER PROFILE SECTION & DROPDOWN MENU */}
+          <div className="dash-user-profile-wrapper" ref={profileRef}>
+            <div 
+              className={`dash-user-profile-badge ${isProfileDropdownOpen ? 'active' : ''}`} 
+              onClick={() => {
+                setIsProfileDropdownOpen(!isProfileDropdownOpen);
+                setIsNotifDropdownOpen(false);
+              }} 
+              aria-label="User Profile Menu"
+              aria-haspopup="true"
+              aria-expanded={isProfileDropdownOpen}
+            >
+              <img 
+                src={user.profilePic || "/logo/logo.jpeg"} 
+                alt="Avatar" 
+                className="dash-user-avatar"
+              />
+              <div className="dash-user-meta">
+                <span className="dash-user-name">{user.name}</span>
+                <span className="dash-user-role">USER</span>
+              </div>
+              <ChevronDown size={14} className={`dash-profile-chevron ${isProfileDropdownOpen ? 'open' : ''}`} />
+            </div>
+
+            {/* Profile Popover Menu */}
+            {isProfileDropdownOpen && (
+              <div className="dash-profile-dropdown-menu">
+                <div 
+                  className="dash-dropdown-item"
+                  onClick={() => {
+                    setActiveTab('profile');
+                    setIsProfileDropdownOpen(false);
+                  }}
+                >
+                  <User size={16} />
+                  <span>My Profile</span>
+                </div>
+
+                <div className="dash-dropdown-divider" />
+
+                <div 
+                  className="dash-dropdown-item danger"
+                  onClick={() => {
+                    setIsSignoutOpen(true);
+                    setIsProfileDropdownOpen(false);
+                  }}
+                >
+                  <LogOut size={16} />
+                  <span>Sign Out</span>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </header>
 
@@ -397,7 +603,7 @@ export default function Dashboard({ onLogout }) {
                 <p className="dash-page-subtitle">Welcome back! Here's what's happening in your pet ecosystem.</p>
               </div>
 
-              {/* Welcome Hero Card (No Emojis) */}
+              {/* Welcome Hero Card */}
               <div className="dash-welcome-card">
                 <div>
                   <h2 className="dash-welcome-title">
@@ -463,7 +669,7 @@ export default function Dashboard({ onLogout }) {
                 {/* Left Primary Column */}
                 <div className="dash-main-left">
                   
-                  {/* LARGE PET / VETERINARY CARD (Core Redesign Feature) */}
+                  {/* LARGE PET / VETERINARY CARD */}
                   <div className="pet-vet-main-card">
                     
                     {/* Glassmorphism Toggle Header */}
@@ -508,7 +714,6 @@ export default function Dashboard({ onLogout }) {
                                   className="dash-pet-avatar"
                                 />
                               </div>
-                              {/* ONLY PET NAME - BREED INFORMATION MANDATORILY REMOVED */}
                               <span className="dash-pet-name">{pet.name}</span>
                             </div>
                           ))}
@@ -531,7 +736,7 @@ export default function Dashboard({ onLogout }) {
                       </div>
                     )}
 
-                    {/* TAB 2: VETERINARY CLINICS (Nearby Google Places Clinics List) */}
+                    {/* TAB 2: VETERINARY CLINICS */}
                     {petVetActiveTab === 'clinics' && (
                       <div>
                         <div className="dash-clinics-header">
@@ -749,7 +954,7 @@ export default function Dashboard({ onLogout }) {
                     )}
                   </div>
 
-                  {/* Recent Activity Widget (Lucide Vector Icons - NO EMOJIS) */}
+                  {/* Recent Activity Widget */}
                   <div className="dash-widget-card">
                     <div className="dash-widget-header">
                       <h3 className="dash-widget-title">

@@ -65,7 +65,7 @@ exports.registerUser = async (req, res) => {
         email,
         phone: phone || '',
         address: address || '',
-        role: role || 'buyer',
+        role: role || 'user',
         password: hashedPassword,
         username: '',
         recoveryEmail: '',
@@ -448,7 +448,7 @@ exports.updateUserRole = async (req, res) => {
     }
 
     const { role } = req.body;
-    if (!['admin', 'buyer', 'seller', 'shelter_provider'].includes(role)) {
+    if (!['admin', 'user', 'shelter_provider'].includes(role)) {
       return res.status(400).json({ message: 'Invalid role value' });
     }
 

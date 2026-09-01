@@ -83,9 +83,10 @@ export default function AccountSettings({ user, onSave, onCancel }) {
   const formatRole = (roleKey) => {
     switch(roleKey) {
       case 'admin': return 'System Administrator';
-      case 'buyer': return 'Pet Buyer / Adopter';
-      case 'seller': return 'Pet Owner / Seller';
       case 'shelter_provider': return 'Shelter Provider';
+      case 'user':
+      case 'buyer':
+      case 'seller':
       default: return 'User';
     }
   };

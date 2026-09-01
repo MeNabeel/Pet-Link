@@ -12,7 +12,7 @@ model User {
   email              String     @unique
   phone              String
   address            String
-  role               String     @default("buyer")
+  role               String     @default("user")
   password           String
   resetPasswordToken String?
   resetPasswordExpire DateTime?

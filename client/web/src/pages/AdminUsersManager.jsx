@@ -176,8 +176,7 @@ export default function AdminUsersManager({ user }) {
               </SelectTrigger>
               <SelectContent style={{ width: '180px' }}>
                 <SelectItem value="all">All Roles</SelectItem>
-                <SelectItem value="buyer">Pet Buyer / Adopter</SelectItem>
-                <SelectItem value="seller">Pet Owner / Seller</SelectItem>
+                <SelectItem value="user">User</SelectItem>
                 <SelectItem value="shelter_provider">Shelter Provider</SelectItem>
                 <SelectItem value="admin">Platform Administrator</SelectItem>
               </SelectContent>
@@ -299,10 +298,9 @@ export default function AdminUsersManager({ user }) {
                         <SelectValue placeholder="Role" />
                       </SelectTrigger>
                       <SelectContent style={{ width: '120px' }}>
+                        <SelectItem value="user">User</SelectItem>
+                        <SelectItem value="shelter_provider">Shelter Provider</SelectItem>
                         <SelectItem value="admin">Admin</SelectItem>
-                        <SelectItem value="buyer">Buyer</SelectItem>
-                        <SelectItem value="seller">Seller</SelectItem>
-                        <SelectItem value="shelter_provider">Shelter</SelectItem>
                       </SelectContent>
                     </Select>
                   </td>

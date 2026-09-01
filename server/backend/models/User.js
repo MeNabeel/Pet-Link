@@ -30,10 +30,10 @@ const userSchema = new mongoose.Schema(
       type: String,
       required: [true, 'Please select a platform role'],
       enum: {
-        values: ['admin', 'buyer', 'seller', 'shelter_provider'],
+        values: ['admin', 'user', 'shelter_provider'],
         message: 'Invalid platform role selection',
       },
-      default: 'buyer',
+      default: 'user',
     },
     password: {
       type: String,

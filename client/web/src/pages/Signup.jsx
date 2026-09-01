@@ -8,7 +8,7 @@ export default function Signup({ onNavigateToLogin, onSignupSuccess }) {
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [address, setAddress] = useState('');
-  const [role, setRole] = useState('buyer');
+  const [role, setRole] = useState('user');
   const [password, setPassword] = useState('');
 
   const [showPassword, setShowPassword] = useState(false);
@@ -79,8 +79,7 @@ export default function Signup({ onNavigateToLogin, onSignupSuccess }) {
   };
 
   const roles = [
-    { label: 'Adopter/Buyer', value: 'buyer' },
-    { label: 'Pet Owner/Seller', value: 'seller' },
+    { label: 'User (Pet Parent / Owner / Buyer / Seller)', value: 'user' },
     { label: 'Shelter Provider', value: 'shelter_provider' },
     { label: 'Administrator', value: 'admin' },
   ];

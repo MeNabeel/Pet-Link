@@ -2,9 +2,8 @@ import API_URL from '../config';
 import React, { useState, useEffect } from 'react';
 import { 
   StyleSheet, Text, View, ScrollView, TouchableOpacity, 
-  ActivityIndicator, Image, Modal, TextInput, Alert 
+  ActivityIndicator, Image, Alert, Platform 
 } from 'react-native';
-import { Feather, FontAwesome5 } from '@expo/vector-icons';
 import { COLORS } from '../constants/theme';
 
 export default function ShelterDetails({ user, shelterId, onBack }) {

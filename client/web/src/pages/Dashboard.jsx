@@ -7,6 +7,7 @@ import {
   Stethoscope, Syringe, Headphones, Sparkles, Plus,
   Star, Calendar, Clock, User
 } from 'lucide-react';
+import { safeSetUserStorage } from '../utils/storage';
 import './Dashboard.css';
 import Profile from './Profile';
 import AccountSettings from './AccountSettings';

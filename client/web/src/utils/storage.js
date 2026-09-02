@@ -6,7 +6,11 @@ export const sanitizeUserForStorage = (userObj) => {
   if (!userObj) return null;
 
   // Extract nested arrays and heavy fields
-  const { pets, appointments, notifications, wishlists, ...cleanUser } = userObj;
+  const cleanUser = { ...userObj };
+  delete cleanUser.pets;
+  delete cleanUser.appointments;
+  delete cleanUser.notifications;
+  delete cleanUser.wishlists;
 
   // Truncate profilePic/coverPhoto if they are giant base64 data URLs (>1000 chars)
   let cleanPic = cleanUser.profilePic;

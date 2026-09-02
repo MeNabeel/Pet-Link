@@ -1,5 +1,8 @@
 import React, { useState } from 'react';
-import { Settings, Shield, User, Mail, Phone, MapPin, Globe, Calendar, AtSign, Trash2 } from 'lucide-react';
+import { 
+  Settings, Shield, User, Mail, Phone, MapPin, Globe, Calendar, 
+  AtSign, Trash2, AlertCircle, CheckCircle2 
+} from 'lucide-react';
 import './AccountSettings.css';
 import { 
   AlertDialog, AlertDialogContent, AlertDialogHeader, 
@@ -42,7 +45,7 @@ export default function AccountSettings({ user, onSave, onCancel }) {
     }
 
     const pkPhoneRegex = /^((\+92)|(0092))?\s?3\d{2}\s?\d{7}$|^03\d{9}$/;
-    if (!pkPhoneRegex.test(phone.replace(/[\s-]/g, ''))) {
+    if (phone && !pkPhoneRegex.test(phone.replace(/[\s-]/g, ''))) {
       setError('Please enter a valid Pakistani mobile number (e.g. 03001234567).');
       return;
     }
@@ -64,7 +67,7 @@ export default function AccountSettings({ user, onSave, onCancel }) {
         bio
       });
       setSaving(false);
-    }, 1000);
+    }, 800);
   };
 
   const handleDeleteAccount = () => {
@@ -90,258 +93,287 @@ export default function AccountSettings({ user, onSave, onCancel }) {
   return (
     <div className="settings-container">
       <div className="settings-card fade-in">
+        
+        {/* SETTINGS HEADER */}
         <div className="settings-header">
-          <Settings size={22} color="var(--color-primary)" />
+          <Settings size={20} color="var(--color-primary)" />
           <h2 className="settings-title">Account Settings</h2>
         </div>
 
         {error && (
-          <div className="login-alert-error" style={{ marginBottom: '20px' }}>
-            <span>⚠️ {error}</span>
+          <div className="settings-alert-error">
+            <AlertCircle size={16} />
+            <span>{error}</span>
           </div>
         )}
 
         <form onSubmit={validateAndSubmit}>
-          {/* Full Name */}
-          <div className="form-group">
-            <label className="form-label">Full Name</label>
-            <div className="input-wrapper">
-              <User className="input-icon-left" size={16} />
-              <input
-                type="text"
-                className="form-control login-input"
-                placeholder="Full Name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
+          
+          {/* RESPONSIVE 2-COLUMN FORM GRID */}
+          <div className="settings-form-grid">
+            
+            {/* Row 1: Full Name | Username (Read-Only) */}
+            <div className="form-group-compact">
+              <label className="form-label-compact">Full Name</label>
+              <div className="input-wrapper-compact">
+                <User className="input-icon-compact" size={15} />
+                <input
+                  type="text"
+                  className="form-input-compact"
+                  placeholder="Full Name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  disabled={saving}
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="form-group-compact">
+              <label className="form-label-compact">Username (Read-Only)</label>
+              <div className="input-wrapper-compact">
+                <AtSign className="input-icon-compact" size={15} />
+                <input
+                  type="text"
+                  className="form-input-compact read-only"
+                  placeholder="Username"
+                  value={username || user.email.split('@')[0]}
+                  disabled
+                />
+              </div>
+            </div>
+
+            {/* Row 2: Registered Email (Read-Only) | Recovery Email */}
+            <div className="form-group-compact">
+              <label className="form-label-compact">Registered Email (Read-Only)</label>
+              <div className="input-wrapper-compact">
+                <Mail className="input-icon-compact" size={15} />
+                <input
+                  type="email"
+                  className="form-input-compact read-only"
+                  value={user.email}
+                  disabled
+                />
+              </div>
+            </div>
+
+            <div className="form-group-compact">
+              <label className="form-label-compact">Recovery Email</label>
+              <div className="input-wrapper-compact">
+                <Mail className="input-icon-compact" size={15} />
+                <input
+                  type="email"
+                  className="form-input-compact"
+                  placeholder="recovery@example.com"
+                  value={recoveryEmail}
+                  onChange={(e) => setRecoveryEmail(e.target.value)}
+                  disabled={saving}
+                />
+              </div>
+            </div>
+
+            {/* Row 3: Phone Number | Gender */}
+            <div className="form-group-compact">
+              <label className="form-label-compact">Phone Number</label>
+              <div className="input-wrapper-compact">
+                <Phone className="input-icon-compact" size={15} />
+                <input
+                  type="tel"
+                  className="form-input-compact"
+                  placeholder="03001234567"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  disabled={saving}
+                />
+              </div>
+            </div>
+
+            <div className="form-group-compact">
+              <label className="form-label-compact">Gender</label>
+              <div className="gender-selector-group">
+                <button
+                  type="button"
+                  className={`gender-select-btn ${gender === 'male' ? 'active' : ''}`}
+                  onClick={() => setGender('male')}
+                  disabled={saving}
+                >
+                  Male
+                </button>
+                <button
+                  type="button"
+                  className={`gender-select-btn ${gender === 'female' ? 'active' : ''}`}
+                  onClick={() => setGender('female')}
+                  disabled={saving}
+                >
+                  Female
+                </button>
+                <button
+                  type="button"
+                  className={`gender-select-btn ${gender === 'other' ? 'active' : ''}`}
+                  onClick={() => setGender('other')}
+                  disabled={saving}
+                >
+                  Other
+                </button>
+              </div>
+            </div>
+
+            {/* Row 4: Date of Birth | City */}
+            <div className="form-group-compact">
+              <label className="form-label-compact">Date of Birth</label>
+              <div className="input-wrapper-compact">
+                <Calendar className="input-icon-compact" size={15} />
+                <input
+                  type="text"
+                  className="form-input-compact"
+                  placeholder="YYYY-MM-DD"
+                  value={dob}
+                  onChange={(e) => setDob(e.target.value)}
+                  disabled={saving}
+                />
+              </div>
+            </div>
+
+            <div className="form-group-compact">
+              <label className="form-label-compact">City</label>
+              <div className="input-wrapper-compact">
+                <MapPin className="input-icon-compact" size={15} />
+                <input
+                  type="text"
+                  className="form-input-compact"
+                  placeholder="City"
+                  value={city}
+                  onChange={(e) => setCity(e.target.value)}
+                  disabled={saving}
+                />
+              </div>
+            </div>
+
+            {/* Row 5: Province | Country */}
+            <div className="form-group-compact">
+              <label className="form-label-compact">Province</label>
+              <div className="input-wrapper-compact">
+                <Globe className="input-icon-compact" size={15} />
+                <input
+                  type="text"
+                  className="form-input-compact"
+                  placeholder="Province"
+                  value={province}
+                  onChange={(e) => setProvince(e.target.value)}
+                  disabled={saving}
+                />
+              </div>
+            </div>
+
+            <div className="form-group-compact">
+              <label className="form-label-compact">Country</label>
+              <div className="input-wrapper-compact">
+                <Globe className="input-icon-compact" size={15} />
+                <input
+                  type="text"
+                  className="form-input-compact"
+                  placeholder="Country"
+                  value={country}
+                  onChange={(e) => setCountry(e.target.value)}
+                  disabled={saving}
+                />
+              </div>
+            </div>
+
+            {/* Row 6: Street Address (Full Width) */}
+            <div className="form-group-compact settings-field-full">
+              <label className="form-label-compact">Street Address</label>
+              <div className="input-wrapper-compact">
+                <MapPin className="input-icon-compact" size={15} />
+                <input
+                  type="text"
+                  className="form-input-compact"
+                  placeholder="Street Address"
+                  value={address}
+                  onChange={(e) => setAddress(e.target.value)}
+                  disabled={saving}
+                />
+              </div>
+            </div>
+
+            {/* Row 7: Biography / About (Full Width) */}
+            <div className="form-group-compact settings-field-full">
+              <label className="form-label-compact">Biography / About</label>
+              <textarea
+                className="form-textarea-compact"
+                placeholder="Tell us about yourself..."
+                value={bio}
+                onChange={(e) => setBio(e.target.value)}
                 disabled={saving}
-                required
               />
             </div>
+
           </div>
 
-          {/* Username */}
-          <div className="form-group">
-            <label className="form-label">Username</label>
-            <div className="input-wrapper">
-              <AtSign className="input-icon-left" size={16} />
-              <input
-                type="text"
-                className="form-control login-input"
-                placeholder="Username"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                disabled={saving}
-              />
-            </div>
-          </div>
-
-          {/* Email - Read-Only */}
-          <div className="form-group">
-            <label className="form-label">Registered Email (Read-Only)</label>
-            <div className="input-wrapper">
-              <Mail className="input-icon-left" size={16} />
-              <input
-                type="email"
-                className="form-control login-input settings-read-only"
-                value={user.email}
-                disabled
-              />
-            </div>
-          </div>
-
-          {/* Recovery Email */}
-          <div className="form-group">
-            <label className="form-label">Recovery Email</label>
-            <div className="input-wrapper">
-              <Mail className="input-icon-left" size={16} />
-              <input
-                type="email"
-                className="form-control login-input"
-                placeholder="recovery@example.com"
-                value={recoveryEmail}
-                onChange={(e) => setRecoveryEmail(e.target.value)}
-                disabled={saving}
-              />
-            </div>
-          </div>
-
-          {/* Phone Number */}
-          <div className="form-group">
-            <label className="form-label">Phone Number</label>
-            <div className="input-wrapper">
-              <Phone className="input-icon-left" size={16} />
-              <input
-                type="tel"
-                className="form-control login-input"
-                placeholder="03xxxxxxxxx"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                disabled={saving}
-              />
-            </div>
-          </div>
-
-          {/* Gender */}
-          <div className="form-group">
-            <label className="form-label">Gender</label>
-            <div className="settings-gender-group">
-              <button
-                type="button"
-                className={`settings-gender-btn ${gender === 'male' ? 'active' : ''}`}
-                onClick={() => setGender('male')}
-                disabled={saving}
-              >
-                Male
-              </button>
-              <button
-                type="button"
-                className={`settings-gender-btn ${gender === 'female' ? 'active' : ''}`}
-                onClick={() => setGender('female')}
-                disabled={saving}
-              >
-                Female
-              </button>
-              <button
-                type="button"
-                className={`settings-gender-btn ${gender === 'other' ? 'active' : ''}`}
-                onClick={() => setGender('other')}
-                disabled={saving}
-              >
-                Other
-              </button>
-            </div>
-          </div>
-
-          {/* Date of Birth */}
-          <div className="form-group">
-            <label className="form-label">Date of Birth</label>
-            <div className="input-wrapper">
-              <Calendar className="input-icon-left" size={16} />
-              <input
-                type="text"
-                className="form-control login-input"
-                placeholder="YYYY-MM-DD"
-                value={dob}
-                onChange={(e) => setDob(e.target.value)}
-                disabled={saving}
-              />
-            </div>
-          </div>
-
-          {/* Biography */}
-          <div className="form-group">
-            <label className="form-label">Biography / About</label>
-            <textarea
-              className="form-control"
-              style={{ height: '70px', paddingLeft: '14px', resize: 'none' }}
-              placeholder="Tell us about yourself..."
-              value={bio}
-              onChange={(e) => setBio(e.target.value)}
-              disabled={saving}
-            />
-          </div>
-
-          {/* Address */}
-          <div className="form-group">
-            <label className="form-label">Street Address</label>
-            <div className="input-wrapper">
-              <MapPin className="input-icon-left" size={16} />
-              <input
-                type="text"
-                className="form-control login-input"
-                placeholder="Street Address"
-                value={address}
-                onChange={(e) => setAddress(e.target.value)}
-                disabled={saving}
-              />
-            </div>
-          </div>
-
-          {/* City & Province row */}
-          <div className="settings-form-row">
-            <div>
-              <label className="form-label">City</label>
-              <input
-                type="text"
-                className="form-control"
-                style={{ paddingLeft: '14px' }}
-                placeholder="City"
-                value={city}
-                onChange={(e) => setCity(e.target.value)}
-                disabled={saving}
-              />
-            </div>
-            <div>
-              <label className="form-label">Province</label>
-              <input
-                type="text"
-                className="form-control"
-                style={{ paddingLeft: '14px' }}
-                placeholder="Province"
-                value={province}
-                onChange={(e) => setProvince(e.target.value)}
-                disabled={saving}
-              />
-            </div>
-          </div>
-
-          {/* Country */}
-          <div className="form-group" style={{ marginTop: '14px' }}>
-            <label className="form-label">Country</label>
-            <div className="input-wrapper">
-              <Globe className="input-icon-left" size={16} />
-              <input
-                type="text"
-                className="form-control login-input"
-                placeholder="Country"
-                value={country}
-                onChange={(e) => setCountry(e.target.value)}
-                disabled={saving}
-              />
-            </div>
-          </div>
-
-          {/* System info read only card */}
+          {/* COMPACT SYSTEM ACCOUNT DETAILS (4-ITEM GRID) */}
           <div className="settings-system-card">
             <div className="settings-system-header">
-              <Shield size={16} color="var(--color-primary)" />
+              <Shield size={15} color="var(--color-primary)" />
               <span>System Account Details</span>
             </div>
-            <div className="settings-system-row">
-              <span className="settings-system-label">User ID</span>
-              <span className="settings-system-value settings-system-mono">{user._id || 'N/A'}</span>
-            </div>
-            <div className="settings-system-row">
-              <span className="settings-system-label">Role</span>
-              <span className="settings-system-value">{formatRole(user.role)}</span>
-            </div>
-            <div className="settings-system-row">
-              <span className="settings-system-label">Account Created</span>
-              <span className="settings-system-value">{user.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A'}</span>
-            </div>
-            <div className="settings-system-row">
-              <span className="settings-system-label">Account Status</span>
-              <span className="settings-system-value" style={{ color: '#16A34A' }}>Active | Verified</span>
+            
+            <div className="settings-system-grid">
+              <div className="settings-system-col">
+                <span className="settings-system-label">User ID</span>
+                <span className="settings-system-value settings-system-mono" title={user._id || user.id}>
+                  {user._id || user.id || 'N/A'}
+                </span>
+              </div>
+
+              <div className="settings-system-col">
+                <span className="settings-system-label">Role</span>
+                <span className="settings-system-value">{formatRole(user.role)}</span>
+              </div>
+
+              <div className="settings-system-col">
+                <span className="settings-system-label">Account Created</span>
+                <span className="settings-system-value">
+                  {user.createdAt ? new Date(user.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Aug 26, 2026'}
+                </span>
+              </div>
+
+              <div className="settings-system-col">
+                <span className="settings-system-label">Account Status</span>
+                <span className="settings-system-value" style={{ color: '#16A34A', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <CheckCircle2 size={13} color="#16A34A" /> Active • Verified
+                </span>
+              </div>
             </div>
           </div>
 
-          {/* Actions */}
-          <div className="settings-actions">
+          {/* ACTIONS */}
+          <div className="settings-actions-row">
             <button type="button" className="settings-btn-cancel" onClick={onCancel} disabled={saving}>
               Cancel
             </button>
             <button type="submit" className="settings-btn-save" disabled={saving}>
-              {saving ? 'Saving...' : 'Save Details'}
+              {saving ? 'Saving Details...' : 'Save Details'}
             </button>
           </div>
+
         </form>
 
-        <button type="button" className="settings-btn-delete" onClick={handleDeleteAccount} disabled={saving}>
-          <Trash2 size={14} style={{ marginRight: '8px', verticalAlign: 'middle' }} />
-          Delete User Account
-        </button>
+        {/* DANGER ZONE */}
+        <div className="settings-danger-card">
+          <div className="settings-danger-info">
+            <span className="settings-danger-title">Danger Zone</span>
+            <span className="settings-danger-desc">Delete User Account — Permanently remove your account and associated data.</span>
+          </div>
+
+          <button type="button" className="settings-btn-delete" onClick={handleDeleteAccount} disabled={saving}>
+            <Trash2 size={14} />
+            <span>Delete Account</span>
+          </button>
+        </div>
+
       </div>
 
+      {/* CONFIRMATION MODAL */}
       <AlertDialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -356,6 +388,7 @@ export default function AccountSettings({ user, onSave, onCancel }) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
     </div>
   );
 }

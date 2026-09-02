@@ -1,140 +1,254 @@
+/* ====================================================
+   PETLINK ACCOUNT SETTINGS REDESIGN SYSTEM
+   Preserves existing PetLink brand tokens:
+   --color-primary: #0066CC
+   --color-primary-hover: #0052A3
+   --color-dark: #111827
+   --color-muted: #64748B
+   --color-bg-light: #F9FAFB
+   --color-border: #E5E7EB
+   --color-white: #FFFFFF
+==================================================== */
+
 .settings-container {
-  padding: 0;
-  background-color: transparent;
-  min-height: auto;
   display: flex;
-  justify-content: center;
+  flex-direction: column;
   width: 100%;
+  padding: 0;
 }
 
 .settings-card {
-  max-width: 100%;
   width: 100%;
-  padding: 32px;
+  padding: 22px 26px;
   background-color: var(--color-white);
   border: 1px solid var(--color-border);
-  border-radius: 24px;
+  border-radius: 18px;
   box-shadow: var(--shadow-sm);
-  animation: fadeIn var(--transition-normal) forwards;
 }
 
 .settings-header {
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-bottom: 24px;
-  padding-bottom: 16px;
+  gap: 10px;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
   border-bottom: 1px solid var(--color-border);
 }
 
 .settings-title {
-  font-size: 20px;
+  font-size: 18px;
   font-weight: 800;
+  color: var(--color-dark);
+  letter-spacing: -0.01em;
+}
+
+.settings-alert-error {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background-color: #FEF2F2;
+  border: 1px solid #FCA5A5;
+  color: #DC2626;
+  border-radius: 10px;
+  padding: 8px 12px;
+  font-size: 12.5px;
+  font-weight: 600;
+  margin-bottom: 14px;
+}
+
+/* ----------------------------------------------------
+   RESPONSIVE 2-COLUMN FORM GRID
+---------------------------------------------------- */
+.settings-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px 16px;
+}
+
+.settings-field-full {
+  grid-column: 1 / -1;
+}
+
+.form-group-compact {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.form-label-compact {
+  font-size: 12px;
+  font-weight: 700;
   color: var(--color-dark);
 }
 
-.settings-form-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
-}
-
-.settings-gender-group {
+.input-wrapper-compact {
+  position: relative;
   display: flex;
-  gap: 10px;
-  margin-top: 4px;
+  align-items: center;
+  width: 100%;
 }
 
-.settings-gender-btn {
-  flex: 1;
-  padding: 10px 14px;
+.input-icon-compact {
+  position: absolute;
+  left: 12px;
+  color: var(--color-muted);
+  pointer-events: none;
+}
+
+.form-input-compact {
+  width: 100%;
+  height: 38px;
+  padding: 0 12px 0 36px;
+  border-radius: 10px;
+  border: 1px solid var(--color-border);
+  background-color: var(--color-white);
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 500;
+  color: var(--color-dark);
+  transition: all var(--transition-fast);
+}
+
+.form-input-compact:focus {
+  border-color: var(--color-primary);
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(0, 102, 204, 0.1);
+}
+
+.form-input-compact.read-only {
+  background-color: var(--color-bg-light);
+  color: var(--color-muted);
+  cursor: not-allowed;
+  border-color: var(--color-border);
+}
+
+.form-textarea-compact {
+  width: 100%;
+  height: 56px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--color-border);
+  background-color: var(--color-white);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-dark);
+  resize: none;
+  transition: all var(--transition-fast);
+}
+
+.form-textarea-compact:focus {
+  border-color: var(--color-primary);
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(0, 102, 204, 0.1);
+}
+
+/* Gender Selector Buttons */
+.gender-selector-group {
+  display: flex;
+  gap: 6px;
+  height: 38px;
+}
+
+.gender-select-btn {
+  flex: 1;
+  border-radius: 10px;
   border: 1px solid var(--color-border);
   background-color: var(--color-bg-light);
   color: var(--color-muted);
+  font-size: 12.5px;
+  font-weight: 600;
   cursor: pointer;
-  border-radius: 8px;
   transition: all var(--transition-fast);
-  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.settings-gender-btn.active {
+.gender-select-btn.active {
   background-color: var(--color-primary);
   border-color: var(--color-primary);
   color: var(--color-white);
   box-shadow: var(--shadow-sm);
 }
 
-.settings-read-only {
-  background-color: var(--color-bg-light);
-  border-color: var(--color-border);
-  cursor: not-allowed;
-}
-
+/* ----------------------------------------------------
+   COMPACT SYSTEM ACCOUNT DETAILS (4-ITEM GRID)
+---------------------------------------------------- */
 .settings-system-card {
   background-color: var(--color-bg-light);
   border: 1px solid var(--color-border);
-  border-radius: 16px;
-  padding: 20px;
-  margin-top: 24px;
-  margin-bottom: 24px;
+  border-radius: 14px;
+  padding: 12px 16px;
+  margin-top: 14px;
+  margin-bottom: 14px;
 }
 
 .settings-system-header {
   display: flex;
   align-items: center;
-  gap: 10px;
-  font-size: 14px;
+  gap: 8px;
+  font-size: 12.5px;
   font-weight: 800;
   color: var(--color-dark);
-  margin-bottom: 12px;
-  padding-bottom: 8px;
+  margin-bottom: 8px;
+  padding-bottom: 6px;
   border-bottom: 1px dashed var(--color-border);
 }
 
-.settings-system-row {
-  display: flex;
-  justify-content: space-between;
-  padding: 8px 0;
-  font-size: 13px;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.02);
+.settings-system-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
 }
 
-.settings-system-row:last-child {
-  border-bottom: none;
+.settings-system-col {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
 .settings-system-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
   color: var(--color-muted);
-  font-weight: 600;
 }
 
 .settings-system-value {
-  color: var(--color-dark);
+  font-size: 12.5px;
   font-weight: 700;
+  color: var(--color-dark);
 }
 
 .settings-system-mono {
   font-family: monospace;
+  font-size: 11.5px;
   color: var(--color-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.settings-actions {
+/* ----------------------------------------------------
+   FORM ACTIONS & DANGER ZONE
+---------------------------------------------------- */
+.settings-actions-row {
   display: flex;
   justify-content: flex-end;
-  gap: 12px;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
 }
 
 .settings-btn-cancel {
-  padding: 12px 24px;
-  border-radius: 24px;
-  border: 1.5px solid var(--color-border);
-  background: none;
+  padding: 8px 18px;
+  border-radius: 10px;
+  border: 1px solid var(--color-border);
+  background-color: var(--color-white);
   font-weight: 700;
   color: var(--color-muted);
   cursor: pointer;
-  font-size: 14px;
+  font-size: 12.5px;
   transition: all var(--transition-fast);
 }
 
@@ -144,41 +258,102 @@
 }
 
 .settings-btn-save {
-  padding: 12px 28px;
-  border-radius: 24px;
+  padding: 8px 22px;
+  border-radius: 10px;
   border: none;
   background-color: var(--color-primary);
   font-weight: 700;
   color: var(--color-white);
   cursor: pointer;
-  font-size: 14px;
+  font-size: 12.5px;
   transition: all var(--transition-fast);
+  box-shadow: 0 2px 8px rgba(0, 102, 204, 0.2);
 }
 
 .settings-btn-save:hover {
   background-color: var(--color-primary-hover);
 }
 
+.settings-btn-save:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+/* Danger Zone Card */
+.settings-danger-card {
+  background-color: rgba(239, 68, 68, 0.03);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  border-radius: 12px;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.settings-danger-info {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.settings-danger-title {
+  font-size: 13px;
+  font-weight: 800;
+  color: #DC2626;
+}
+
+.settings-danger-desc {
+  font-size: 11px;
+  color: var(--color-muted);
+  font-weight: 500;
+}
+
 .settings-btn-delete {
-  width: 100%;
-  padding: 12px 20px;
+  padding: 7px 16px;
   border: 1.5px solid #EF4444;
-  border-radius: 24px;
-  background: none;
+  border-radius: 8px;
+  background-color: var(--color-white);
   color: #EF4444;
   font-weight: 700;
-  font-size: 14px;
+  font-size: 12px;
   cursor: pointer;
-  margin-top: 16px;
   transition: all var(--transition-fast);
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .settings-btn-delete:hover {
   background-color: #FEF2F2;
+  border-color: #DC2626;
+  color: #DC2626;
+}
+
+/* Responsive Rules */
+@media (max-width: 1024px) {
+  .settings-system-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 
 @media (max-width: 768px) {
-  .settings-form-row {
+  .settings-card {
+    padding: 16px 18px;
+  }
+
+  .settings-form-grid {
     grid-template-columns: 1fr;
+  }
+
+  .settings-danger-card {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .settings-btn-delete {
+    width: 100%;
+    justify-content: center;
   }
 }

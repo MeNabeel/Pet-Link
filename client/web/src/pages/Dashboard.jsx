@@ -107,48 +107,41 @@ export default function Dashboard({ onLogout }) {
   const profileRef = useRef(null);
   const notifRef = useRef(null);
 
+  // Always fetch fresh profile data from Supabase/backend database on mount & tab updates
   useEffect(() => {
-    const sessionUser = localStorage.getItem('user');
-    if (sessionUser && !user) {
-      try {
-        const parsed = JSON.parse(sessionUser);
-        setUser(parsed);
-        const targetId = parsed._id || parsed.id;
-        if (targetId) {
-          fetch(`${API_URL}/api/auth/profile/${targetId}`)
-            .then(res => res.json())
-            .then(data => {
-              if (data && (data._id || data.id)) {
-                setUser(data);
-                safeSetUserStorage(data);
-              }
-            })
-            .catch(err => console.error('Initial web profile fetch error:', err));
+    let targetId = user?._id || user?.id;
+    if (!targetId) {
+      const sessionUser = localStorage.getItem('user');
+      if (sessionUser) {
+        try {
+          const parsed = JSON.parse(sessionUser);
+          targetId = parsed._id || parsed.id;
+          setUser(parsed);
+        } catch (e) {
+          console.error('Error parsing session user:', e);
         }
-      } catch (e) {
-        console.error('Error parsing session user:', e);
       }
     }
-  }, [user]);
 
-  // Sync profile data on tab updates
-  useEffect(() => {
-    const targetId = user?._id || user?.id;
-    if (targetId && ['overview', 'profile', 'settings'].includes(activeTab)) {
+    if (targetId) {
       fetch(`${API_URL}/api/auth/profile/${targetId}`)
-        .then(res => res.json())
+        .then(res => {
+          if (!res.ok) throw new Error('Failed to fetch user profile');
+          return res.json();
+        })
         .then(data => {
           if (data && (data._id || data.id)) {
             setUser(data);
             safeSetUserStorage(data);
           }
         })
-        .catch(err => console.error('Web profile sync error:', err));
+        .catch(err => console.error('Database profile sync error:', err));
     }
+
     if (activeTab === 'pets') {
       setPetSubView('list');
     }
-  }, [activeTab, user?._id || user?.id]);
+  }, [activeTab]);
 
   // Click Outside & Escape Key Listener for Dropdowns
   useEffect(() => {

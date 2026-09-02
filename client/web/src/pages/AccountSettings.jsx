@@ -36,6 +36,23 @@ export default function AccountSettings({ user, onSave, onCancel }) {
   const [calYear, setCalYear] = useState(isNaN(initialYear) ? 2000 : initialYear);
   const [calMonth, setCalMonth] = useState(isNaN(initialMonth) ? 0 : initialMonth);
 
+  // Sync form inputs when user prop updates
+  useEffect(() => {
+    if (user) {
+      setName(user.name || '');
+      setUsername(user.username || '');
+      setRecoveryEmail(user.recoveryEmail || '');
+      setPhone(user.phone || '');
+      setGender(user.gender || 'male');
+      setDob(user.dob || '');
+      setAddress(user.address || '');
+      setCity(user.city || '');
+      setProvince(user.province || '');
+      setCountry(user.country || '');
+      setBio(user.bio || '');
+    }
+  }, [user]);
+
   // Close calendar popover on outside click
   useEffect(() => {
     const handleClickOutside = (e) => {

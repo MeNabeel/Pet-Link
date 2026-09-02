@@ -1,6 +1,7 @@
 import API_URL from '@/config';
 import React, { useState } from 'react';
 import { Mail, Lock, Eye, EyeOff, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { safeSetUserStorage } from '../utils/storage';
 import './Login.css';
 
 export default function Login({ onNavigateToSignup, onNavigateToForgot, onLoginSuccess }) {
@@ -52,7 +53,7 @@ export default function Login({ onNavigateToSignup, onNavigateToForgot, onLoginS
       }
 
       setSuccess(`Welcome back, ${data.name}! Redirecting to Dashboard...`);
-      localStorage.setItem('user', JSON.stringify(data));
+      safeSetUserStorage(data);
 
       if (onLoginSuccess) {
         setTimeout(() => {

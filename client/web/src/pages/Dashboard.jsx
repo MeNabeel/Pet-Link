@@ -108,7 +108,7 @@ export default function Dashboard({ onLogout }) {
 
   useEffect(() => {
     const sessionUser = localStorage.getItem('user');
-    if (sessionUser) {
+    if (sessionUser && !user) {
       try {
         const parsed = JSON.parse(sessionUser);
         setUser(parsed);
@@ -119,7 +119,7 @@ export default function Dashboard({ onLogout }) {
             .then(data => {
               if (data && (data._id || data.id)) {
                 setUser(data);
-                localStorage.setItem('user', JSON.stringify(data));
+                safeSetUserStorage(data);
               }
             })
             .catch(err => console.error('Initial web profile fetch error:', err));
@@ -128,7 +128,7 @@ export default function Dashboard({ onLogout }) {
         console.error('Error parsing session user:', e);
       }
     }
-  }, []);
+  }, [user]);
 
   // Sync profile data on tab updates
   useEffect(() => {
@@ -139,7 +139,7 @@ export default function Dashboard({ onLogout }) {
         .then(data => {
           if (data && (data._id || data.id)) {
             setUser(data);
-            localStorage.setItem('user', JSON.stringify(data));
+            safeSetUserStorage(data);
           }
         })
         .catch(err => console.error('Web profile sync error:', err));
@@ -147,7 +147,7 @@ export default function Dashboard({ onLogout }) {
     if (activeTab === 'pets') {
       setPetSubView('list');
     }
-  }, [activeTab]);
+  }, [activeTab, user?._id || user?.id]);
 
   // Click Outside & Escape Key Listener for Dropdowns
   useEffect(() => {
@@ -177,25 +177,32 @@ export default function Dashboard({ onLogout }) {
 
   // Fetch Notifications from Backend
   useEffect(() => {
-    if (user && user._id) {
+    const userId = user?._id || user?.id;
+    if (userId) {
       fetch(`${API_URL}/api/clinics/notifications`, {
-        headers: { 'x-requester-id': user._id }
+        headers: { 
+            'x-requester-id': userId,
+            'Authorization': `Bearer ${user?.token || localStorage.getItem('token') || ''}`
+        }
       })
         .then(res => res.json())
         .then(notifData => {
           if (Array.isArray(notifData)) {
             setNotifications(notifData);
+          } else if (notifData && Array.isArray(notifData.notifications)) {
+            setNotifications(notifData.notifications);
           }
         })
         .catch(err => console.error('Error loading notifications:', err));
     }
-  }, [user]);
+  }, [user?._id || user?.id]);
 
   // Fetch Pets, Analytics, Clinics and Appointments dynamically
   useEffect(() => {
-    if (user && user._id) {
+    const userId = user?._id || user?.id;
+    if (userId) {
       // 1. Fetch User Pets
-      fetch(`${API_URL}/api/pets/owner/${user._id}`)
+      fetch(`${API_URL}/api/pets/owner/${userId}`)
         .then(res => res.json())
         .then(petsData => {
           if (Array.isArray(petsData)) {
@@ -239,7 +246,7 @@ export default function Dashboard({ onLogout }) {
         .catch(err => console.error('Error loading dashboard pets:', err));
 
       // 2. Fetch Nearby Clinics
-      fetch(`${API_URL}/api/clinics/nearby?city=${encodeURIComponent(user.city || 'Lahore')}`)
+      fetch(`${API_URL}/api/clinics/nearby?city=${encodeURIComponent(user?.city || 'Lahore')}`)
         .then(res => res.json())
         .then(clinicsData => {
           if (Array.isArray(clinicsData)) {
@@ -250,7 +257,10 @@ export default function Dashboard({ onLogout }) {
 
       // 3. Fetch User Appointments
       fetch(`${API_URL}/api/clinics/appointments/user`, {
-        headers: { 'x-requester-id': user._id }
+        headers: { 
+            'x-requester-id': userId,
+            'Authorization': `Bearer ${user?.token || localStorage.getItem('token') || ''}`
+        }
       })
         .then(res => res.json())
         .then(apptsData => {
@@ -260,7 +270,7 @@ export default function Dashboard({ onLogout }) {
         })
         .catch(err => console.error('Error loading dashboard appointments:', err));
     }
-  }, [user, petSubView, activeTab]);
+  }, [user?._id || user?.id, petSubView, activeTab]);
 
   // Helper for Dynamic Header Page Title
   const getPageTitle = (tab) => {
@@ -268,15 +278,17 @@ export default function Dashboard({ onLogout }) {
       case 'overview': return 'Dashboard';
       case 'profile': return 'My Profile';
       case 'settings': return 'Account Settings';
-      case 'pets': return 'My Pets';
-      case 'marketplace':
-      case 'marketplace-details': return 'Marketplace';
-      case 'shelter':
-      case 'shelter-details': return 'Shelters';
-      case 'clinics':
-      case 'clinic-details': return 'Clinics';
-      case 'shop': return 'Shop Products';
-      case 'ai': return 'AI Assistant';
+      case 'pets': return petSubView === 'form' ? 'Add New Pet' : petSubView === 'details' ? 'Pet Medical & Profile Details' : 'My Registered Pets';
+      case 'shop': return 'Pet Products Store';
+      case 'marketplace': return 'Pet Marketplace';
+      case 'clinics': return 'Find Clinics & Services';
+      case 'shelters': return 'Find Animal Shelters';
+      case 'messages': return 'Messages & Communication';
+      case 'support': return 'Support Desk';
+      case 'admin-users': return 'System Users Manager';
+      case 'admin-categories': return 'Categories Management';
+      case 'admin-products': return 'Admin Products Manager';
+      case 'admin-marketplace': return 'Marketplace Admin Manager';
       default: return 'Dashboard';
     }
   };
@@ -334,7 +346,7 @@ export default function Dashboard({ onLogout }) {
       const data = await response.json();
       if (response.ok && data) {
         setUser(data);
-        localStorage.setItem('user', JSON.stringify(data));
+        safeSetUserStorage(data);
         return data;
       } else {
         alert(data.message || 'Failed to sync profile changes with server');

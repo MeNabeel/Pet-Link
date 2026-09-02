@@ -5,6 +5,8 @@ import Signup from './pages/Signup';
 import ForgotPassword from './pages/ForgotPassword';
 import Dashboard from './pages/Dashboard';
 
+import { safeSetUserStorage } from './utils/storage';
+
 function App() {
   const [screen, setScreen] = useState('splash');
   const [user, setUser] = useState(null);
@@ -13,14 +15,18 @@ function App() {
   useEffect(() => {
     const savedUser = localStorage.getItem('user');
     if (savedUser) {
-      setUser(JSON.parse(savedUser));
-      setScreen('dashboard');
+      try {
+        setUser(JSON.parse(savedUser));
+        setScreen('dashboard');
+      } catch (e) {
+        console.error('Error parsing session user:', e);
+      }
     }
   }, []);
 
   const handleLoginSuccess = (userData) => {
     setUser(userData);
-    localStorage.setItem('user', JSON.stringify(userData));
+    safeSetUserStorage(userData);
     setScreen('dashboard');
   };
 

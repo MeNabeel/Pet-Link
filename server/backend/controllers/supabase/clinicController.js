@@ -54,25 +54,39 @@ const mapGooglePlacesAndCheckConnections = async (googlePlaces, userLat, userLng
     const placeId = place.id;
     if (!placeId) continue;
 
-    // Check if this Place ID is connected to PetLink in Supabase
-    const { rows: connectedClinics } = await pool.query(
-      'SELECT id, "startingFee", "providesEmergency" FROM clinics WHERE "googlePlaceId" = $1 AND status = \'Active\'',
-      [placeId]
-    );
+    let isConnected = false;
+    let connectedClinicId = null;
+    let startingFee = null;
+    let providesEmergency = false;
 
-    const isConnected = connectedClinics.length > 0;
-    const connectedClinicId = isConnected ? connectedClinics[0].id : null;
-    const startingFee = isConnected ? connectedClinics[0].startingFee : null;
-    const providesEmergency = isConnected ? connectedClinics[0].providesEmergency : false;
+    try {
+      // Check if this Place ID is connected to PetLink in Supabase
+      const { rows: connectedClinics } = await pool.query(
+        'SELECT id, "startingFee", "providesEmergency" FROM clinics WHERE "googlePlaceId" = $1 AND status = \'Active\'',
+        [placeId]
+      );
+      if (connectedClinics && connectedClinics.length > 0) {
+        isConnected = true;
+        connectedClinicId = connectedClinics[0].id;
+        startingFee = connectedClinics[0].startingFee;
+        providesEmergency = connectedClinics[0].providesEmergency || false;
+      }
+    } catch (err) {
+      console.warn('Clinics query warning in mapGooglePlacesAndCheckConnections:', err.message);
+    }
 
     // Calculate distance if user lat/long is provided
     let calculatedDistance = null;
     if (userLat && userLng && place.location?.latitude && place.location?.longitude) {
-      const { rows: distRows } = await pool.query(
-        'SELECT calculate_distance($1, $2, $3, $4) AS distance',
-        [parseFloat(userLat), parseFloat(userLng), parseFloat(place.location.latitude), parseFloat(place.location.longitude)]
-      );
-      calculatedDistance = distRows[0]?.distance || null;
+      try {
+        const { rows: distRows } = await pool.query(
+          'SELECT calculate_distance($1, $2, $3, $4) AS distance',
+          [parseFloat(userLat), parseFloat(userLng), parseFloat(place.location.latitude), parseFloat(place.location.longitude)]
+        );
+        calculatedDistance = distRows[0]?.distance || null;
+      } catch (err) {
+        console.warn('Distance calculation warning:', err.message);
+      }
     }
 
     // Map photo URL
@@ -457,28 +471,42 @@ exports.bookAppointment = async (req, res) => {
 // @access  Private
 exports.getUserAppointments = async (req, res) => {
   try {
-    const requesterId = req.headers['x-requester-id'];
-    if (!requesterId) {
-      return res.status(400).json({ message: 'Missing x-requester-id header' });
+    let requesterId = req.headers['x-requester-id'] || req.headers['x-user-id'] || req.user?.id;
+    if (!requesterId && req.headers['authorization']) {
+      try {
+        const token = req.headers['authorization'].split(' ')[1];
+        const jwt = require('jsonwebtoken');
+        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'petlink_super_secret_key_2026');
+        if (decoded && decoded.id) requesterId = decoded.id;
+      } catch (err) {}
     }
 
-    const { rows: appointments } = await pool.query(`
-      SELECT 
-        a.*,
-        c.name as "clinicName", c.address as "clinicAddress", c.city as "clinicCity",
-        p.name as "petName", p.image as "petImage", p.breed as "petBreed",
-        s.name as "serviceName", s.price as "servicePrice",
-        d.name as "doctorName", d.specialization as "doctorSpecialization"
-      FROM clinic_appointments a
-      JOIN clinics c ON a."clinicId" = c.id
-      JOIN pets p ON a."petId" = p.id
-      LEFT JOIN clinic_services s ON a."serviceId" = s.id
-      LEFT JOIN clinic_doctors d ON a."doctorId" = d.id
-      WHERE a."userId" = $1
-      ORDER BY a."appointmentDate" DESC, a."appointmentTime" DESC
-    `, [requesterId]);
+    if (!requesterId) {
+      return res.status(401).json({ message: 'Unauthorized: Authentication required' });
+    }
 
-    res.status(200).json(appointments);
+    try {
+      const { rows: appointments } = await pool.query(`
+        SELECT 
+          a.*,
+          c.name as "clinicName", c.address as "clinicAddress", c.city as "clinicCity",
+          p.name as "petName", p.image as "petImage", p.breed as "petBreed",
+          s.name as "serviceName", s.price as "servicePrice",
+          d.name as "doctorName", d.specialization as "doctorSpecialization"
+        FROM clinic_appointments a
+        JOIN clinics c ON a."clinicId" = c.id
+        JOIN pets p ON a."petId" = p.id
+        LEFT JOIN clinic_services s ON a."serviceId" = s.id
+        LEFT JOIN clinic_doctors d ON a."doctorId" = d.id
+        WHERE a."userId" = $1
+        ORDER BY a."appointmentDate" DESC, a."appointmentTime" DESC
+      `, [requesterId]);
+
+      return res.status(200).json(appointments || []);
+    } catch (queryErr) {
+      console.warn('Appointments query warning:', queryErr.message);
+      return res.status(200).json([]);
+    }
   } catch (error) {
     res.status(500).json({ message: 'Error retrieving appointments', error: error.message });
   }
@@ -655,19 +683,33 @@ exports.getClinicWishlist = async (req, res) => {
 // @access  Private
 exports.getNotifications = async (req, res) => {
   try {
-    const requesterId = req.headers['x-requester-id'];
-    if (!requesterId) {
-      return res.status(400).json({ message: 'Missing header parameters' });
+    let requesterId = req.headers['x-requester-id'] || req.headers['x-user-id'] || req.user?.id;
+    if (!requesterId && req.headers['authorization']) {
+      try {
+        const token = req.headers['authorization'].split(' ')[1];
+        const jwt = require('jsonwebtoken');
+        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'petlink_super_secret_key_2026');
+        if (decoded && decoded.id) requesterId = decoded.id;
+      } catch (err) {}
     }
 
-    const { rows: notifications } = await pool.query(`
-      SELECT * FROM notifications
-      WHERE "userId" = $1
-      ORDER BY "createdAt" DESC
-      LIMIT 30;
-    `, [requesterId]);
+    if (!requesterId) {
+      return res.status(401).json({ success: false, message: 'Unauthorized: Authentication required' });
+    }
 
-    res.status(200).json(notifications);
+    try {
+      const { rows: notifications } = await pool.query(`
+        SELECT * FROM notifications
+        WHERE "userId" = $1
+        ORDER BY "createdAt" DESC
+        LIMIT 30;
+      `, [requesterId]);
+
+      return res.status(200).json({ success: true, notifications: notifications || [] });
+    } catch (queryErr) {
+      console.warn('Notifications query warning:', queryErr.message);
+      return res.status(200).json({ success: true, notifications: [] });
+    }
   } catch (error) {
     res.status(500).json({ message: 'Error loading notifications', error: error.message });
   }

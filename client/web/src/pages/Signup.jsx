@@ -1,6 +1,7 @@
 import API_URL from '@/config';
 import React, { useState } from 'react';
 import { Mail, Lock, User, Phone, MapPin, Eye, EyeOff, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { safeSetUserStorage } from '../utils/storage';
 import './Signup.css';
 
 export default function Signup({ onNavigateToLogin, onSignupSuccess }) {
@@ -64,7 +65,7 @@ export default function Signup({ onNavigateToLogin, onSignupSuccess }) {
       }
 
       setSuccess('Account created successfully! Auto-authenticating...');
-      localStorage.setItem('user', JSON.stringify(data));
+      safeSetUserStorage(data);
 
       if (onSignupSuccess) {
         setTimeout(() => {

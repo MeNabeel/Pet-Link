@@ -109,29 +109,35 @@ export default function Dashboard({ onLogout }) {
   useEffect(() => {
     const sessionUser = localStorage.getItem('user');
     if (sessionUser) {
-      const parsed = JSON.parse(sessionUser);
-      setUser({
-        ...parsed,
-        username: parsed.username || parsed.email.split('@')[0],
-        recoveryEmail: parsed.recoveryEmail || 'recovery@petlink.com',
-        gender: parsed.gender || 'male',
-        dob: parsed.dob || '1998-05-12',
-        city: parsed.city || 'Lahore',
-        province: parsed.province || 'Punjab',
-        country: parsed.country || 'Pakistan',
-        bio: parsed.bio || 'Pet lover and active supporter of shelters.',
-        createdAt: parsed.createdAt || new Date().toISOString()
-      });
+      try {
+        const parsed = JSON.parse(sessionUser);
+        setUser(parsed);
+        const targetId = parsed._id || parsed.id;
+        if (targetId) {
+          fetch(`${API_URL}/api/auth/profile/${targetId}`)
+            .then(res => res.json())
+            .then(data => {
+              if (data && (data._id || data.id)) {
+                setUser(data);
+                localStorage.setItem('user', JSON.stringify(data));
+              }
+            })
+            .catch(err => console.error('Initial web profile fetch error:', err));
+        }
+      } catch (e) {
+        console.error('Error parsing session user:', e);
+      }
     }
   }, []);
 
   // Sync profile data on tab updates
   useEffect(() => {
-    if (user && user._id && ['overview', 'profile'].includes(activeTab)) {
-      fetch(`${API_URL}/api/auth/profile/${user._id}`)
+    const targetId = user?._id || user?.id;
+    if (targetId && ['overview', 'profile', 'settings'].includes(activeTab)) {
+      fetch(`${API_URL}/api/auth/profile/${targetId}`)
         .then(res => res.json())
         .then(data => {
-          if (data && data._id) {
+          if (data && (data._id || data.id)) {
             setUser(data);
             localStorage.setItem('user', JSON.stringify(data));
           }
@@ -299,13 +305,16 @@ export default function Dashboard({ onLogout }) {
 
   const handleUpdateUser = async (updatedUser) => {
     try {
+      const targetId = updatedUser._id || updatedUser.id || user?._id || user?.id;
+      const userToken = updatedUser.token || user?.token || localStorage.getItem('token') || '';
       const response = await fetch(`${API_URL}/api/auth/profile`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${userToken}`
         },
         body: JSON.stringify({
-          userId: updatedUser._id || updatedUser.id,
+          userId: targetId,
           name: updatedUser.name,
           username: updatedUser.username,
           recoveryEmail: updatedUser.recoveryEmail,
@@ -323,16 +332,18 @@ export default function Dashboard({ onLogout }) {
       });
       
       const data = await response.json();
-      if (response.ok) {
+      if (response.ok && data) {
         setUser(data);
         localStorage.setItem('user', JSON.stringify(data));
+        return data;
       } else {
         alert(data.message || 'Failed to sync profile changes with server');
+        return null;
       }
     } catch (err) {
       console.error('Profile update sync error:', err);
-      setUser(updatedUser);
-      localStorage.setItem('user', JSON.stringify(updatedUser));
+      alert('Server connection error. Failed to save account changes.');
+      return null;
     }
   };
 

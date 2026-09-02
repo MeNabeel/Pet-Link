@@ -119,7 +119,7 @@ exports.loginUser = async (req, res) => {
 
 // @desc    Update user profile details
 // @route   PUT /api/auth/profile
-// @access  Public
+// @access  Private / Public with userId
 exports.updateUserProfile = async (req, res) => {
   try {
     const { 
@@ -128,19 +128,37 @@ exports.updateUserProfile = async (req, res) => {
       bio, profilePic, coverPhoto 
     } = req.body;
 
-    const user = await prisma.user.findUnique({ where: { id: userId } });
+    let targetUserId = userId;
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      try {
+        const token = authHeader.split(' ')[1];
+        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'petlink_super_secret_key_2026');
+        if (decoded && decoded.id) {
+          targetUserId = decoded.id;
+        }
+      } catch (err) {
+        console.warn('JWT verify warning in updateUserProfile:', err.message);
+      }
+    }
+
+    if (!targetUserId) {
+      return res.status(400).json({ message: 'User ID is required' });
+    }
+
+    const user = await prisma.user.findUnique({ where: { id: targetUserId } });
     if (!user) {
-      return res.status(404).json({ message: 'User not found' });
+      return res.status(404).json({ message: 'User not found in Supabase database' });
     }
 
     const data = {};
-    if (name) data.name = name;
+    if (name !== undefined) data.name = name;
     if (username !== undefined) data.username = username;
     if (recoveryEmail !== undefined) data.recoveryEmail = recoveryEmail;
-    if (phone) data.phone = phone;
+    if (phone !== undefined) data.phone = phone;
     if (gender !== undefined) data.gender = gender;
     if (dob !== undefined) data.dob = dob;
-    if (address) data.address = address;
+    if (address !== undefined) data.address = address;
     if (city !== undefined) data.city = city;
     if (province !== undefined) data.province = province;
     if (country !== undefined) data.country = country;
@@ -149,7 +167,7 @@ exports.updateUserProfile = async (req, res) => {
     if (coverPhoto !== undefined) data.coverPhoto = coverPhoto;
 
     const updatedUser = await prisma.user.update({
-      where: { id: userId },
+      where: { id: targetUserId },
       data
     });
 
@@ -158,6 +176,7 @@ exports.updateUserProfile = async (req, res) => {
 
     res.status(200).json(responseUser);
   } catch (error) {
+    console.error('Supabase updateUserProfile error:', error);
     res.status(500).json({ message: 'Server update error', error: error.message });
   }
 };

@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { 
   Settings, Shield, User, Mail, Phone, MapPin, Globe, Calendar, 
-  AtSign, Trash2, AlertCircle, CheckCircle2 
+  AtSign, Trash2, AlertCircle, CheckCircle2, ChevronLeft, ChevronRight, X
 } from 'lucide-react';
 import './AccountSettings.css';
 import { 
@@ -26,12 +26,71 @@ export default function AccountSettings({ user, onSave, onCancel }) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [isSaveConfirmOpen, setIsSaveConfirmOpen] = useState(false);
 
-  const validateAndSubmit = (e) => {
+  // Calendar Popover state
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+  const calendarRef = useRef(null);
+  const initialYear = dob ? parseInt(dob.split('-')[0]) : 2000;
+  const initialMonth = dob ? parseInt(dob.split('-')[1]) - 1 : 0;
+  const [calYear, setCalYear] = useState(isNaN(initialYear) ? 2000 : initialYear);
+  const [calMonth, setCalMonth] = useState(isNaN(initialMonth) ? 0 : initialMonth);
+
+  // Close calendar popover on outside click
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (calendarRef.current && !calendarRef.current.contains(e.target)) {
+        setIsCalendarOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const monthNames = [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'
+  ];
+
+  const getDaysInMonth = (month, year) => {
+    return new Date(year, month + 1, 0).getDate();
+  };
+
+  const getFirstDayOfMonth = (month, year) => {
+    return new Date(year, month, 1).getDay();
+  };
+
+  const handleSelectDate = (day) => {
+    const formattedMonth = String(calMonth + 1).padStart(2, '0');
+    const formattedDay = String(day).padStart(2, '0');
+    setDob(`${calYear}-${formattedMonth}-${formattedDay}`);
+    setIsCalendarOpen(false);
+  };
+
+  // Immediate Cancel reset - NO popup, NO API request
+  const handleCancelClick = () => {
+    setName(user.name || '');
+    setUsername(user.username || '');
+    setRecoveryEmail(user.recoveryEmail || '');
+    setPhone(user.phone || '');
+    setGender(user.gender || 'male');
+    setDob(user.dob || '');
+    setAddress(user.address || '');
+    setCity(user.city || '');
+    setProvince(user.province || '');
+    setCountry(user.country || '');
+    setBio(user.bio || '');
+    setError('');
+    setIsCalendarOpen(false);
+    onCancel();
+  };
+
+  // Validate form first, then trigger Save confirmation modal
+  const handlePreSubmit = (e) => {
     e.preventDefault();
     setError('');
 
-    if (!name) {
+    if (!name.trim()) {
       setError('Full Name is required.');
       return;
     }
@@ -50,24 +109,34 @@ export default function AccountSettings({ user, onSave, onCancel }) {
       return;
     }
 
+    // Open Shadcn Save Confirmation Modal
+    setIsSaveConfirmOpen(true);
+  };
+
+  // Execute actual database update call after user confirms
+  const proceedSaveDetails = async () => {
+    setIsSaveConfirmOpen(false);
     setSaving(true);
-    setTimeout(() => {
-      onSave({
+    try {
+      await onSave({
         ...user,
-        name,
+        name: name.trim(),
         username,
-        recoveryEmail,
-        phone,
+        recoveryEmail: recoveryEmail.trim(),
+        phone: phone.trim(),
         gender,
         dob,
-        address,
-        city,
-        province,
-        country,
-        bio
+        address: address.trim(),
+        city: city.trim(),
+        province: province.trim(),
+        country: country.trim(),
+        bio: bio.trim()
       });
+    } catch (err) {
+      setError(err.message || 'Failed to save account details.');
+    } finally {
       setSaving(false);
-    }, 800);
+    }
   };
 
   const handleDeleteAccount = () => {
@@ -90,6 +159,9 @@ export default function AccountSettings({ user, onSave, onCancel }) {
     }
   };
 
+  const currentYear = new Date().getFullYear();
+  const yearsList = Array.from({ length: 90 }, (_, i) => currentYear - i);
+
   return (
     <div className="settings-container">
       <div className="settings-card fade-in">
@@ -107,7 +179,7 @@ export default function AccountSettings({ user, onSave, onCancel }) {
           </div>
         )}
 
-        <form onSubmit={validateAndSubmit}>
+        <form onSubmit={handlePreSubmit}>
           
           {/* RESPONSIVE 2-COLUMN FORM GRID */}
           <div className="settings-form-grid">
@@ -218,10 +290,10 @@ export default function AccountSettings({ user, onSave, onCancel }) {
               </div>
             </div>
 
-            {/* Row 4: Date of Birth | City */}
-            <div className="form-group-compact">
+            {/* Row 4: Date of Birth (Shadcn Calendar Popover) | City */}
+            <div className="form-group-compact" style={{ position: 'relative' }} ref={calendarRef}>
               <label className="form-label-compact">Date of Birth</label>
-              <div className="input-wrapper-compact">
+              <div className="input-wrapper-compact" onClick={() => !saving && setIsCalendarOpen(!isCalendarOpen)}>
                 <Calendar className="input-icon-compact" size={15} />
                 <input
                   type="text"
@@ -230,8 +302,102 @@ export default function AccountSettings({ user, onSave, onCancel }) {
                   value={dob}
                   onChange={(e) => setDob(e.target.value)}
                   disabled={saving}
+                  style={{ cursor: 'pointer' }}
                 />
               </div>
+
+              {/* SHADCN CALENDAR POPOVER DROPDOWN */}
+              {isCalendarOpen && (
+                <div className="shadcn-calendar-popover fade-in">
+                  <div className="calendar-popover-header">
+                    <button 
+                      type="button" 
+                      className="cal-nav-btn"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (calMonth === 0) {
+                          setCalMonth(11);
+                          setCalYear(calYear - 1);
+                        } else {
+                          setCalMonth(calMonth - 1);
+                        }
+                      }}
+                    >
+                      <ChevronLeft size={16} />
+                    </button>
+
+                    <div className="cal-title-selects">
+                      <select 
+                        value={calMonth} 
+                        onChange={(e) => setCalMonth(parseInt(e.target.value))}
+                        className="cal-month-select"
+                      >
+                        {monthNames.map((m, idx) => (
+                          <option key={m} value={idx}>{m}</option>
+                        ))}
+                      </select>
+
+                      <select 
+                        value={calYear} 
+                        onChange={(e) => setCalYear(parseInt(e.target.value))}
+                        className="cal-year-select"
+                      >
+                        {yearsList.map((y) => (
+                          <option key={y} value={y}>{y}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <button 
+                      type="button" 
+                      className="cal-nav-btn"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (calMonth === 11) {
+                          setCalMonth(0);
+                          setCalYear(calYear + 1);
+                        } else {
+                          setCalMonth(calMonth + 1);
+                        }
+                      }}
+                    >
+                      <ChevronRight size={16} />
+                    </button>
+                  </div>
+
+                  {/* Calendar Grid Header */}
+                  <div className="calendar-grid-header">
+                    <span>Su</span><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span>
+                  </div>
+
+                  {/* Calendar Days */}
+                  <div className="calendar-days-grid">
+                    {Array.from({ length: getFirstDayOfMonth(calMonth, calYear) }).map((_, i) => (
+                      <div key={`empty-${i}`} className="cal-day empty" />
+                    ))}
+
+                    {Array.from({ length: getDaysInMonth(calMonth, calYear) }).map((_, i) => {
+                      const dayNum = i + 1;
+                      const dateStr = `${calYear}-${String(calMonth + 1).padStart(2, '0')}-${String(dayNum).padStart(2, '0')}`;
+                      const isSelected = dob === dateStr;
+
+                      return (
+                        <button
+                          key={dayNum}
+                          type="button"
+                          className={`cal-day-btn ${isSelected ? 'selected' : ''}`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleSelectDate(dayNum);
+                          }}
+                        >
+                          {dayNum}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="form-group-compact">
@@ -348,7 +514,7 @@ export default function AccountSettings({ user, onSave, onCancel }) {
 
           {/* ACTIONS */}
           <div className="settings-actions-row">
-            <button type="button" className="settings-btn-cancel" onClick={onCancel} disabled={saving}>
+            <button type="button" className="settings-btn-cancel" onClick={handleCancelClick} disabled={saving}>
               Cancel
             </button>
             <button type="submit" className="settings-btn-save" disabled={saving}>
@@ -373,7 +539,23 @@ export default function AccountSettings({ user, onSave, onCancel }) {
 
       </div>
 
-      {/* CONFIRMATION MODAL */}
+      {/* SAVE CHANGES CONFIRMATION MODAL */}
+      <AlertDialog open={isSaveConfirmOpen} onOpenChange={setIsSaveConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Save Changes?</AlertDialogTitle>
+            <AlertDialogDescription>
+              You have updated your account information. Do you want to save these changes to your account?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setIsSaveConfirmOpen(false)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={proceedSaveDetails}>Save Changes</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* DELETE ACCOUNT CONFIRMATION MODAL */}
       <AlertDialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -383,7 +565,7 @@ export default function AccountSettings({ user, onSave, onCancel }) {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel onClick={() => setIsDeleteOpen(false)}>Cancel</AlertDialogCancel>
             <AlertDialogAction variant="danger" onClick={proceedDeleteAccount}>Delete Account</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -305,7 +305,7 @@ export default function Dashboard({ onLogout }) {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          userId: updatedUser._id,
+          userId: updatedUser._id || updatedUser.id,
           name: updatedUser.name,
           username: updatedUser.username,
           recoveryEmail: updatedUser.recoveryEmail,

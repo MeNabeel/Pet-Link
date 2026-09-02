@@ -1,7 +1,8 @@
 import React, { useRef } from 'react';
 import { 
   Settings, ShoppingBag, LogOut, ChevronRight, Mail, Phone, Camera, MapPin, 
-  Calendar, BadgeCheck, PawPrint, Heart, Bookmark, Bell, Shield
+  Calendar, BadgeCheck, PawPrint, Heart, Bookmark, Bell, Shield,
+  ShieldCheck, HeartHandshake, Sliders, LifeBuoy
 } from 'lucide-react';
 import './Profile.css';
 
@@ -292,6 +293,61 @@ export default function Profile({ user, onNavigateToSettings, onLogout, onUpdate
             </div>
           </div>
 
+        </div>
+
+        {/* PLATFORM TRUST HIGHLIGHTS BAR */}
+        <div className="profile-trust-highlights-bar">
+          <div className="profile-trust-item">
+            <div className="profile-trust-icon-box">
+              <ShieldCheck size={16} />
+            </div>
+            <div className="profile-trust-text">
+              <span className="profile-trust-title">Secure & Private</span>
+              <span className="profile-trust-desc">Protected account data</span>
+            </div>
+          </div>
+
+          <div className="profile-trust-item">
+            <div className="profile-trust-icon-box">
+              <HeartHandshake size={16} />
+            </div>
+            <div className="profile-trust-text">
+              <span className="profile-trust-title">Trusted Pet Care</span>
+              <span className="profile-trust-desc">Clinics & services unified</span>
+            </div>
+          </div>
+
+          <div className="profile-trust-item">
+            <div className="profile-trust-icon-box">
+              <Sliders size={16} />
+            </div>
+            <div className="profile-trust-text">
+              <span className="profile-trust-title">Easy to Manage</span>
+              <span className="profile-trust-desc">Organized pet records</span>
+            </div>
+          </div>
+
+          <div className="profile-trust-item">
+            <div className="profile-trust-icon-box">
+              <LifeBuoy size={16} />
+            </div>
+            <div className="profile-trust-text">
+              <span className="profile-trust-title">PetLink Support</span>
+              <span className="profile-trust-desc">Reliable help desk</span>
+            </div>
+          </div>
+        </div>
+
+        {/* SUBTLE FOOTER STRIP */}
+        <div className="profile-footer-strip">
+          <span className="profile-footer-brand">PetLink — Better care for every pet</span>
+          <div className="profile-footer-links">
+            <span className="profile-footer-link" onClick={() => handleMenuClick('Privacy Policy')}>Privacy</span>
+            <span>•</span>
+            <span className="profile-footer-link" onClick={() => handleMenuClick('Terms of Service')}>Terms</span>
+            <span>•</span>
+            <span className="profile-footer-link" onClick={() => handleMenuClick('Helpdesk')}>Support</span>
+          </div>
         </div>
 
       </div>

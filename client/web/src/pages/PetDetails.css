@@ -38,21 +38,50 @@
   color: #0052A3;
 }
 
-/* DELETE COMPANION PLAIN STANDARD BUTTON */
+/* DELETE COMPANION ACTION BUTTON */
 .pet-delete-companion-btn {
-  background: none;
-  border: none;
-  color: #64748B;
-  font-size: 13px;
-  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background-color: #FEF2F2;
+  color: #EF4444;
+  border: 1.5px solid #FEE2E2;
+  padding: 8px 16px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 700;
   cursor: pointer;
-  padding: 4px 8px;
-  transition: color 0.2s ease;
+  transition: all 0.2s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
 }
 
 .pet-delete-companion-btn:hover {
-  color: #EF4444;
-  text-decoration: underline;
+  background-color: #EF4444;
+  color: #FFFFFF;
+  border-color: #EF4444;
+  box-shadow: 0 2px 6px rgba(239, 68, 68, 0.25);
+  text-decoration: none;
+}
+
+.pet-delete-confirm-btn {
+  background-color: #EF4444;
+  color: #FFFFFF;
+  border: 1px solid #EF4444;
+  padding: 10px 18px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pet-delete-confirm-btn:hover {
+  background-color: #DC2626;
+  border-color: #DC2626;
 }
 
 /* REDESIGNED PET PROFILE HEADER CARD */
@@ -562,26 +591,34 @@
 }
 
 /* DRAWER OVERLAY & DIALOG MODAL STYLING */
-.pet-details-drawer-overlay {
+/* CENTERED MODAL OVERLAY & DIALOG MODAL STYLING */
+.pet-details-drawer-overlay,
+.pet-modal-overlay {
   position: fixed;
   top: 0; left: 0; right: 0; bottom: 0;
   background-color: rgba(15, 23, 42, 0.4);
   backdrop-filter: blur(4px);
   z-index: 1000;
   display: flex;
-  justify-content: flex-end;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
 }
 
-.pet-details-drawer {
+.pet-details-drawer,
+.pet-modal {
   background-color: #FFFFFF;
   width: 100%;
-  max-width: 520px;
-  height: 100%;
-  box-shadow: -4px 0 16px rgba(0, 0, 0, 0.08);
+  max-width: 560px;
+  max-height: 85vh;
+  border-radius: 16px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
   padding: 24px;
   display: flex;
   flex-direction: column;
   overflow-y: auto;
+  position: relative;
+  border: 1px solid #E2E8F0;
 }
 
 .pet-drawer-header {

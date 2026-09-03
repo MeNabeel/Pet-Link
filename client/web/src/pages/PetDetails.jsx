@@ -207,6 +207,7 @@ export default function PetDetails({ user, petId, onBack, onEdit, onDeleteSucces
             onClick={() => setActiveDrawer('deleteConfirm')}
             title="Delete Pet Companion"
           >
+            <Trash2 size={14} />
             <span>Delete Companion</span>
           </button>
         )}
@@ -885,25 +886,33 @@ export default function PetDetails({ user, petId, onBack, onEdit, onDeleteSucces
         </div>
       )}
 
-      {/* Delete Confirmation Drawer */}
+      {/* Delete Confirmation Modal */}
       {activeDrawer === 'deleteConfirm' && (
         <div className="pet-modal-overlay" onClick={() => setActiveDrawer(null)}>
-          <div className="pet-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '400px', textAlign: 'center' }}>
-            <h3 className="pet-modal-title" style={{ color: '#EF4444', border: 'none', marginBottom: '12px' }}>Delete Pet</h3>
-            <p style={{ fontSize: '13px', color: 'var(--color-muted)', marginBottom: '24px', fontWeight: '500' }}>
-              Are you sure you want to permanently delete this pet? This operation is irreversible.
+          <div className="pet-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '440px', padding: '24px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '16px' }}>
+              <div style={{ width: '42px', height: '42px', borderRadius: '12px', backgroundColor: '#FEF2F2', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#EF4444', flexShrink: 0 }}>
+                <Trash2 size={20} />
+              </div>
+              <div>
+                <h3 style={{ fontSize: '18px', fontWeight: '800', color: '#0F172A', margin: 0 }}>Delete Companion?</h3>
+                <p style={{ fontSize: '13px', color: '#64748B', margin: '2px 0 0 0' }}>This action cannot be undone.</p>
+              </div>
+            </div>
+            <p style={{ fontSize: '13px', color: '#334155', marginBottom: '24px', lineHeight: '1.5' }}>
+              Are you sure you want to permanently delete <strong>{pet.name}</strong> from your profile?
             </p>
-            <div className="pet-modal-actions" style={{ justifyContent: 'center' }}>
+            <div className="pet-modal-actions" style={{ gap: '10px' }}>
               <button type="button" className="pet-modal-btn-cancel" onClick={() => setActiveDrawer(null)} style={{ flex: 1 }}>
                 Cancel
               </button>
               <button 
                 type="button"
-                className="pet-modal-btn-save" 
+                className="pet-delete-confirm-btn" 
                 onClick={handleDelete}
-                style={{ backgroundColor: '#EF4444', flex: 1 }}
+                style={{ flex: 1 }}
               >
-                Delete
+                Delete Companion
               </button>
             </div>
           </div>

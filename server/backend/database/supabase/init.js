@@ -304,7 +304,7 @@ const initDB = async () => {
     await pool.query(`
       CREATE TABLE IF NOT EXISTS user_addresses (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        "userId" UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        "userId" TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
         "fullName" VARCHAR(255) NOT NULL,
         phone VARCHAR(50) NOT NULL,
         "streetAddress" TEXT NOT NULL,

@@ -13,7 +13,7 @@ const ensureAddressTable = async () => {
     await pool.query(`
       CREATE TABLE IF NOT EXISTS user_addresses (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        "userId" UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        "userId" TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
         "fullName" VARCHAR(255) NOT NULL,
         phone VARCHAR(50) NOT NULL,
         "streetAddress" TEXT NOT NULL,
@@ -127,7 +127,7 @@ exports.createAddress = async (req, res) => {
         "userId", "fullName", phone, "streetAddress", apartment, 
         city, province, country, "postalCode", "addressType", "isDefault"
       )
-      VALUES ($1::uuid, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
       RETURNING *;
     `, [
       userId,

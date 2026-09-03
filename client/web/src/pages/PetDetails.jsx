@@ -178,7 +178,7 @@ export default function PetDetails({ user, petId, onBack, onEdit, onDeleteSucces
     return (
       <div className="pet-details-loading-box">
         <p>Pet companion profile not found.</p>
-        <button className="pet-back-btn" onClick={onBack} style={{ marginTop: '16px' }}>
+        <button type="button" className="pet-back-btn" onClick={onBack} style={{ marginTop: '16px' }}>
           <ArrowLeft size={16} />
           <span>Back to list</span>
         </button>
@@ -203,17 +203,16 @@ export default function PetDetails({ user, petId, onBack, onEdit, onDeleteSucces
         {isOwner && (
           <button 
             type="button" 
-            className="pet-action-btn danger-text"
+            className="pet-delete-companion-btn"
             onClick={() => setActiveDrawer('deleteConfirm')}
             title="Delete Pet Companion"
           >
-            <Trash2 size={14} />
             <span>Delete Companion</span>
           </button>
         )}
       </div>
 
-      {/* REDESIGNED PET PROFILE HEADER CARD (SCREENSHOT 1 VISUAL STYLING + SCREENSHOT 2 APP SCALE) */}
+      {/* REDESIGNED PET PROFILE HEADER CARD */}
       <div className="pet-profile-card">
         
         {/* LEFT: LARGE RECTANGULAR PET IMAGE (30-35% WIDTH, FULL HEIGHT, FLUSH LEFT EDGE) */}
@@ -241,7 +240,7 @@ export default function PetDetails({ user, petId, onBack, onEdit, onDeleteSucces
               <p className="pet-profile-breed-sub">{pet.breed} • {pet.species}</p>
             </div>
 
-            {/* ACTION BUTTONS (COLORED BORDERS + LIGHT TINT + SOLID FILL ON HOVER) */}
+            {/* ACTION BUTTONS */}
             <div className="pet-profile-actions-group">
               <button 
                 type="button" 
@@ -265,11 +264,12 @@ export default function PetDetails({ user, petId, onBack, onEdit, onDeleteSucces
 
                   <button 
                     type="button" 
-                    className="pet-header-action-btn blue" 
+                    className="pet-header-action-btn blue icon-only" 
                     onClick={() => onEdit(pet._id)}
+                    title="Edit Profile"
+                    aria-label="Edit Profile"
                   >
                     <Pencil size={15} />
-                    <span>Edit Profile</span>
                   </button>
                 </>
               )}
@@ -376,16 +376,6 @@ export default function PetDetails({ user, petId, onBack, onEdit, onDeleteSucces
                 <User size={16} color="var(--color-primary)" />
                 <span>Basic Information</span>
               </h4>
-              {isOwner && (
-                <button 
-                  type="button" 
-                  className="pet-card-edit-icon" 
-                  onClick={() => onEdit(pet._id)} 
-                  title="Edit Basic Info"
-                >
-                  <Pencil size={13} />
-                </button>
-              )}
             </div>
 
             <div className="pet-card-rows-list">
@@ -435,16 +425,6 @@ export default function PetDetails({ user, petId, onBack, onEdit, onDeleteSucces
                 <Heart size={16} color="#EC4899" />
                 <span>About Pet & Behaviour</span>
               </h4>
-              {isOwner && (
-                <button 
-                  type="button" 
-                  className="pet-card-edit-icon" 
-                  onClick={() => onEdit(pet._id)} 
-                  title="Edit Behaviour Info"
-                >
-                  <Pencil size={13} />
-                </button>
-              )}
             </div>
 
             <div className="pet-card-rows-list">
@@ -484,23 +464,13 @@ export default function PetDetails({ user, petId, onBack, onEdit, onDeleteSucces
             </div>
           </div>
 
-          {/* CARD 3: LOCATION & QUICK STATS */}
+          {/* CARD 3: LOCATION DETAILS */}
           <div className="pet-card-box">
             <div className="pet-card-box-header">
               <h4 className="pet-card-box-title">
                 <MapPin size={16} color="#EAB308" />
                 <span>Location Details</span>
               </h4>
-              {isOwner && (
-                <button 
-                  type="button" 
-                  className="pet-card-edit-icon" 
-                  onClick={() => onEdit(pet._id)} 
-                  title="Edit Location Info"
-                >
-                  <Pencil size={13} />
-                </button>
-              )}
             </div>
 
             <div className="pet-card-rows-list">
@@ -516,34 +486,11 @@ export default function PetDetails({ user, petId, onBack, onEdit, onDeleteSucces
                 <span className="pet-row-label">City</span>
                 <span className="pet-row-val">{pet.city || 'Lahore'}</span>
               </div>
-              <div className="pet-row-item">
+              <div className="pet-row-item border-none">
                 <span className="pet-row-label">Address</span>
                 <span className="pet-row-val">{pet.address || 'N/A'}</span>
               </div>
             </div>
-
-            {/* QUICK STATS SUMMARY CARD */}
-            <div className="pet-stats-summary-card">
-              <h5 className="pet-stats-card-heading">Health & Medical Stats</h5>
-              <div className="pet-stats-grid">
-                <div className="pet-stat-cell">
-                  <Syringe size={16} color="#0066CC" />
-                  <span className="pet-stat-num">{vaccineCount}</span>
-                  <span className="pet-stat-title">Vaccines</span>
-                </div>
-                <div className="pet-stat-cell">
-                  <HeartPulse size={16} color="#16A34A" />
-                  <span className="pet-stat-num">{medicalCount}</span>
-                  <span className="pet-stat-title">Medical Logs</span>
-                </div>
-                <div className="pet-stat-cell">
-                  <ShieldCheck size={16} color="#EAB308" />
-                  <span className="pet-stat-num">{pet.isVaccinated ? 'Yes' : 'No'}</span>
-                  <span className="pet-stat-title">Vaccinated</span>
-                </div>
-              </div>
-            </div>
-
           </div>
 
         </div>
@@ -557,19 +504,6 @@ export default function PetDetails({ user, petId, onBack, onEdit, onDeleteSucces
               <HeartPulse size={16} color="#16A34A" />
               <span>Medical History & Vaccination Timelines</span>
             </h4>
-
-            {isOwner && (
-              <div style={{ display: 'flex', gap: '8px' }}>
-                <button type="button" className="pet-action-btn teal" onClick={() => setActiveDrawer('medical')}>
-                  <FilePlus2 size={13} />
-                  <span>Add Medical Record</span>
-                </button>
-                <button type="button" className="pet-action-btn orange" onClick={() => setActiveDrawer('vaccine')}>
-                  <Syringe size={13} />
-                  <span>Add Vaccine</span>
-                </button>
-              </div>
-            )}
           </div>
 
           <div className="pet-timeline-wrapper">
@@ -657,12 +591,11 @@ export default function PetDetails({ user, petId, onBack, onEdit, onDeleteSucces
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                 {isOwner && (
                   <>
-                    <button type="button" className="pet-action-btn teal" onClick={() => setActiveDrawer('medical')}>
+                    <button type="button" className="pet-header-action-btn teal" onClick={() => setActiveDrawer('medical')}>
                       <FilePlus2 size={13} />
                       <span>Add Medical Record</span>
                     </button>
-                    <button type="button" className="pet-action-btn danger-text" onClick={() => setActiveDrawer('deleteConfirm')}>
-                      <Trash2 size={13} />
+                    <button type="button" className="pet-delete-companion-btn" onClick={() => setActiveDrawer('deleteConfirm')}>
                       <span>Delete Companion</span>
                     </button>
                   </>
@@ -966,7 +899,7 @@ export default function PetDetails({ user, petId, onBack, onEdit, onDeleteSucces
               </button>
               <button 
                 type="button"
-                className="pet-form-btn-save" 
+                className="pet-modal-btn-save" 
                 onClick={handleDelete}
                 style={{ backgroundColor: '#EF4444', flex: 1 }}
               >

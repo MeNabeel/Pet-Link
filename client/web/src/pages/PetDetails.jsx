@@ -18,6 +18,10 @@ export default function PetDetails({ user, petId, onBack, onEdit, onDeleteSucces
   // Modal / Drawer active states: 'health' | 'vaccine' | 'medical' | 'deleteConfirm' | null
   const [activeDrawer, setActiveDrawer] = useState(null);
 
+  // Confirmation Modals State
+  const [showSaveMedicalConfirm, setShowSaveMedicalConfirm] = useState(false);
+  const [showSaveVaccineConfirm, setShowSaveVaccineConfirm] = useState(false);
+
   // Add Vaccine Form state
   const [vName, setVName] = useState('');
   const [vDose, setVDose] = useState('');
@@ -37,6 +41,18 @@ export default function PetDetails({ user, petId, onBack, onEdit, onDeleteSucces
   const [mVisitDate, setMVisitDate] = useState('');
   const [mNextVisit, setMNextVisit] = useState('');
   const [mAttachment, setMAttachment] = useState('');
+
+  // Prevent underlying body scroll when modal is active
+  useEffect(() => {
+    if (activeDrawer) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [activeDrawer]);
 
   const fetchPetDetails = async () => {
     try {
@@ -77,13 +93,16 @@ export default function PetDetails({ user, petId, onBack, onEdit, onDeleteSucces
     }
   };
 
-  const handleAddVaccine = async (e) => {
+  const handleVaccineFormSubmit = (e) => {
     e.preventDefault();
     if (!vName || !vDate) {
       alert('Vaccine Name and Date are required.');
       return;
     }
+    setShowSaveVaccineConfirm(true);
+  };
 
+  const executeAddVaccine = async () => {
     try {
       const response = await fetch(`${API_URL}/api/pets/${petId}/vaccine`, {
         method: 'POST',
@@ -114,13 +133,16 @@ export default function PetDetails({ user, petId, onBack, onEdit, onDeleteSucces
     }
   };
 
-  const handleAddMedical = async (e) => {
+  const handleMedicalFormSubmit = (e) => {
     e.preventDefault();
     if (!mDisease || !mVisitDate) {
       alert('Disease and Visit Date are required.');
       return;
     }
+    setShowSaveMedicalConfirm(true);
+  };
 
+  const executeAddMedical = async () => {
     try {
       const response = await fetch(`${API_URL}/api/pets/${petId}/medical-record`, {
         method: 'POST',
@@ -216,7 +238,7 @@ export default function PetDetails({ user, petId, onBack, onEdit, onDeleteSucces
       {/* REDESIGNED PET PROFILE HEADER CARD */}
       <div className="pet-profile-card">
         
-        {/* LEFT: LARGE RECTANGULAR PET IMAGE (30-35% WIDTH, FULL HEIGHT, FLUSH LEFT EDGE) */}
+        {/* LEFT: LARGE RECTANGULAR PET IMAGE */}
         <div className="pet-profile-image-container">
           <PetImage src={pet.image} imageSettings={pet.imageSettings} type="card" className="pet-profile-full-img" />
           <span className={`pet-status-pill status-${(pet.activeStatus || 'ACTIVE').toLowerCase().replace(/_/g, '-')}`}>
@@ -224,7 +246,7 @@ export default function PetDetails({ user, petId, onBack, onEdit, onDeleteSucces
           </span>
         </div>
 
-        {/* RIGHT: PET INFORMATION AREA (65-70% WIDTH) */}
+        {/* RIGHT: PET INFORMATION AREA */}
         <div className="pet-profile-info-area">
           
           {/* TOP ROW: NAME, BREED & ACTION BUTTONS */}
@@ -580,26 +602,21 @@ export default function PetDetails({ user, petId, onBack, onEdit, onDeleteSucces
       )}
 
       {/* ----------------------------------------------------
-         DRAWER MODALS (HEALTH LOG, VACCINE FORM, MEDICAL FORM, DELETE)
+         MODALS (HEALTH LOG, VACCINE FORM, MEDICAL FORM, DELETE)
          ---------------------------------------------------- */}
 
-      {/* Health Record Logs Drawer */}
+      {/* Health Record Logs Modal */}
       {activeDrawer === 'health' && (
         <div className="pet-details-drawer-overlay" onClick={() => setActiveDrawer(null)}>
           <div className="pet-details-drawer" onClick={(e) => e.stopPropagation()}>
             <div className="pet-drawer-header">
               <h3 className="pet-drawer-title">{pet.name}'s Medical Health Log</h3>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div className="pet-drawer-header-actions">
                 {isOwner && (
-                  <>
-                    <button type="button" className="pet-header-action-btn teal" onClick={() => setActiveDrawer('medical')}>
-                      <FilePlus2 size={13} />
-                      <span>Add Medical Record</span>
-                    </button>
-                    <button type="button" className="pet-delete-companion-btn" onClick={() => setActiveDrawer('deleteConfirm')}>
-                      <span>Delete Companion</span>
-                    </button>
-                  </>
+                  <button type="button" className="pet-header-action-btn teal" onClick={() => setActiveDrawer('medical')}>
+                    <FilePlus2 size={13} />
+                    <span>Add Medical Record</span>
+                  </button>
                 )}
                 <button type="button" className="pet-drawer-close-btn" onClick={() => setActiveDrawer(null)}>
                   <X size={20} />
@@ -607,71 +624,74 @@ export default function PetDetails({ user, petId, onBack, onEdit, onDeleteSucces
               </div>
             </div>
 
-            <div className="pet-card-rows-list" style={{ marginBottom: '20px' }}>
-              <div className="pet-row-item">
-                <span className="pet-row-label">Blood Group</span>
-                <span className="pet-row-val">{pet.bloodGroup || 'Not specified'}</span>
+            <div className="pet-modal-scroll-body">
+              <div className="pet-card-rows-list" style={{ marginBottom: '20px' }}>
+                <div className="pet-row-item">
+                  <span className="pet-row-label">Blood Group</span>
+                  <span className="pet-row-val">{pet.bloodGroup || 'Not specified'}</span>
+                </div>
+                <div className="pet-row-item">
+                  <span className="pet-row-label">Vaccination Status</span>
+                  <span className="pet-row-val">{pet.isVaccinated ? 'Vaccinated' : 'Not Vaccinated'}</span>
+                </div>
+                <div className="pet-row-item vertical">
+                  <span className="pet-row-label">Allergies Log</span>
+                  <span className="pet-row-val" style={{ width: '100%', textAlign: 'left', marginTop: '4px' }}>
+                    {pet.allergies || 'No allergies recorded.'}
+                  </span>
+                </div>
+                <div className="pet-row-item vertical">
+                  <span className="pet-row-label">Chronic Diseases</span>
+                  <span className="pet-row-val" style={{ width: '100%', textAlign: 'left', marginTop: '4px' }}>
+                    {pet.diseases || 'No chronic diseases recorded.'}
+                  </span>
+                </div>
+                <div className="pet-row-item vertical border-none">
+                  <span className="pet-row-label">General Medical Summary</span>
+                  <span className="pet-row-val" style={{ width: '100%', textAlign: 'left', marginTop: '4px' }}>
+                    {pet.medicalHistory || 'No past surgical history logged.'}
+                  </span>
+                </div>
               </div>
-              <div className="pet-row-item">
-                <span className="pet-row-label">Vaccination Status</span>
-                <span className="pet-row-val">{pet.isVaccinated ? 'Vaccinated' : 'Not Vaccinated'}</span>
-              </div>
-              <div className="pet-row-item vertical">
-                <span className="pet-row-label">Allergies Log</span>
-                <span className="pet-row-val" style={{ width: '100%', textAlign: 'left', marginTop: '4px' }}>
-                  {pet.allergies || 'No allergies recorded.'}
-                </span>
-              </div>
-              <div className="pet-row-item vertical">
-                <span className="pet-row-label">Chronic Diseases</span>
-                <span className="pet-row-val" style={{ width: '100%', textAlign: 'left', marginTop: '4px' }}>
-                  {pet.diseases || 'No chronic diseases recorded.'}
-                </span>
-              </div>
-              <div className="pet-row-item vertical border-none">
-                <span className="pet-row-label">General Medical Summary</span>
-                <span className="pet-row-val" style={{ width: '100%', textAlign: 'left', marginTop: '4px' }}>
-                  {pet.medicalHistory || 'No past surgical history logged.'}
-                </span>
+
+              <h4 className="pet-card-box-title" style={{ fontSize: '14px', marginBottom: '10px' }}>Timeline Logs</h4>
+              <div className="pet-timeline-wrapper">
+                {pet.vaccines && pet.vaccines.map((vac, idx) => (
+                  <div key={`vac-${idx}`} className="pet-timeline-item">
+                    <div className="pet-timeline-dot green" />
+                    <span className="pet-timeline-date">{vac.date}</span>
+                    <h5 className="pet-timeline-title">Vaccinated: {vac.vaccineName} ({vac.dose})</h5>
+                    <p className="pet-timeline-body">
+                      <strong>Veterinarian:</strong> {vac.veterinarian || 'Not specified'}<br />
+                      {vac.notes && <span><strong>Notes:</strong> {vac.notes}<br /></span>}
+                      {vac.nextDueDate && <span style={{ color: '#EAB308', fontWeight: '700' }}>Next Due: {vac.nextDueDate}</span>}
+                    </p>
+                  </div>
+                ))}
+
+                {pet.medicalRecords && pet.medicalRecords.map((med, idx) => (
+                  <div key={`med-${idx}`} className="pet-timeline-item">
+                    <div className="pet-timeline-dot red" />
+                    <span className="pet-timeline-date">{med.visitDate}</span>
+                    <h5 className="pet-timeline-title">Clinic Consultation: {med.disease}</h5>
+                    <p className="pet-timeline-body">
+                      <strong>Symptoms:</strong> {med.symptoms}<br />
+                      <strong>Diagnosis:</strong> {med.diagnosis}<br />
+                      <strong>Treatment:</strong> {med.treatment}<br />
+                      <strong>Medicine:</strong> {med.medicine}<br />
+                      <strong>Doctor/Clinic:</strong> {med.doctor} at {med.clinic}<br />
+                      {med.nextVisitDate && <span style={{ color: '#0066CC', fontWeight: '700' }}>Follow up: {med.nextVisitDate}</span>}
+                    </p>
+                  </div>
+                ))}
               </div>
             </div>
 
-            <h4 className="pet-card-box-title" style={{ fontSize: '14px', marginBottom: '10px' }}>Timeline Logs</h4>
-            <div className="pet-timeline-wrapper">
-              {pet.vaccines && pet.vaccines.map((vac, idx) => (
-                <div key={`vac-${idx}`} className="pet-timeline-item">
-                  <div className="pet-timeline-dot green" />
-                  <span className="pet-timeline-date">{vac.date}</span>
-                  <h5 className="pet-timeline-title">Vaccinated: {vac.vaccineName} ({vac.dose})</h5>
-                  <p className="pet-timeline-body">
-                    <strong>Veterinarian:</strong> {vac.veterinarian || 'Not specified'}<br />
-                    {vac.notes && <span><strong>Notes:</strong> {vac.notes}<br /></span>}
-                    {vac.nextDueDate && <span style={{ color: '#EAB308', fontWeight: '700' }}>Next Due: {vac.nextDueDate}</span>}
-                  </p>
-                </div>
-              ))}
-
-              {pet.medicalRecords && pet.medicalRecords.map((med, idx) => (
-                <div key={`med-${idx}`} className="pet-timeline-item">
-                  <div className="pet-timeline-dot red" />
-                  <span className="pet-timeline-date">{med.visitDate}</span>
-                  <h5 className="pet-timeline-title">Clinic Consultation: {med.disease}</h5>
-                  <p className="pet-timeline-body">
-                    <strong>Symptoms:</strong> {med.symptoms}<br />
-                    <strong>Diagnosis:</strong> {med.diagnosis}<br />
-                    <strong>Treatment:</strong> {med.treatment}<br />
-                    <strong>Medicine:</strong> {med.medicine}<br />
-                    <strong>Doctor/Clinic:</strong> {med.doctor} at {med.clinic}<br />
-                    {med.nextVisitDate && <span style={{ color: '#0066CC', fontWeight: '700' }}>Follow up: {med.nextVisitDate}</span>}
-                  </p>
-                </div>
-              ))}
-            </div>
           </div>
         </div>
       )}
 
-      {/* Add Vaccine form drawer */}
+      {/* Add Vaccine Form Centered Modal */}
       {activeDrawer === 'vaccine' && (
         <div className="pet-details-drawer-overlay" onClick={() => setActiveDrawer(null)}>
           <div className="pet-details-drawer" onClick={(e) => e.stopPropagation()}>
@@ -682,71 +702,73 @@ export default function PetDetails({ user, petId, onBack, onEdit, onDeleteSucces
               </button>
             </div>
 
-            <form onSubmit={handleAddVaccine}>
-              <div className="form-group">
-                <label className="form-label">Vaccine Name *</label>
-                <input 
-                  type="text" 
-                  className="form-control login-input" 
-                  placeholder="e.g. DHPP, Rabies"
-                  value={vName} 
-                  onChange={(e) => setVName(e.target.value)} 
-                  required 
-                />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Dose Number / Info</label>
-                <input 
-                  type="text" 
-                  className="form-control login-input" 
-                  placeholder="e.g. 1st Dose, Booster"
-                  value={vDose} 
-                  onChange={(e) => setVDose(e.target.value)} 
-                />
-              </div>
-              <div className="pet-modal-row">
+            <form onSubmit={handleVaccineFormSubmit} className="pet-modal-form">
+              <div className="pet-modal-scroll-body">
                 <div className="form-group">
-                  <label className="form-label">Vaccination Date *</label>
+                  <label className="form-label">Vaccine Name *</label>
                   <input 
-                    type="date" 
+                    type="text" 
                     className="form-control login-input" 
-                    value={vDate} 
-                    onChange={(e) => setVDate(e.target.value)} 
+                    placeholder="e.g. DHPP, Rabies"
+                    value={vName} 
+                    onChange={(e) => setVName(e.target.value)} 
                     required 
                   />
                 </div>
                 <div className="form-group">
-                  <label className="form-label">Next Due Date</label>
+                  <label className="form-label">Dose Number / Info</label>
                   <input 
-                    type="date" 
+                    type="text" 
                     className="form-control login-input" 
-                    value={vNextDate} 
-                    onChange={(e) => setVNextDate(e.target.value)} 
+                    placeholder="e.g. 1st Dose, Booster"
+                    value={vDose} 
+                    onChange={(e) => setVDose(e.target.value)} 
+                  />
+                </div>
+                <div className="pet-modal-row">
+                  <div className="form-group">
+                    <label className="form-label">Vaccination Date *</label>
+                    <input 
+                      type="date" 
+                      className="form-control login-input" 
+                      value={vDate} 
+                      onChange={(e) => setVDate(e.target.value)} 
+                      required 
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Next Due Date</label>
+                    <input 
+                      type="date" 
+                      className="form-control login-input" 
+                      value={vNextDate} 
+                      onChange={(e) => setVNextDate(e.target.value)} 
+                    />
+                  </div>
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Veterinarian Name</label>
+                  <input 
+                    type="text" 
+                    className="form-control login-input" 
+                    placeholder="e.g. Dr. Haris"
+                    value={vVet} 
+                    onChange={(e) => setVVet(e.target.value)} 
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Notes</label>
+                  <textarea 
+                    className="form-control login-input" 
+                    style={{ height: '70px', padding: '10px' }}
+                    placeholder="Additional observations..."
+                    value={vNotes}
+                    onChange={(e) => setVNotes(e.target.value)}
                   />
                 </div>
               </div>
-              <div className="form-group">
-                <label className="form-label">Veterinarian Name</label>
-                <input 
-                  type="text" 
-                  className="form-control login-input" 
-                  placeholder="e.g. Dr. Haris"
-                  value={vVet} 
-                  onChange={(e) => setVVet(e.target.value)} 
-                />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Notes</label>
-                <textarea 
-                  className="form-control login-input" 
-                  style={{ height: '70px', padding: '10px' }}
-                  placeholder="Additional observations..."
-                  value={vNotes}
-                  onChange={(e) => setVNotes(e.target.value)}
-                />
-              </div>
 
-              <div className="pet-modal-actions" style={{ marginTop: '20px' }}>
+              <div className="pet-modal-actions" style={{ marginTop: '16px' }}>
                 <button type="button" className="pet-modal-btn-cancel" onClick={() => setActiveDrawer(null)}>
                   Cancel
                 </button>
@@ -759,7 +781,7 @@ export default function PetDetails({ user, petId, onBack, onEdit, onDeleteSucces
         </div>
       )}
 
-      {/* Add Medical Record form drawer */}
+      {/* Add Medical Record Form Centered Modal */}
       {activeDrawer === 'medical' && (
         <div className="pet-details-drawer-overlay" onClick={() => setActiveDrawer(null)}>
           <div className="pet-details-drawer" onClick={(e) => e.stopPropagation()}>
@@ -770,110 +792,112 @@ export default function PetDetails({ user, petId, onBack, onEdit, onDeleteSucces
               </button>
             </div>
 
-            <form onSubmit={handleAddMedical}>
-              <div className="form-group">
-                <label className="form-label">Disease / Reason *</label>
-                <input 
-                  type="text" 
-                  className="form-control login-input" 
-                  placeholder="e.g. Ear Infection, Yearly Checkup"
-                  value={mDisease} 
-                  onChange={(e) => setMDisease(e.target.value)} 
-                  required 
-                />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Observed Symptoms</label>
-                <input 
-                  type="text" 
-                  className="form-control login-input" 
-                  placeholder="e.g. Redness, scratching ear"
-                  value={mSymptoms} 
-                  onChange={(e) => setMSymptoms(e.target.value)} 
-                />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Clinical Diagnosis</label>
-                <input 
-                  type="text" 
-                  className="form-control login-input" 
-                  placeholder="Diagnosis..."
-                  value={mDiagnosis} 
-                  onChange={(e) => setMDiagnosis(e.target.value)} 
-                />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Prescribed Treatment</label>
-                <input 
-                  type="text" 
-                  className="form-control login-input" 
-                  placeholder="Treatment..."
-                  value={mTreatment} 
-                  onChange={(e) => setMTreatment(e.target.value)} 
-                />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Medicine Details</label>
-                <input 
-                  type="text" 
-                  className="form-control login-input" 
-                  placeholder="e.g. Otomax drops twice daily"
-                  value={mMedicine} 
-                  onChange={(e) => setMMedicine(e.target.value)} 
-                />
-              </div>
-              <div className="pet-modal-row">
+            <form onSubmit={handleMedicalFormSubmit} className="pet-modal-form">
+              <div className="pet-modal-scroll-body">
                 <div className="form-group">
-                  <label className="form-label">Doctor Name</label>
+                  <label className="form-label">Disease / Reason *</label>
                   <input 
                     type="text" 
                     className="form-control login-input" 
-                    value={mDoctor} 
-                    onChange={(e) => setMDoctor(e.target.value)} 
-                  />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Clinic Location</label>
-                  <input 
-                    type="text" 
-                    className="form-control login-input" 
-                    value={mClinic} 
-                    onChange={(e) => setMClinic(e.target.value)} 
-                  />
-                </div>
-              </div>
-              <div className="pet-modal-row">
-                <div className="form-group">
-                  <label className="form-label">Visit Date *</label>
-                  <input 
-                    type="date" 
-                    className="form-control login-input" 
-                    value={mVisitDate} 
-                    onChange={(e) => setMVisitDate(e.target.value)} 
+                    placeholder="e.g. Ear Infection, Yearly Checkup"
+                    value={mDisease} 
+                    onChange={(e) => setMDisease(e.target.value)} 
                     required 
                   />
                 </div>
                 <div className="form-group">
-                  <label className="form-label">Next Visit Follow-up</label>
+                  <label className="form-label">Observed Symptoms</label>
                   <input 
-                    type="date" 
+                    type="text" 
                     className="form-control login-input" 
-                    value={mNextVisit} 
-                    onChange={(e) => setMNextVisit(e.target.value)} 
+                    placeholder="e.g. Redness, scratching ear"
+                    value={mSymptoms} 
+                    onChange={(e) => setMSymptoms(e.target.value)} 
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Clinical Diagnosis</label>
+                  <input 
+                    type="text" 
+                    className="form-control login-input" 
+                    placeholder="Diagnosis..."
+                    value={mDiagnosis} 
+                    onChange={(e) => setMDiagnosis(e.target.value)} 
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Prescribed Treatment</label>
+                  <input 
+                    type="text" 
+                    className="form-control login-input" 
+                    placeholder="Treatment..."
+                    value={mTreatment} 
+                    onChange={(e) => setMTreatment(e.target.value)} 
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Medicine Details</label>
+                  <input 
+                    type="text" 
+                    className="form-control login-input" 
+                    placeholder="e.g. Otomax drops twice daily"
+                    value={mMedicine} 
+                    onChange={(e) => setMMedicine(e.target.value)} 
+                  />
+                </div>
+                <div className="pet-modal-row">
+                  <div className="form-group">
+                    <label className="form-label">Doctor Name</label>
+                    <input 
+                      type="text" 
+                      className="form-control login-input" 
+                      value={mDoctor} 
+                      onChange={(e) => setMDoctor(e.target.value)} 
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Clinic Location</label>
+                    <input 
+                      type="text" 
+                      className="form-control login-input" 
+                      value={mClinic} 
+                      onChange={(e) => setMClinic(e.target.value)} 
+                    />
+                  </div>
+                </div>
+                <div className="pet-modal-row">
+                  <div className="form-group">
+                    <label className="form-label">Visit Date *</label>
+                    <input 
+                      type="date" 
+                      className="form-control login-input" 
+                      value={mVisitDate} 
+                      onChange={(e) => setMVisitDate(e.target.value)} 
+                      required 
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Next Visit Follow-up</label>
+                    <input 
+                      type="date" 
+                      className="form-control login-input" 
+                      value={mNextVisit} 
+                      onChange={(e) => setMNextVisit(e.target.value)} 
+                    />
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Attach Diagnostic Report (Image)</label>
+                  <input 
+                    type="file" 
+                    accept="image/*"
+                    onChange={handleAttachmentChange} 
                   />
                 </div>
               </div>
 
-              <div className="form-group">
-                <label className="form-label">Attach Diagnostic Report (Image)</label>
-                <input 
-                  type="file" 
-                  accept="image/*"
-                  onChange={handleAttachmentChange} 
-                />
-              </div>
-
-              <div className="pet-modal-actions" style={{ marginTop: '20px' }}>
+              <div className="pet-modal-actions" style={{ marginTop: '16px' }}>
                 <button type="button" className="pet-modal-btn-cancel" onClick={() => setActiveDrawer(null)}>
                   Cancel
                 </button>
@@ -882,6 +906,72 @@ export default function PetDetails({ user, petId, onBack, onEdit, onDeleteSucces
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Save Vaccine Confirmation Modal */}
+      {showSaveVaccineConfirm && (
+        <div className="pet-modal-overlay" style={{ zIndex: 1100 }} onClick={() => setShowSaveVaccineConfirm(false)}>
+          <div className="pet-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '440px', padding: '24px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '16px' }}>
+              <div style={{ width: '42px', height: '42px', borderRadius: '12px', backgroundColor: '#FFEDD5', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#EA580C', flexShrink: 0 }}>
+                <Syringe size={20} />
+              </div>
+              <div>
+                <h3 style={{ fontSize: '18px', fontWeight: '800', color: '#0F172A', margin: 0 }}>Save Vaccination Log?</h3>
+                <p style={{ fontSize: '13px', color: '#64748B', margin: '2px 0 0 0' }}>Are you sure you want to save this vaccination record?</p>
+              </div>
+            </div>
+            <div className="pet-modal-actions" style={{ gap: '10px' }}>
+              <button type="button" className="pet-modal-btn-cancel" onClick={() => setShowSaveVaccineConfirm(false)} style={{ flex: 1 }}>
+                Cancel
+              </button>
+              <button 
+                type="button"
+                className="pet-modal-btn-save" 
+                onClick={() => {
+                  setShowSaveVaccineConfirm(false);
+                  executeAddVaccine();
+                }}
+                style={{ flex: 1 }}
+              >
+                Confirm & Save
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Save Medical Record Confirmation Modal */}
+      {showSaveMedicalConfirm && (
+        <div className="pet-modal-overlay" style={{ zIndex: 1100 }} onClick={() => setShowSaveMedicalConfirm(false)}>
+          <div className="pet-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '440px', padding: '24px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '16px' }}>
+              <div style={{ width: '42px', height: '42px', borderRadius: '12px', backgroundColor: '#CCFBF1', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#0D9488', flexShrink: 0 }}>
+                <FilePlus2 size={20} />
+              </div>
+              <div>
+                <h3 style={{ fontSize: '18px', fontWeight: '800', color: '#0F172A', margin: 0 }}>Save Medical Record?</h3>
+                <p style={{ fontSize: '13px', color: '#64748B', margin: '2px 0 0 0' }}>Are you sure you want to save this medical record?</p>
+              </div>
+            </div>
+            <div className="pet-modal-actions" style={{ gap: '10px' }}>
+              <button type="button" className="pet-modal-btn-cancel" onClick={() => setShowSaveMedicalConfirm(false)} style={{ flex: 1 }}>
+                Cancel
+              </button>
+              <button 
+                type="button"
+                className="pet-modal-btn-save" 
+                onClick={() => {
+                  setShowSaveMedicalConfirm(false);
+                  executeAddMedical();
+                }}
+                style={{ flex: 1 }}
+              >
+                Confirm & Save
+              </button>
+            </div>
           </div>
         </div>
       )}

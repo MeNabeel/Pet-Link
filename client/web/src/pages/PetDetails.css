@@ -609,25 +609,27 @@
 .pet-modal {
   background-color: #FFFFFF;
   width: 100%;
-  max-width: 560px;
+  max-width: 580px;
   max-height: 85vh;
   border-radius: 16px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
   padding: 24px;
   display: flex;
   flex-direction: column;
-  overflow-y: auto;
   position: relative;
   border: 1px solid #E2E8F0;
+  overflow: hidden;
 }
 
 .pet-drawer-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
+  gap: 16px;
+  margin-bottom: 16px;
   padding-bottom: 12px;
   border-bottom: 1px solid #E2E8F0;
+  flex-shrink: 0;
 }
 
 .pet-drawer-title {
@@ -635,6 +637,15 @@
   font-weight: 700;
   color: #0F172A;
   margin: 0;
+  flex: 1;
+  min-width: 180px;
+}
+
+.pet-drawer-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
 }
 
 .pet-drawer-close-btn {
@@ -642,6 +653,31 @@
   border: none;
   cursor: pointer;
   color: #64748B;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  border-radius: 6px;
+  transition: background-color 0.2s ease;
+}
+
+.pet-drawer-close-btn:hover {
+  background-color: #F1F5F9;
+  color: #0F172A;
+}
+
+.pet-modal-form {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  overflow: hidden;
+}
+
+.pet-modal-scroll-body {
+  overflow-y: auto;
+  flex: 1;
+  padding-right: 4px;
+  max-height: calc(85vh - 130px);
 }
 
 .pet-modal-overlay {

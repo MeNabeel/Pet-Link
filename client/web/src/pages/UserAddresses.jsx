@@ -45,7 +45,10 @@ export default function UserAddresses({ user, onBack }) {
   const userToken = user?.token || localStorage.getItem('token') || '';
 
   const fetchAddresses = async () => {
-    if (!userId) return;
+    if (!userId) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     setError('');
     try {
@@ -57,13 +60,19 @@ export default function UserAddresses({ user, onBack }) {
       });
       const data = await response.json();
       if (response.ok) {
-        setAddresses(Array.isArray(data) ? data : []);
+        if (Array.isArray(data)) {
+          setAddresses(data);
+        } else if (data && Array.isArray(data.addresses)) {
+          setAddresses(data.addresses);
+        } else {
+          setAddresses([]);
+        }
       } else {
-        setError(data.message || 'Failed to load saved addresses');
+        setError(data.message || 'Unable to load your saved addresses. Please try again.');
       }
     } catch (err) {
       console.error('Fetch addresses error:', err);
-      setError('Network connection error. Failed to retrieve addresses.');
+      setError('Unable to load your saved addresses. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -73,7 +82,9 @@ export default function UserAddresses({ user, onBack }) {
     fetchAddresses();
   }, [userId]);
 
-  const handleOpenAddModal = () => {
+  const handleOpenAddModal = (e) => {
+    if (e && e.currentTarget) e.currentTarget.blur();
+    if (document.activeElement) document.activeElement.blur();
     setEditingAddress(null);
     setFullName(user?.name || '');
     setPhone(user?.phone || '');
@@ -89,7 +100,9 @@ export default function UserAddresses({ user, onBack }) {
     setIsFormModalOpen(true);
   };
 
-  const handleOpenEditModal = (addr) => {
+  const handleOpenEditModal = (addr, e) => {
+    if (e && e.currentTarget) e.currentTarget.blur();
+    if (document.activeElement) document.activeElement.blur();
     setEditingAddress(addr);
     setFullName(addr.fullName || '');
     setPhone(addr.phone || '');
@@ -383,7 +396,14 @@ export default function UserAddresses({ user, onBack }) {
 
       {/* SHADCN FORM DIALOG (ADD / EDIT ADDRESS) */}
       <Dialog open={isFormModalOpen} onOpenChange={setIsFormModalOpen}>
-        <DialogContent className="address-dialog-content">
+        <DialogContent 
+          className="address-dialog-content"
+          onOpenAutoFocus={(e) => {
+            e.preventDefault();
+            const firstInput = document.querySelector('.address-form-input');
+            if (firstInput) firstInput.focus();
+          }}
+        >
           <DialogHeader>
             <DialogTitle className="address-dialog-title">
               {editingAddress ? 'Edit Address' : 'Add New Address'}
@@ -558,7 +578,14 @@ export default function UserAddresses({ user, onBack }) {
 
       {/* SHADCN ALERT DIALOG (DELETE CONFIRMATION) */}
       <AlertDialog open={isDeleteAlertOpen} onOpenChange={setIsDeleteAlertOpen}>
-        <AlertDialogContent className="address-alert-content">
+        <AlertDialogContent 
+          className="address-alert-content"
+          onOpenAutoFocus={(e) => {
+            e.preventDefault();
+            const cancelBtn = document.querySelector('.address-alert-cancel-btn');
+            if (cancelBtn) cancelBtn.focus();
+          }}
+        >
           <AlertDialogHeader>
             <AlertDialogTitle className="address-alert-title">Delete Address?</AlertDialogTitle>
             <AlertDialogDescription className="address-alert-desc">

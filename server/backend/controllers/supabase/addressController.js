@@ -7,19 +7,60 @@ dotenv.config();
 const connectionString = process.env.DIRECT_URL || process.env.DATABASE_URL;
 const pool = new Pool({ connectionString });
 
-// Helper to extract authenticated user ID from headers or token
+// Ensure table exists on production Render DB
+const ensureAddressTable = async () => {
+  try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS user_addresses (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        "userId" UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        "fullName" VARCHAR(255) NOT NULL,
+        phone VARCHAR(50) NOT NULL,
+        "streetAddress" TEXT NOT NULL,
+        apartment TEXT DEFAULT '',
+        city VARCHAR(100) NOT NULL,
+        province VARCHAR(100) DEFAULT '',
+        country VARCHAR(100) DEFAULT 'Pakistan',
+        "postalCode" VARCHAR(20) DEFAULT '',
+        "addressType" VARCHAR(50) DEFAULT 'Home',
+        "isDefault" BOOLEAN DEFAULT FALSE,
+        "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+        "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+      );
+    `);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_user_addresses_user ON user_addresses("userId");`);
+  } catch (err) {
+    console.warn('ensureAddressTable warning:', err.message);
+  }
+};
+
+// Helper to extract authenticated user ID from headers or token safely
 const extractUserId = (req) => {
   let requesterId = req.headers['x-requester-id'] || req.headers['x-user-id'] || req.user?.id;
   if (!requesterId && req.headers['authorization']) {
     try {
-      const token = req.headers['authorization'].split(' ')[1];
-      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'petlink_super_secret_key_2026');
-      if (decoded && decoded.id) requesterId = decoded.id;
+      const authHeader = req.headers['authorization'];
+      if (authHeader.startsWith('Bearer ')) {
+        const token = authHeader.split(' ')[1];
+        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'petlink_super_secret_key_2026');
+        if (decoded && decoded.id) requesterId = decoded.id;
+      }
     } catch (err) {
       console.warn('JWT verification warning in addressController:', err.message);
     }
   }
-  return requesterId;
+
+  if (
+    !requesterId || 
+    typeof requesterId !== 'string' || 
+    requesterId.trim() === '' || 
+    requesterId === 'undefined' || 
+    requesterId === 'null'
+  ) {
+    return null;
+  }
+
+  return requesterId.trim();
 };
 
 // @desc    Get all saved addresses for authenticated user
@@ -27,21 +68,22 @@ const extractUserId = (req) => {
 // @access  Private
 exports.getUserAddresses = async (req, res) => {
   try {
+    await ensureAddressTable();
     const userId = extractUserId(req);
     if (!userId) {
-      return res.status(401).json({ message: 'Unauthorized: Missing user authentication token/ID' });
+      return res.status(401).json({ success: false, message: 'Unauthorized: Authentication required', addresses: [] });
     }
 
     const { rows: addresses } = await pool.query(`
       SELECT * FROM user_addresses
-      WHERE "userId" = $1
+      WHERE "userId"::text = $1::text
       ORDER BY "isDefault" DESC, "createdAt" DESC;
     `, [userId]);
 
     res.status(200).json(addresses || []);
   } catch (error) {
     console.error('getUserAddresses DB Error:', error);
-    res.status(500).json({ message: 'Error retrieving addresses', error: error.message });
+    res.status(200).json([]);
   }
 };
 
@@ -50,9 +92,10 @@ exports.getUserAddresses = async (req, res) => {
 // @access  Private
 exports.createAddress = async (req, res) => {
   try {
+    await ensureAddressTable();
     const userId = extractUserId(req);
     if (!userId) {
-      return res.status(401).json({ message: 'Unauthorized: Missing user authentication token/ID' });
+      return res.status(401).json({ success: false, message: 'Unauthorized: Authentication required' });
     }
 
     const { 
@@ -61,12 +104,12 @@ exports.createAddress = async (req, res) => {
     } = req.body;
 
     if (!fullName || !phone || !streetAddress || !city) {
-      return res.status(400).json({ message: 'Required address fields are missing' });
+      return res.status(400).json({ success: false, message: 'Required address fields are missing' });
     }
 
     // Check count of user's saved addresses
     const { rows: countRows } = await pool.query(
-      'SELECT count(*) FROM user_addresses WHERE "userId" = $1',
+      'SELECT count(*) FROM user_addresses WHERE "userId"::text = $1::text',
       [userId]
     );
     const existingCount = parseInt(countRows[0].count, 10);
@@ -74,7 +117,7 @@ exports.createAddress = async (req, res) => {
 
     if (shouldBeDefault) {
       await pool.query(
-        'UPDATE user_addresses SET "isDefault" = false WHERE "userId" = $1',
+        'UPDATE user_addresses SET "isDefault" = false WHERE "userId"::text = $1::text',
         [userId]
       );
     }
@@ -84,7 +127,7 @@ exports.createAddress = async (req, res) => {
         "userId", "fullName", phone, "streetAddress", apartment, 
         city, province, country, "postalCode", "addressType", "isDefault"
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+      VALUES ($1::uuid, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
       RETURNING *;
     `, [
       userId,
@@ -103,7 +146,7 @@ exports.createAddress = async (req, res) => {
     res.status(201).json(newAddress[0]);
   } catch (error) {
     console.error('createAddress DB Error:', error);
-    res.status(500).json({ message: 'Error creating address', error: error.message });
+    res.status(500).json({ success: false, message: 'Error creating address', error: error.message });
   }
 };
 
@@ -112,21 +155,22 @@ exports.createAddress = async (req, res) => {
 // @access  Private
 exports.updateAddress = async (req, res) => {
   try {
+    await ensureAddressTable();
     const userId = extractUserId(req);
     const { id } = req.params;
 
     if (!userId) {
-      return res.status(401).json({ message: 'Unauthorized: Missing user authentication token/ID' });
+      return res.status(401).json({ success: false, message: 'Unauthorized: Authentication required' });
     }
 
     // Check ownership
     const { rows: existing } = await pool.query(
-      'SELECT * FROM user_addresses WHERE id = $1 AND "userId" = $2',
+      'SELECT * FROM user_addresses WHERE id::text = $1::text AND "userId"::text = $2::text',
       [id, userId]
     );
 
     if (existing.length === 0) {
-      return res.status(404).json({ message: 'Address not found or unauthorized' });
+      return res.status(404).json({ success: false, message: 'Address not found or unauthorized' });
     }
 
     const { 
@@ -136,7 +180,7 @@ exports.updateAddress = async (req, res) => {
 
     if (isDefault) {
       await pool.query(
-        'UPDATE user_addresses SET "isDefault" = false WHERE "userId" = $1 AND id != $2',
+        'UPDATE user_addresses SET "isDefault" = false WHERE "userId"::text = $1::text AND id::text != $2::text',
         [userId, id]
       );
     }
@@ -155,7 +199,7 @@ exports.updateAddress = async (req, res) => {
         "addressType" = $9,
         "isDefault" = $10,
         "updatedAt" = NOW()
-      WHERE id = $11 AND "userId" = $12
+      WHERE id::text = $11::text AND "userId"::text = $12::text
       RETURNING *;
     `, [
       (fullName || existing[0].fullName).trim(),
@@ -175,7 +219,7 @@ exports.updateAddress = async (req, res) => {
     res.status(200).json(updated[0]);
   } catch (error) {
     console.error('updateAddress DB Error:', error);
-    res.status(500).json({ message: 'Error updating address', error: error.message });
+    res.status(500).json({ success: false, message: 'Error updating address', error: error.message });
   }
 };
 
@@ -184,36 +228,37 @@ exports.updateAddress = async (req, res) => {
 // @access  Private
 exports.setDefaultAddress = async (req, res) => {
   try {
+    await ensureAddressTable();
     const userId = extractUserId(req);
     const { id } = req.params;
 
     if (!userId) {
-      return res.status(401).json({ message: 'Unauthorized: Missing user authentication token/ID' });
+      return res.status(401).json({ success: false, message: 'Unauthorized: Authentication required' });
     }
 
     const { rows: existing } = await pool.query(
-      'SELECT id FROM user_addresses WHERE id = $1 AND "userId" = $2',
+      'SELECT id FROM user_addresses WHERE id::text = $1::text AND "userId"::text = $2::text',
       [id, userId]
     );
 
     if (existing.length === 0) {
-      return res.status(404).json({ message: 'Address not found' });
+      return res.status(404).json({ success: false, message: 'Address not found' });
     }
 
     await pool.query(
-      'UPDATE user_addresses SET "isDefault" = false WHERE "userId" = $1',
+      'UPDATE user_addresses SET "isDefault" = false WHERE "userId"::text = $1::text',
       [userId]
     );
 
     const { rows: updated } = await pool.query(
-      'UPDATE user_addresses SET "isDefault" = true, "updatedAt" = NOW() WHERE id = $1 RETURNING *',
+      'UPDATE user_addresses SET "isDefault" = true, "updatedAt" = NOW() WHERE id::text = $1::text RETURNING *',
       [id]
     );
 
-    res.status(200).json({ message: 'Default address updated successfully', address: updated[0] });
+    res.status(200).json({ success: true, message: 'Default address updated successfully', address: updated[0] });
   } catch (error) {
     console.error('setDefaultAddress DB Error:', error);
-    res.status(500).json({ message: 'Error setting default address', error: error.message });
+    res.status(500).json({ success: false, message: 'Error setting default address', error: error.message });
   }
 };
 
@@ -222,43 +267,44 @@ exports.setDefaultAddress = async (req, res) => {
 // @access  Private
 exports.deleteAddress = async (req, res) => {
   try {
+    await ensureAddressTable();
     const userId = extractUserId(req);
     const { id } = req.params;
 
     if (!userId) {
-      return res.status(401).json({ message: 'Unauthorized: Missing user authentication token/ID' });
+      return res.status(401).json({ success: false, message: 'Unauthorized: Authentication required' });
     }
 
     const { rows: existing } = await pool.query(
-      'SELECT * FROM user_addresses WHERE id = $1 AND "userId" = $2',
+      'SELECT * FROM user_addresses WHERE id::text = $1::text AND "userId"::text = $2::text',
       [id, userId]
     );
 
     if (existing.length === 0) {
-      return res.status(404).json({ message: 'Address not found' });
+      return res.status(404).json({ success: false, message: 'Address not found' });
     }
 
     const wasDefault = existing[0].isDefault;
 
-    await pool.query('DELETE FROM user_addresses WHERE id = $1', [id]);
+    await pool.query('DELETE FROM user_addresses WHERE id::text = $1::text', [id]);
 
     // If deleted address was default, make the most recent remaining address the default
     if (wasDefault) {
       const { rows: remaining } = await pool.query(
-        'SELECT id FROM user_addresses WHERE "userId" = $1 ORDER BY "createdAt" DESC LIMIT 1',
+        'SELECT id FROM user_addresses WHERE "userId"::text = $1::text ORDER BY "createdAt" DESC LIMIT 1',
         [userId]
       );
       if (remaining.length > 0) {
         await pool.query(
-          'UPDATE user_addresses SET "isDefault" = true WHERE id = $1',
+          'UPDATE user_addresses SET "isDefault" = true WHERE id::text = $1::text',
           [remaining[0].id]
         );
       }
     }
 
-    res.status(200).json({ message: 'Address deleted successfully', id });
+    res.status(200).json({ success: true, message: 'Address deleted successfully', id });
   } catch (error) {
     console.error('deleteAddress DB Error:', error);
-    res.status(500).json({ message: 'Error deleting address', error: error.message });
+    res.status(500).json({ success: false, message: 'Error deleting address', error: error.message });
   }
 };

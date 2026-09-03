@@ -5,6 +5,7 @@ import {
   Building2, Phone, Check, Star, User, Globe
 } from 'lucide-react';
 import './UserAddresses.css';
+import { Skeleton } from '@/components/ui/Skeleton';
 import { 
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter 
 } from '@/components/ui/dialog';
@@ -264,10 +265,10 @@ export default function UserAddresses({ user, onBack }) {
             type="button" 
             className="addresses-back-btn"
             onClick={onBack}
-            title="Back to My Profile"
+            aria-label="Back to Profile"
+            title="Back to Profile"
           >
-            <ArrowLeft size={18} />
-            <span>Back to Profile</span>
+            <ArrowLeft size={20} color="#0066CC" />
           </button>
           <div className="addresses-header-title-group">
             <h1 className="addresses-page-title">Addresses</h1>
@@ -294,9 +295,25 @@ export default function UserAddresses({ user, onBack }) {
 
       {/* CONTENT REGION */}
       {loading ? (
-        <div className="addresses-loading-box">
-          <div className="addresses-spinner" />
-          <span>Loading saved addresses from database...</span>
+        <div className="addresses-grid">
+          {[1, 2, 3].map((item) => (
+            <div key={item} className="address-card address-skeleton-card">
+              <div className="address-card-top">
+                <Skeleton width="70px" height="22px" style={{ borderRadius: '6px' }} />
+                <Skeleton width="90px" height="22px" style={{ borderRadius: '6px' }} />
+              </div>
+              <div className="address-card-body" style={{ gap: '10px', marginTop: '6px' }}>
+                <Skeleton width="50%" height="20px" style={{ borderRadius: '4px' }} />
+                <Skeleton width="40%" height="16px" style={{ borderRadius: '4px' }} />
+                <Skeleton width="85%" height="16px" style={{ borderRadius: '4px' }} />
+                <Skeleton width="65%" height="16px" style={{ borderRadius: '4px' }} />
+              </div>
+              <div className="address-card-actions" style={{ marginTop: '12px' }}>
+                <Skeleton width="64px" height="30px" style={{ borderRadius: '6px' }} />
+                <Skeleton width="64px" height="30px" style={{ borderRadius: '6px' }} />
+              </div>
+            </div>
+          ))}
         </div>
       ) : addresses.length === 0 ? (
         

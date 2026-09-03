@@ -213,99 +213,126 @@ export default function PetDetails({ user, petId, onBack, onEdit, onDeleteSucces
         )}
       </div>
 
-      {/* COMPACT PET PROFILE HEADER CARD */}
+      {/* REDESIGNED PET PROFILE HEADER CARD (SCREENSHOT 1 VISUAL STYLING + SCREENSHOT 2 APP SCALE) */}
       <div className="pet-profile-card">
-        <div className="pet-profile-header-top">
+        
+        {/* LEFT: LARGE RECTANGULAR PET IMAGE (30-35% WIDTH, FULL HEIGHT, FLUSH LEFT EDGE) */}
+        <div className="pet-profile-image-container">
+          <PetImage src={pet.image} imageSettings={pet.imageSettings} type="card" className="pet-profile-full-img" />
+          <span className={`pet-status-pill status-${(pet.activeStatus || 'ACTIVE').toLowerCase().replace(/_/g, '-')}`}>
+            {(pet.activeStatus || 'ACTIVE').replace('_', ' ')}
+          </span>
+        </div>
+
+        {/* RIGHT: PET INFORMATION AREA (65-70% WIDTH) */}
+        <div className="pet-profile-info-area">
           
-          <div className="pet-avatar-wrapper">
-            <PetImage src={pet.image} imageSettings={pet.imageSettings} type="card" className="pet-avatar-img" />
-            <span className={`pet-status-pill status-${(pet.activeStatus || 'ACTIVE').toLowerCase().replace(/_/g, '-')}`}>
-              {(pet.activeStatus || 'ACTIVE').replace('_', ' ')}
-            </span>
+          {/* TOP ROW: NAME, BREED & ACTION BUTTONS */}
+          <div className="pet-profile-top-row">
+            <div className="pet-profile-title-group">
+              <div className="pet-profile-name-row">
+                <h2 className="pet-profile-name">{pet.name}</h2>
+                {pet.gender === 'Female' ? (
+                  <span className="pet-gender-icon female" title="Female">♀</span>
+                ) : (
+                  <span className="pet-gender-icon male" title="Male">♂</span>
+                )}
+              </div>
+              <p className="pet-profile-breed-sub">{pet.breed} • {pet.species}</p>
+            </div>
+
+            {/* ACTION BUTTONS (COLORED BORDERS + LIGHT TINT + SOLID FILL ON HOVER) */}
+            <div className="pet-profile-actions-group">
+              <button 
+                type="button" 
+                className="pet-header-action-btn teal" 
+                onClick={() => setActiveDrawer('health')}
+              >
+                <HeartPulse size={15} />
+                <span>View Health Record</span>
+              </button>
+
+              {isOwner && (
+                <>
+                  <button 
+                    type="button" 
+                    className="pet-header-action-btn orange" 
+                    onClick={() => setActiveDrawer('vaccine')}
+                  >
+                    <Syringe size={15} />
+                    <span>Add Vaccine</span>
+                  </button>
+
+                  <button 
+                    type="button" 
+                    className="pet-header-action-btn blue" 
+                    onClick={() => onEdit(pet._id)}
+                  >
+                    <Pencil size={15} />
+                    <span>Edit Profile</span>
+                  </button>
+                </>
+              )}
+            </div>
           </div>
 
-          <div className="pet-profile-main-info">
-            <h2 className="pet-profile-name">{pet.name}</h2>
-            <p className="pet-profile-breed-sub">{pet.breed} • {pet.species}</p>
-            <p className="pet-profile-gender-sub">{pet.gender || 'Male'} • {pet.age}</p>
+          {/* BOTTOM ROW: INFORMATION STATISTICS METRICS */}
+          <div className="pet-profile-stats-row">
+            
+            <div className="pet-stat-item">
+              <div className="pet-stat-icon-badge green">
+                <Calendar size={15} />
+              </div>
+              <div className="pet-stat-text">
+                <span className="pet-stat-label">AGE</span>
+                <span className="pet-stat-value">{pet.age}</span>
+              </div>
+            </div>
+
+            <div className="pet-stat-item">
+              <div className="pet-stat-icon-badge blue">
+                <Activity size={15} />
+              </div>
+              <div className="pet-stat-text">
+                <span className="pet-stat-label">WEIGHT</span>
+                <span className="pet-stat-value">{pet.weight}</span>
+              </div>
+            </div>
+
+            <div className="pet-stat-item">
+              <div className="pet-stat-icon-badge teal">
+                <Sparkles size={15} />
+              </div>
+              <div className="pet-stat-text">
+                <span className="pet-stat-label">COLOR</span>
+                <span className="pet-stat-value">{pet.color || 'N/A'}</span>
+              </div>
+            </div>
+
+            <div className="pet-stat-item">
+              <div className="pet-stat-icon-badge purple">
+                <ShieldCheck size={15} />
+              </div>
+              <div className="pet-stat-text">
+                <span className="pet-stat-label">MICROCHIP ID</span>
+                <span className="pet-stat-value">{pet.microchipNumber || 'N/A'}</span>
+              </div>
+            </div>
+
+            <div className="pet-stat-item">
+              <div className="pet-stat-icon-badge orange">
+                <MapPin size={15} />
+              </div>
+              <div className="pet-stat-text">
+                <span className="pet-stat-label">LOCATION</span>
+                <span className="pet-stat-value">{pet.city || 'Lahore'}</span>
+              </div>
+            </div>
+
           </div>
 
-          <div className="pet-profile-header-actions">
-            <button 
-              type="button" 
-              className="pet-action-btn teal" 
-              onClick={() => setActiveDrawer('health')}
-            >
-              <HeartPulse size={14} />
-              <span>View Health Record</span>
-            </button>
-
-            {isOwner && (
-              <>
-                <button 
-                  type="button" 
-                  className="pet-action-btn orange" 
-                  onClick={() => setActiveDrawer('vaccine')}
-                >
-                  <Syringe size={14} />
-                  <span>Add Vaccine</span>
-                </button>
-
-                <button 
-                  type="button" 
-                  className="pet-action-btn primary" 
-                  onClick={() => onEdit(pet._id)}
-                >
-                  <Pencil size={14} />
-                  <span>Edit Profile</span>
-                </button>
-              </>
-            )}
-          </div>
         </div>
 
-        {/* COMPACT KEY METRICS BAR */}
-        <div className="pet-metrics-bar">
-          <div className="pet-metric-item">
-            <Calendar size={14} className="pet-metric-icon" />
-            <div className="pet-metric-text">
-              <span className="pet-metric-label">Age</span>
-              <span className="pet-metric-val">{pet.age}</span>
-            </div>
-          </div>
-
-          <div className="pet-metric-item">
-            <Activity size={14} className="pet-metric-icon" />
-            <div className="pet-metric-text">
-              <span className="pet-metric-label">Weight</span>
-              <span className="pet-metric-val">{pet.weight}</span>
-            </div>
-          </div>
-
-          <div className="pet-metric-item">
-            <Sparkles size={14} className="pet-metric-icon" />
-            <div className="pet-metric-text">
-              <span className="pet-metric-label">Color</span>
-              <span className="pet-metric-val">{pet.color || 'N/A'}</span>
-            </div>
-          </div>
-
-          <div className="pet-metric-item">
-            <ShieldCheck size={14} className="pet-metric-icon" />
-            <div className="pet-metric-text">
-              <span className="pet-metric-label">Microchip ID</span>
-              <span className="pet-metric-val">{pet.microchipNumber || 'N/A'}</span>
-            </div>
-          </div>
-
-          <div className="pet-metric-item">
-            <MapPin size={14} className="pet-metric-icon" />
-            <div className="pet-metric-text">
-              <span className="pet-metric-label">Location</span>
-              <span className="pet-metric-val">{pet.city || 'Lahore'}</span>
-            </div>
-          </div>
-        </div>
       </div>
 
       {/* HORIZONTAL NAVIGATION TABS */}

@@ -2,7 +2,7 @@ import API_URL from '@/config';
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   Heart, HeartPulse, PawPrint, BadgeCheck, MapPin, 
-  FileText, Upload, X, ChevronRight, Sparkles, Check
+  FileText, Upload, X, ChevronRight, Check
 } from 'lucide-react';
 import './PetForm.css';
 import PetImage from '../components/PetImage';
@@ -20,6 +20,7 @@ export default function PetForm({ user, petId, onCancel, onSaveSuccess }) {
   const [loading, setLoading] = useState(false);
   const [fetchingData, setFetchingData] = useState(false);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+  const [showSectionSaveConfirm, setShowSectionSaveConfirm] = useState(false);
   const [formError, setFormError] = useState('');
 
   // Active Dialog State: 'health' | 'behaviour' | 'status' | 'location' | 'documents' | null
@@ -233,7 +234,7 @@ export default function PetForm({ user, petId, onCancel, onSaveSuccess }) {
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!name || !breed || !age || !weight) {
-      alert('Nick Name, Breed, Age, and Weight are required.');
+      alert('Pet Name, Breed, Age, and Weight are required.');
       return;
     }
     setIsConfirmOpen(true);
@@ -274,6 +275,8 @@ export default function PetForm({ user, petId, onCancel, onSaveSuccess }) {
 
       if (response.ok) {
         const savedData = await response.json();
+        setActiveModalSection(null);
+        setShowSectionSaveConfirm(false);
         onSaveSuccess(savedData);
       } else {
         const errorData = await response.json();
@@ -301,10 +304,10 @@ export default function PetForm({ user, petId, onCancel, onSaveSuccess }) {
   return (
     <div className="pet-form-container fade-in">
       
-      {/* HEADER */}
+      {/* COMPACT HEADER */}
       <div className="pet-form-header">
         <h2 className="pet-form-title">{petId ? 'Edit Pet Profile' : 'Register New Pet Companion'}</h2>
-        <p className="pet-form-subtitle">Update basic information below or open additional section dialogs to manage health, location, and records.</p>
+        <p className="pet-form-subtitle">Update basic information or manage additional sections.</p>
       </div>
 
       <form onSubmit={handleSubmit} className="pet-form-body-wrapper">
@@ -349,7 +352,7 @@ export default function PetForm({ user, petId, onCancel, onSaveSuccess }) {
                   </div>
                 ) : (
                   <div className="pet-image-placeholder">
-                    <Upload size={22} />
+                    <Upload size={20} />
                     <span>Upload Main Photo</span>
                   </div>
                 )}
@@ -479,7 +482,6 @@ export default function PetForm({ user, petId, onCancel, onSaveSuccess }) {
           {/* RIGHT: EXPANDABLE SECTION DIALOG TRIGGERS */}
           <div className="pet-triggers-column">
             <h3 className="pet-section-title-sm">
-              <Sparkles size={16} color="var(--color-primary)" />
               <span>Additional Sections</span>
             </h3>
 
@@ -669,10 +671,17 @@ export default function PetForm({ user, petId, onCancel, onSaveSuccess }) {
           <DialogFooter className="pet-dialog-footer">
             <button 
               type="button" 
-              className="pet-dialog-btn-done"
+              className="pet-dialog-btn-cancel"
               onClick={() => setActiveModalSection(null)}
             >
-              Close
+              Cancel
+            </button>
+            <button 
+              type="button" 
+              className="pet-dialog-btn-save"
+              onClick={() => setShowSectionSaveConfirm(true)}
+            >
+              Save
             </button>
           </DialogFooter>
         </DialogContent>
@@ -804,10 +813,17 @@ export default function PetForm({ user, petId, onCancel, onSaveSuccess }) {
           <DialogFooter className="pet-dialog-footer">
             <button 
               type="button" 
-              className="pet-dialog-btn-done"
+              className="pet-dialog-btn-cancel"
               onClick={() => setActiveModalSection(null)}
             >
-              Close
+              Cancel
+            </button>
+            <button 
+              type="button" 
+              className="pet-dialog-btn-save"
+              onClick={() => setShowSectionSaveConfirm(true)}
+            >
+              Save
             </button>
           </DialogFooter>
         </DialogContent>
@@ -892,10 +908,17 @@ export default function PetForm({ user, petId, onCancel, onSaveSuccess }) {
           <DialogFooter className="pet-dialog-footer">
             <button 
               type="button" 
-              className="pet-dialog-btn-done"
+              className="pet-dialog-btn-cancel"
               onClick={() => setActiveModalSection(null)}
             >
-              Close
+              Cancel
+            </button>
+            <button 
+              type="button" 
+              className="pet-dialog-btn-save"
+              onClick={() => setShowSectionSaveConfirm(true)}
+            >
+              Save
             </button>
           </DialogFooter>
         </DialogContent>
@@ -962,10 +985,17 @@ export default function PetForm({ user, petId, onCancel, onSaveSuccess }) {
           <DialogFooter className="pet-dialog-footer">
             <button 
               type="button" 
-              className="pet-dialog-btn-done"
+              className="pet-dialog-btn-cancel"
               onClick={() => setActiveModalSection(null)}
             >
-              Close
+              Cancel
+            </button>
+            <button 
+              type="button" 
+              className="pet-dialog-btn-save"
+              onClick={() => setShowSectionSaveConfirm(true)}
+            >
+              Save
             </button>
           </DialogFooter>
         </DialogContent>
@@ -1024,18 +1054,41 @@ export default function PetForm({ user, petId, onCancel, onSaveSuccess }) {
           <DialogFooter className="pet-dialog-footer">
             <button 
               type="button" 
-              className="pet-dialog-btn-done"
+              className="pet-dialog-btn-cancel"
               onClick={() => setActiveModalSection(null)}
             >
-              Close
+              Cancel
+            </button>
+            <button 
+              type="button" 
+              className="pet-dialog-btn-save"
+              onClick={() => setShowSectionSaveConfirm(true)}
+            >
+              Save
             </button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* CONFIRMATION ALERT DIALOG */}
+      {/* SECTION SAVE CONFIRMATION ALERT DIALOG */}
+      <AlertDialog open={showSectionSaveConfirm} onOpenChange={setShowSectionSaveConfirm}>
+        <AlertDialogContent style={{ maxWidth: '440px' }}>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Save Changes?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to save these changes to the pet profile?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setShowSectionSaveConfirm(false)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={proceedSave}>Confirm Save</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* MAIN FORM CONFIRMATION ALERT DIALOG */}
       <AlertDialog open={isConfirmOpen} onOpenChange={setIsConfirmOpen}>
-        <AlertDialogContent>
+        <AlertDialogContent style={{ maxWidth: '440px' }}>
           <AlertDialogHeader>
             <AlertDialogTitle>{petId ? 'Confirm Profile Update' : 'Confirm Registration'}</AlertDialogTitle>
             <AlertDialogDescription>
@@ -1045,8 +1098,8 @@ export default function PetForm({ user, petId, onCancel, onSaveSuccess }) {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={proceedSave}>Save</AlertDialogAction>
+            <AlertDialogCancel onClick={() => setIsConfirmOpen(false)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={proceedSave}>Confirm Save</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

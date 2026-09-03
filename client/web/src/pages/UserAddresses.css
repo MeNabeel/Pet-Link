@@ -123,7 +123,9 @@
 }
 
 @keyframes addressesSpin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .addresses-error-alert {

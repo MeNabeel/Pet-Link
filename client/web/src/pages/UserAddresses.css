@@ -1,0 +1,536 @@
+/* ==========================================
+   PETLINK DEDICATED ADDRESS MANAGEMENT STYLES
+   ========================================== */
+
+.addresses-container {
+  width: 100%;
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 16px 20px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* ------------------------------------------
+   PAGE HEADER BAR
+   ------------------------------------------ */
+.addresses-header-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  background-color: #FFFFFF;
+  padding: 16px 20px;
+  border-radius: 12px;
+  border: 1px solid #E2E8F0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+}
+
+.addresses-header-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.addresses-back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background-color: #F1F5F9;
+  color: #475569;
+  border: 1px solid #CBD5E1;
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.addresses-back-btn:hover {
+  background-color: #E2E8F0;
+  color: #0F172A;
+}
+
+.addresses-header-title-group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.addresses-page-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: #0F172A;
+  margin: 0;
+}
+
+.addresses-page-sub {
+  font-size: 13px;
+  color: #64748B;
+  margin: 0;
+}
+
+.addresses-add-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background-color: #0066CC;
+  color: #FFFFFF;
+  border: none;
+  padding: 10px 18px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 2px 4px rgba(0, 102, 204, 0.2);
+  transition: background-color 0.2s ease, transform 0.1s ease;
+}
+
+.addresses-add-btn:hover {
+  background-color: #0052A3;
+}
+
+.addresses-add-btn:active {
+  transform: translateY(1px);
+}
+
+/* ------------------------------------------
+   LOADING & ERROR STATES
+   ------------------------------------------ */
+.addresses-loading-box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  background-color: #FFFFFF;
+  padding: 40px;
+  border-radius: 12px;
+  border: 1px solid #E2E8F0;
+  color: #64748B;
+  font-size: 14px;
+}
+
+.addresses-spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid #E2E8F0;
+  border-top-color: #0066CC;
+  border-radius: 50%;
+  animation: addressesSpin 0.8s linear infinite;
+}
+
+@keyframes addressesSpin {
+  to { transform: rotate(360deg); }
+}
+
+.addresses-error-alert {
+  background-color: #FEF2F2;
+  border: 1px solid #FCA5A5;
+  color: #991B1B;
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 13.5px;
+}
+
+/* ------------------------------------------
+   EMPTY STATE CARD
+   ------------------------------------------ */
+.addresses-empty-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  background-color: #FFFFFF;
+  border: 1px dashed #CBD5E1;
+  border-radius: 12px;
+  padding: 48px 24px;
+  gap: 12px;
+}
+
+.addresses-empty-icon-box {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background-color: rgba(0, 102, 204, 0.08);
+  color: #0066CC;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 4px;
+}
+
+.addresses-empty-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #0F172A;
+  margin: 0;
+}
+
+.addresses-empty-desc {
+  font-size: 14px;
+  color: #64748B;
+  margin: 0 0 12px 0;
+  max-width: 380px;
+}
+
+/* ------------------------------------------
+   ADDRESS CARDS GRID (1-SCREEN VIEWPORT)
+   ------------------------------------------ */
+.addresses-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+.address-card {
+  background-color: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 12px;
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 14px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+}
+
+.address-card:hover {
+  border-color: #CBD5E1;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+}
+
+.address-card.is-default-card {
+  border: 1.5px solid #0066CC;
+  background-color: #FAFCFF;
+}
+
+.address-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.address-type-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background-color: #F1F5F9;
+  color: #334155;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.address-default-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background-color: #0066CC;
+  color: #FFFFFF;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.address-set-default-btn {
+  background: none;
+  border: none;
+  color: #0066CC;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: background-color 0.2s ease;
+}
+
+.address-set-default-btn:hover {
+  background-color: rgba(0, 102, 204, 0.08);
+  text-decoration: underline;
+}
+
+.address-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.address-recipient-name {
+  font-size: 16px;
+  font-weight: 700;
+  color: #0F172A;
+  margin: 0 0 2px 0;
+}
+
+.address-detail-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13.5px;
+  color: #334155;
+}
+
+.address-icon-muted {
+  color: #64748B;
+  flex-shrink: 0;
+}
+
+.address-location-line {
+  font-size: 13px;
+  color: #64748B;
+  margin-top: 2px;
+}
+
+.address-country-line {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #94A3B8;
+}
+
+.address-card-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  padding-top: 10px;
+  border-top: 1px solid #F1F5F9;
+}
+
+.address-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  border: 1px solid #E2E8F0;
+  background-color: #FFFFFF;
+  color: #475569;
+  transition: all 0.2s ease;
+}
+
+.address-action-btn.edit:hover {
+  background-color: #F8FAFC;
+  color: #0066CC;
+  border-color: #CBD5E1;
+}
+
+.address-action-btn.delete:hover {
+  background-color: #FEF2F2;
+  color: #DC2626;
+  border-color: #FCA5A5;
+}
+
+/* ------------------------------------------
+   SHADCN FORM DIALOG STYLING
+   ------------------------------------------ */
+.address-dialog-content {
+  max-width: 580px !important;
+  border-radius: 14px !important;
+  padding: 24px !important;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1) !important;
+}
+
+.address-dialog-title {
+  font-size: 18px !important;
+  font-weight: 700 !important;
+  color: #0F172A !important;
+}
+
+.address-dialog-desc {
+  font-size: 13px !important;
+  color: #64748B !important;
+  margin-bottom: 12px !important;
+}
+
+.address-form-error-box {
+  background-color: #FEF2F2;
+  border: 1px solid #FCA5A5;
+  color: #991B1B;
+  padding: 10px 14px;
+  border-radius: 6px;
+  font-size: 13px;
+  margin-bottom: 12px;
+}
+
+.address-form-body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.address-form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.address-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.address-form-label {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #334155;
+}
+
+.address-form-input,
+.address-form-select {
+  width: 100%;
+  padding: 9px 12px;
+  border-radius: 8px;
+  border: 1px solid #CBD5E1;
+  font-size: 13.5px;
+  color: #0F172A;
+  outline: none;
+  box-sizing: border-box;
+  background-color: #FFFFFF;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.address-form-input:focus,
+.address-form-select:focus {
+  border-color: #0066CC;
+  box-shadow: 0 0 0 3px rgba(0, 102, 204, 0.12);
+}
+
+.address-checkbox-row {
+  margin-top: 4px;
+}
+
+.address-checkbox-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #334155;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.address-checkbox-input {
+  width: 16px;
+  height: 16px;
+  accent-color: #0066CC;
+  cursor: pointer;
+}
+
+.address-dialog-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 10px;
+  padding-top: 12px;
+  border-top: 1px solid #E2E8F0;
+}
+
+.address-modal-cancel-btn {
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: 1px solid #CBD5E1;
+  background-color: #FFFFFF;
+  color: #475569;
+  font-size: 13.5px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.address-modal-cancel-btn:hover {
+  background-color: #F1F5F9;
+}
+
+.address-modal-save-btn {
+  padding: 9px 20px;
+  border-radius: 8px;
+  border: none;
+  background-color: #0066CC;
+  color: #FFFFFF;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 2px 4px rgba(0, 102, 204, 0.2);
+}
+
+.address-modal-save-btn:hover {
+  background-color: #0052A3;
+}
+
+/* ------------------------------------------
+   SHADCN ALERT DIALOG STYLING
+   ------------------------------------------ */
+.address-alert-content {
+  max-width: 440px !important;
+  border-radius: 12px !important;
+  padding: 20px !important;
+}
+
+.address-alert-title {
+  font-size: 17px !important;
+  font-weight: 700 !important;
+  color: #0F172A !important;
+}
+
+.address-alert-desc {
+  font-size: 13.5px !important;
+  color: #64748B !important;
+}
+
+.address-alert-footer {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.address-alert-cancel-btn {
+  background-color: #F1F5F9 !important;
+  color: #475569 !important;
+  border: 1px solid #CBD5E1 !important;
+}
+
+.address-alert-delete-btn {
+  background-color: #DC2626 !important;
+  color: #FFFFFF !important;
+  border: none !important;
+}
+
+.address-alert-delete-btn:hover {
+  background-color: #B91C1C !important;
+}
+
+/* ------------------------------------------
+   RESPONSIVE DESIGN (TABLET & MOBILE)
+   ------------------------------------------ */
+@media (max-width: 768px) {
+  .addresses-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .addresses-header-bar {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .addresses-add-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .address-form-row {
+    grid-template-columns: 1fr;
+  }
+}

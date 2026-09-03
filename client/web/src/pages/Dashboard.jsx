@@ -11,6 +11,7 @@ import { safeSetUserStorage } from '../utils/storage';
 import './Dashboard.css';
 import Profile from './Profile';
 import AccountSettings from './AccountSettings';
+import UserAddresses from './UserAddresses';
 import StorePage from './StorePage';
 import MyPets from './MyPets';
 import PetForm from './PetForm';
@@ -272,6 +273,7 @@ export default function Dashboard({ onLogout }) {
       case 'overview': return 'Dashboard';
       case 'profile': return 'My Profile';
       case 'settings': return 'Account Settings';
+      case 'addresses': return 'Addresses';
       case 'pets': return petSubView === 'form' ? 'Add New Pet' : petSubView === 'details' ? 'Pet Medical & Profile Details' : 'My Registered Pets';
       case 'shop': return 'Pet Products Store';
       case 'marketplace': return 'Pet Marketplace';
@@ -1066,8 +1068,16 @@ export default function Dashboard({ onLogout }) {
             <Profile 
               user={user}
               onNavigateToSettings={() => setActiveTab('settings')}
+              onNavigateToAddresses={() => setActiveTab('addresses')}
               onLogout={onLogout}
               onUpdateUser={handleUpdateUser}
+            />
+          )}
+
+          {activeTab === 'addresses' && (
+            <UserAddresses 
+              user={user}
+              onBack={() => setActiveTab('profile')}
             />
           )}
 

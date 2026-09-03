@@ -6,7 +6,7 @@ import {
 } from 'lucide-react';
 import './Profile.css';
 
-export default function Profile({ user, onNavigateToSettings, onLogout, onUpdateUser }) {
+export default function Profile({ user, onNavigateToSettings, onLogout, onUpdateUser, onNavigateToAddresses }) {
   const profileInputRef = useRef(null);
 
   if (!user) return null;
@@ -185,7 +185,7 @@ export default function Profile({ user, onNavigateToSettings, onLogout, onUpdate
               </div>
 
               {/* Addresses */}
-              <div className="profile-pref-item" onClick={() => handleMenuClick('Addresses')}>
+              <div className="profile-pref-item" onClick={onNavigateToAddresses || (() => handleMenuClick('Addresses'))}>
                 <div className="profile-pref-left">
                   <div className="profile-pref-icon-box" style={{ backgroundColor: 'rgba(22, 163, 74, 0.08)', color: '#16A34A' }}>
                     <MapPin size={18} />

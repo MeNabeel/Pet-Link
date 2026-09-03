@@ -301,11 +301,31 @@ const initDB = async () => {
       );
     `);
 
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS user_addresses (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        "userId" UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        "fullName" VARCHAR(255) NOT NULL,
+        phone VARCHAR(50) NOT NULL,
+        "streetAddress" TEXT NOT NULL,
+        apartment TEXT DEFAULT '',
+        city VARCHAR(100) NOT NULL,
+        province VARCHAR(100) DEFAULT '',
+        country VARCHAR(100) DEFAULT 'Pakistan',
+        "postalCode" VARCHAR(20) DEFAULT '',
+        "addressType" VARCHAR(50) DEFAULT 'Home',
+        "isDefault" BOOLEAN DEFAULT FALSE,
+        "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+        "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+      );
+    `);
+
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_clinics_city ON clinics(city);`);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_clinics_status ON clinics(status);`);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_clinics_google_place_id ON clinics("googlePlaceId");`);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_clinic_appointments_user ON clinic_appointments("userId");`);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_clinic_appointments_status ON clinic_appointments(status);`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_user_addresses_user ON user_addresses("userId");`);
 
     // ----------------------------------------------------
     // DATA SEEDING

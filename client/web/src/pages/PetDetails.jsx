@@ -781,10 +781,10 @@ export default function PetDetails({ user, petId, onBack, onEdit, onDeleteSucces
         </div>
       )}
 
-      {/* Add Medical Record Form Centered Modal */}
+      {/* WIDE & COMPACT NON-SCROLLING MEDICAL RECORD DIALOG */}
       {activeDrawer === 'medical' && (
         <div className="pet-details-drawer-overlay" onClick={() => setActiveDrawer(null)}>
-          <div className="pet-details-drawer" onClick={(e) => e.stopPropagation()}>
+          <div className="pet-details-drawer medical-wide-dialog" onClick={(e) => e.stopPropagation()}>
             <div className="pet-drawer-header">
               <h3 className="pet-drawer-title">Log Clinic Consultation</h3>
               <button type="button" className="pet-drawer-close-btn" onClick={() => setActiveDrawer(null)}>
@@ -793,8 +793,10 @@ export default function PetDetails({ user, petId, onBack, onEdit, onDeleteSucces
             </div>
 
             <form onSubmit={handleMedicalFormSubmit} className="pet-modal-form">
-              <div className="pet-modal-scroll-body">
-                <div className="form-group">
+              <div className="pet-medical-compact-grid">
+                
+                {/* ROW 1: Disease / Reason (Full Width) */}
+                <div className="form-group full-width">
                   <label className="form-label">Disease / Reason *</label>
                   <input 
                     type="text" 
@@ -805,6 +807,8 @@ export default function PetDetails({ user, petId, onBack, onEdit, onDeleteSucces
                     required 
                   />
                 </div>
+
+                {/* ROW 2: Symptoms & Diagnosis */}
                 <div className="form-group">
                   <label className="form-label">Observed Symptoms</label>
                   <input 
@@ -825,6 +829,8 @@ export default function PetDetails({ user, petId, onBack, onEdit, onDeleteSucces
                     onChange={(e) => setMDiagnosis(e.target.value)} 
                   />
                 </div>
+
+                {/* ROW 3: Treatment & Medicine */}
                 <div className="form-group">
                   <label className="form-label">Prescribed Treatment</label>
                   <input 
@@ -845,56 +851,62 @@ export default function PetDetails({ user, petId, onBack, onEdit, onDeleteSucces
                     onChange={(e) => setMMedicine(e.target.value)} 
                   />
                 </div>
-                <div className="pet-modal-row">
-                  <div className="form-group">
-                    <label className="form-label">Doctor Name</label>
-                    <input 
-                      type="text" 
-                      className="form-control login-input" 
-                      value={mDoctor} 
-                      onChange={(e) => setMDoctor(e.target.value)} 
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">Clinic Location</label>
-                    <input 
-                      type="text" 
-                      className="form-control login-input" 
-                      value={mClinic} 
-                      onChange={(e) => setMClinic(e.target.value)} 
-                    />
-                  </div>
+
+                {/* ROW 4: Doctor & Clinic Location */}
+                <div className="form-group">
+                  <label className="form-label">Doctor Name</label>
+                  <input 
+                    type="text" 
+                    className="form-control login-input" 
+                    placeholder="e.g. Dr. Haris"
+                    value={mDoctor} 
+                    onChange={(e) => setMDoctor(e.target.value)} 
+                  />
                 </div>
-                <div className="pet-modal-row">
-                  <div className="form-group">
-                    <label className="form-label">Visit Date *</label>
-                    <input 
-                      type="date" 
-                      className="form-control login-input" 
-                      value={mVisitDate} 
-                      onChange={(e) => setMVisitDate(e.target.value)} 
-                      required 
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">Next Visit Follow-up</label>
-                    <input 
-                      type="date" 
-                      className="form-control login-input" 
-                      value={mNextVisit} 
-                      onChange={(e) => setMNextVisit(e.target.value)} 
-                    />
-                  </div>
+                <div className="form-group">
+                  <label className="form-label">Clinic Location</label>
+                  <input 
+                    type="text" 
+                    className="form-control login-input" 
+                    placeholder="e.g. Pet Care Clinic, DHA Phase 5"
+                    value={mClinic} 
+                    onChange={(e) => setMClinic(e.target.value)} 
+                  />
                 </div>
 
+                {/* ROW 5: Visit Date & Next Follow-up */}
                 <div className="form-group">
+                  <label className="form-label">Visit Date *</label>
+                  <input 
+                    type="date" 
+                    className="form-control login-input" 
+                    value={mVisitDate} 
+                    onChange={(e) => setMVisitDate(e.target.value)} 
+                    required 
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Next Visit Follow-up</label>
+                  <input 
+                    type="date" 
+                    className="form-control login-input" 
+                    value={mNextVisit} 
+                    onChange={(e) => setMNextVisit(e.target.value)} 
+                  />
+                </div>
+
+                {/* ROW 6: Diagnostic Report */}
+                <div className="form-group full-width">
                   <label className="form-label">Attach Diagnostic Report (Image)</label>
                   <input 
                     type="file" 
                     accept="image/*"
+                    className="form-control login-input"
                     onChange={handleAttachmentChange} 
+                    style={{ paddingTop: '6px' }}
                   />
                 </div>
+
               </div>
 
               <div className="pet-modal-actions" style={{ marginTop: '16px' }}>

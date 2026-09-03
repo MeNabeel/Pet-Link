@@ -621,6 +621,49 @@
   overflow: hidden;
 }
 
+/* WIDE & COMPACT MEDICAL RECORD MODAL (NO SCROLLING ON DESKTOP) */
+.pet-details-drawer.medical-wide-dialog {
+  max-width: 780px;
+  width: min(780px, calc(100vw - 32px));
+  max-height: 90vh;
+  overflow: visible;
+  padding: 22px 24px;
+}
+
+.pet-medical-compact-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px 16px;
+}
+
+.pet-medical-compact-grid .full-width {
+  grid-column: 1 / -1;
+}
+
+.pet-medical-compact-grid .form-group {
+  margin-bottom: 0;
+}
+
+.pet-medical-compact-grid .form-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #475569;
+  margin-bottom: 4px;
+  display: block;
+}
+
+.pet-medical-compact-grid .login-input {
+  height: 38px;
+  font-size: 13px;
+  padding: 6px 12px;
+}
+
+@media (max-width: 640px) {
+  .pet-medical-compact-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 .pet-drawer-header {
   display: flex;
   justify-content: space-between;

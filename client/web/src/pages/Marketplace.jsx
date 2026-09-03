@@ -3,7 +3,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { 
   Search, Heart, Eye, MapPin, Sparkles, AlertTriangle, 
   RefreshCw, LayoutGrid, List, SlidersHorizontal, ShieldCheck, 
-  HelpCircle, User, Calendar, Smile, ShieldAlert
+  User, Calendar, Smile, ShieldAlert
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Skeleton } from '@/components/ui/Skeleton';
@@ -15,17 +15,12 @@ export default function Marketplace({ user, onViewDetails }) {
   const [viewMode, setViewMode] = useState('grid'); // 'grid' | 'list'
   const [isFilterExpanded, setIsFilterExpanded] = useState(true);
   const [quickViewPet, setQuickViewPet] = useState(null);
+  const [showOnlyWishlist, setShowOnlyWishlist] = useState(false);
   
   // Data State
   const [pets, setPets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [stats, setStats] = useState({
-    totalListings: 0,
-    forSaleCount: 0,
-    forAdoptionCount: 0,
-    recentlyAddedCount: 0
-  });
 
   // Pagination
   const [page, setPage] = useState(1);
@@ -75,12 +70,13 @@ export default function Marketplace({ user, onViewDetails }) {
 
   // Fetch Wishlist Items
   const fetchWishlist = useCallback(async () => {
-    if (!user || !user._id) return;
+    const userId = user && (user._id || user.id);
+    if (!userId) return;
     try {
-      const response = await fetch(`${API_URL}/api/wishlist/owner/${user._id}`);
+      const response = await fetch(`${API_URL}/api/wishlist/owner/${userId}`);
       if (response.ok) {
         const data = await response.json();
-        const ids = new Set(data.wishlist.map(p => p._id));
+        const ids = new Set((data.wishlist || []).map(p => p._id || p.id));
         setWishlistIds(ids);
       }
     } catch (err) {
@@ -118,7 +114,6 @@ export default function Marketplace({ user, onViewDetails }) {
         queryParams.append('listingType', listingType);
       }
 
-      // Append pricing queries if not FOR_ADOPTION
       if (listingType !== 'FOR_ADOPTION') {
         if (minPrice) queryParams.append('minPrice', minPrice);
         if (maxPrice) queryParams.append('maxPrice', maxPrice);
@@ -131,11 +126,7 @@ export default function Marketplace({ user, onViewDetails }) {
       
       const data = await response.json();
       setPets(data.pets || []);
-      setTotalPages(data.pagination.pages || 1);
-      
-      if (data.stats) {
-        setStats(data.stats);
-      }
+      setTotalPages((data.pagination && data.pagination.pages) || 1);
     } catch (err) {
       console.error(err);
       setError(err.message || 'Server error loading marketplace.');
@@ -159,30 +150,31 @@ export default function Marketplace({ user, onViewDetails }) {
   }, [fetchWishlist]);
 
   // Wishlist Heart Click Handler
-  const handleToggleFavorite = async (e, petId) => {
+  const handleToggleFavorite = async (e, targetPetId) => {
     e.stopPropagation();
-    if (!user || !user._id) {
+    const userId = user && (user._id || user.id);
+    if (!userId) {
       alert('Please log in to save pets to your wishlist.');
       return;
     }
 
-    const isFavorited = wishlistIds.has(petId);
-    setSavingFavId(petId);
+    const isFavorited = wishlistIds.has(targetPetId);
+    setSavingFavId(targetPetId);
 
     try {
       const endpoint = isFavorited ? 'remove' : 'add';
       const response = await fetch(`${API_URL}/api/wishlist/${endpoint}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user._id, petId })
+        body: JSON.stringify({ userId, petId: targetPetId })
       });
 
       if (response.ok) {
         const updated = new Set(wishlistIds);
         if (isFavorited) {
-          updated.delete(petId);
+          updated.delete(targetPetId);
         } else {
-          updated.add(petId);
+          updated.add(targetPetId);
         }
         setWishlistIds(updated);
       } else {
@@ -207,8 +199,8 @@ export default function Marketplace({ user, onViewDetails }) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          reporter: user._id,
-          petId: reportingPet._id,
+          reporter: user._id || user.id,
+          petId: reportingPet._id || reportingPet.id,
           reason: reportReason
         })
       });
@@ -246,13 +238,15 @@ export default function Marketplace({ user, onViewDetails }) {
     setMaxPrice('');
     setSort('newest');
     setListingType('all');
+    setShowOnlyWishlist(false);
     setPage(1);
   };
 
-  // Share Listing Mock
+  // Share Listing Link
   const handleShareListing = (e, pet) => {
     e.stopPropagation();
-    const url = `${window.location.origin}/marketplace/${pet._id}`;
+    const targetId = pet._id || pet.id;
+    const url = `${window.location.origin}/marketplace/${targetId}`;
     if (navigator.clipboard) {
       navigator.clipboard.writeText(url);
       alert(`Copied link to clipboard for ${pet.name}!`);
@@ -261,66 +255,61 @@ export default function Marketplace({ user, onViewDetails }) {
     }
   };
 
+  const displayedPets = showOnlyWishlist 
+    ? pets.filter(p => wishlistIds.has(p._id || p.id)) 
+    : pets;
+
   return (
     <div className="marketplace-container">
-      {/* Top Banner & Title Section */}
-      <div className="marketplace-header-banner">
-        <div className="marketplace-header-left">
-          <span className="marketplace-badge-pill">
-            <Sparkles size={12} /> Live Pet Ecosystem
-          </span>
+      
+      {/* CLEAN COMPACT MARKETPLACE HEADER */}
+      <div className="marketplace-clean-header">
+        <div className="marketplace-header-title-box">
           <h2 className="marketplace-title">Marketplace & Adoption Hub</h2>
           <p className="marketplace-subtitle">
-            Find loving companions, verified profiles for sale, and pets seeking immediate adoption across Pakistan.
+            Browse verified companions, profiles for sale, and pets seeking immediate adoption across Pakistan.
           </p>
+        </div>
 
-          {/* Quick Search */}
-          <div className="marketplace-quick-search">
-            <Search className="search-icon" size={18} />
+        <div className="marketplace-header-toolbar">
+          {/* PROMINENT MARKETPLACE SEARCH BAR */}
+          <div className="marketplace-main-search">
+            <Search className="search-icon" size={16} />
             <input 
               type="text" 
-              placeholder="Search by companion name, breed, species, location..." 
+              placeholder="Search by companion name, breed, species, or city..." 
               value={search}
               onChange={(e) => { setSearch(e.target.value); setPage(1); }}
             />
           </div>
-        </div>
 
-        {/* Dynamic Analytics Stats Column */}
-        <div className="marketplace-stats-card-grid">
-          <div className="stats-box hover-lift">
-            <span className="stats-label">Total Listings</span>
-            <h4 className="stats-number text-blue">{stats.totalListings}</h4>
-          </div>
-          <div className="stats-box hover-lift">
-            <span className="stats-label">For Sale</span>
-            <h4 className="stats-number text-emerald">{stats.forSaleCount}</h4>
-          </div>
-          <div className="stats-box hover-lift">
-            <span className="stats-label">For Adoption</span>
-            <h4 className="stats-number text-orange">{stats.forAdoptionCount}</h4>
-          </div>
-          <div className="stats-box hover-lift">
-            <span className="stats-label">Recently Added</span>
-            <h4 className="stats-number text-purple">{stats.recentlyAddedCount}</h4>
-          </div>
+          {/* SAVED / WISHLIST FILTER BUTTON */}
+          <button 
+            type="button"
+            className={`marketplace-saved-btn ${showOnlyWishlist ? 'active' : ''}`}
+            onClick={() => { setShowOnlyWishlist(!showOnlyWishlist); setPage(1); }}
+            title={showOnlyWishlist ? "Show All Listings" : "Show Saved Wishlist"}
+          >
+            <Heart size={16} fill={showOnlyWishlist ? "#EF4444" : "none"} color={showOnlyWishlist ? "#EF4444" : "#64748B"} />
+            <span>Saved ({wishlistIds.size})</span>
+          </button>
         </div>
       </div>
 
-      {/* Main Work Grid Layout */}
+      {/* Main Work Layout */}
       <div className="marketplace-work-layout">
         
         {/* Left Sticky Sidebar Form Filters */}
         <aside className={`marketplace-filters-sidebar ${isFilterExpanded ? 'open' : 'collapsed'}`}>
           <div className="sidebar-filter-header">
             <span className="sidebar-title">
-              <SlidersHorizontal size={16} /> Filters Matrix
+              <SlidersHorizontal size={16} /> Filters
             </span>
             <button className="reset-filters-btn" onClick={handleResetFilters}>Reset All</button>
           </div>
 
           <div className="sidebar-scrollable-content">
-            {/* listing type segmented selector */}
+            {/* Listing type segmented selector */}
             <div className="filter-group">
               <label className="filter-label">Listing Type</label>
               <div className="segmented-control">
@@ -449,50 +438,7 @@ export default function Marketplace({ user, onViewDetails }) {
               />
             </div>
 
-            {/* Size & Color options */}
-            <div className="filter-group">
-              <label className="filter-label">Size Class</label>
-              <select 
-                value={size} 
-                onChange={(e) => { setSize(e.target.value); setPage(1); }}
-                className="filter-select"
-              >
-                <option value="">All Sizes</option>
-                <option value="Small">Small</option>
-                <option value="Medium">Medium</option>
-                <option value="Large">Large</option>
-                <option value="Extra Large">Extra Large</option>
-              </select>
-            </div>
-
-            <div className="filter-group">
-              <label className="filter-label">Coat Color</label>
-              <input 
-                type="text" 
-                placeholder="e.g. Golden, White, Black" 
-                value={color} 
-                onChange={(e) => { setColor(e.target.value); setPage(1); }}
-                className="filter-input"
-              />
-            </div>
-
-            {/* Training Level */}
-            <div className="filter-group">
-              <label className="filter-label">Training Level</label>
-              <select 
-                value={trainingLevel} 
-                onChange={(e) => { setTrainingLevel(e.target.value); setPage(1); }}
-                className="filter-select"
-              >
-                <option value="">All Training Levels</option>
-                <option value="None">None</option>
-                <option value="Beginner">Beginner</option>
-                <option value="Intermediate">Intermediate</option>
-                <option value="Advanced">Advanced</option>
-              </select>
-            </div>
-
-            {/* Health & Behavior Checkboxes */}
+            {/* Checkbox Attributes */}
             <div className="checkbox-filters-group">
               <label className="checkbox-item">
                 <input 
@@ -500,7 +446,7 @@ export default function Marketplace({ user, onViewDetails }) {
                   checked={vaccinated} 
                   onChange={(e) => { setVaccinated(e.target.checked); setPage(1); }} 
                 />
-                <span>Vaccinated Profiles</span>
+                <span>Vaccinated Only</span>
               </label>
 
               <label className="checkbox-item">
@@ -525,7 +471,7 @@ export default function Marketplace({ user, onViewDetails }) {
           </div>
         </aside>
 
-        {/* Right Directory Content Grid */}
+        {/* Right Directory Content Panel */}
         <section className="marketplace-directory-panel">
           
           {/* List Settings Control Header */}
@@ -534,7 +480,9 @@ export default function Marketplace({ user, onViewDetails }) {
               {loading ? (
                 <Skeleton width="120px" height="18px" />
               ) : (
-                <span className="results-counter">Showing {pets.length} companions</span>
+                <span className="results-counter">
+                  {showOnlyWishlist ? `Showing ${displayedPets.length} saved companion(s)` : `Showing ${displayedPets.length} companion(s)`}
+                </span>
               )}
             </div>
 
@@ -558,6 +506,7 @@ export default function Marketplace({ user, onViewDetails }) {
               {/* View switches */}
               <div className="view-mode-toggles">
                 <button 
+                  type="button"
                   className={`view-toggle-btn ${viewMode === 'grid' ? 'active' : ''}`}
                   onClick={() => setViewMode('grid')}
                   title="Grid View"
@@ -565,6 +514,7 @@ export default function Marketplace({ user, onViewDetails }) {
                   <LayoutGrid size={16} />
                 </button>
                 <button 
+                  type="button"
                   className={`view-toggle-btn ${viewMode === 'list' ? 'active' : ''}`}
                   onClick={() => setViewMode('list')}
                   title="List View"
@@ -598,12 +548,16 @@ export default function Marketplace({ user, onViewDetails }) {
                 <RefreshCw size={14} style={{ marginRight: '6px' }} /> Retry Connection
               </button>
             </div>
-          ) : pets.length === 0 ? (
+          ) : displayedPets.length === 0 ? (
             <div className="marketplace-empty-state">
               <Smile size={48} className="empty-icon" />
-              <h4 className="empty-title">No listings found</h4>
+              <h4 className="empty-title">
+                {showOnlyWishlist ? 'No saved companions in wishlist' : 'No listings found'}
+              </h4>
               <p className="empty-desc">
-                No furry friends match your filter settings. Reset the filters to load available marketplace pets.
+                {showOnlyWishlist 
+                  ? 'Click the heart icon on any pet listing to save it to your wishlist.' 
+                  : 'No furry friends match your filter settings. Reset filters to load available marketplace pets.'}
               </p>
               <button className="empty-reset-btn" onClick={handleResetFilters}>Reset Filters</button>
             </div>
@@ -613,20 +567,20 @@ export default function Marketplace({ user, onViewDetails }) {
               className={`pets-directory-list ${viewMode}`}
             >
               <AnimatePresence mode="popLayout">
-                {pets.map((pet) => {
-                  const isFavorited = wishlistIds.has(pet._id);
-                  const isOwner = user && user._id === (pet.owner._id || pet.owner);
+                {displayedPets.map((pet) => {
+                  const targetId = pet._id || pet.id;
+                  const isFavorited = wishlistIds.has(targetId);
                   
                   return (
                     <motion.div
-                      key={pet._id}
+                      key={targetId}
                       layout
                       initial={{ opacity: 0, y: 15 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, scale: 0.95 }}
                       transition={{ duration: 0.3 }}
                       className={`marketplace-pet-card hover-lift ${viewMode}`}
-                      onClick={() => onViewDetails(pet._id)}
+                      onClick={() => onViewDetails(targetId)}
                     >
                       {/* Photo Header */}
                       <div className="card-media-wrapper">
@@ -637,18 +591,33 @@ export default function Marketplace({ user, onViewDetails }) {
                           {pet.activeStatus === 'FOR_SALE' ? 'For Sale' : 'For Adoption'}
                         </span>
 
+                        {/* Top Right Action Overlay: Eye Icon Quick View & Heart Icon Wishlist */}
+                        <div className="card-media-actions-overlay">
+                          <button 
+                            type="button"
+                            className="card-media-icon-btn eye-btn"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setQuickViewPet(pet);
+                            }}
+                            title="Quick View Details"
+                          >
+                            <Eye size={15} />
+                          </button>
+
+                          <button 
+                            type="button"
+                            className={`card-media-icon-btn heart-btn ${isFavorited ? 'favorited' : ''} ${savingFavId === targetId ? 'loading' : ''}`}
+                            onClick={(e) => handleToggleFavorite(e, targetId)}
+                            disabled={savingFavId === targetId}
+                            title={isFavorited ? "Remove from Wishlist" : "Save to Wishlist"}
+                          >
+                            <Heart size={15} fill={isFavorited ? "#EF4444" : "none"} color={isFavorited ? "#EF4444" : "#64748B"} />
+                          </button>
+                        </div>
+
                         {/* Species Label */}
                         <span className="species-badge-overlay">{pet.species}</span>
-
-                        {/* Wishlist Button (Heart) */}
-                        <button 
-                          className={`fav-heart-btn ${isFavorited ? 'favorited' : ''} ${savingFavId === pet._id ? 'loading' : ''}`}
-                          onClick={(e) => handleToggleFavorite(e, pet._id)}
-                          disabled={savingFavId === pet._id}
-                          title={isFavorited ? "Remove from Wishlist" : "Save to Wishlist"}
-                        >
-                          <Heart size={16} fill={isFavorited ? "var(--color-primary)" : "none"} />
-                        </button>
                       </div>
 
                       {/* Card Meta Content */}
@@ -672,7 +641,7 @@ export default function Marketplace({ user, onViewDetails }) {
                           </div>
                         </div>
 
-                        {/* Telemetry specs grid */}
+                        {/* Specifications grid */}
                         <div className="specifications-badges-grid">
                           <span className="spec-badge">Age: {pet.age}</span>
                           <span className="spec-badge">Gender: {pet.gender}</span>
@@ -712,21 +681,16 @@ export default function Marketplace({ user, onViewDetails }) {
                         {/* Card Actions Row */}
                         <div className="card-actions-wrapper" onClick={(e) => e.stopPropagation()}>
                           <button 
+                            type="button"
                             className="card-action-btn primary"
-                            onClick={() => onViewDetails(pet._id)}
+                            onClick={() => onViewDetails(targetId)}
                           >
                             View Details
-                          </button>
-                          
-                          <button 
-                            className="card-action-btn outline"
-                            onClick={() => setQuickViewPet(pet)}
-                          >
-                            <Eye size={12} style={{ marginRight: '4px' }} /> Quick View
                           </button>
 
                           <div className="extra-action-buttons">
                             <button 
+                              type="button"
                               className="circle-action-btn"
                               onClick={(e) => handleShareListing(e, pet)}
                               title="Share Listing Link"
@@ -734,6 +698,7 @@ export default function Marketplace({ user, onViewDetails }) {
                               <Sparkles size={12} />
                             </button>
                             <button 
+                              type="button"
                               className="circle-action-btn report"
                               onClick={() => setReportingPet(pet)}
                               title="Report Listing"
@@ -751,23 +716,21 @@ export default function Marketplace({ user, onViewDetails }) {
             </motion.div>
           )}
 
-          {/* Pagination Footer */}
-          {!loading && totalPages > 1 && (
-            <div className="marketplace-pagination">
+          {/* Pagination bar */}
+          {totalPages > 1 && !showOnlyWishlist && (
+            <div className="marketplace-pagination-bar">
               <button 
-                className="pagination-arrow-btn"
+                className="pagination-btn"
                 disabled={page === 1}
-                onClick={() => setPage(prev => Math.max(1, prev - 1))}
+                onClick={() => setPage(p => Math.max(1, p - 1))}
               >
                 Previous
               </button>
-              
-              <span className="pagination-text">Page <strong>{page}</strong> of <strong>{totalPages}</strong></span>
-              
+              <span className="pagination-info">Page {page} of {totalPages}</span>
               <button 
-                className="pagination-arrow-btn"
+                className="pagination-btn"
                 disabled={page === totalPages}
-                onClick={() => setPage(prev => Math.min(totalPages, prev + 1))}
+                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
               >
                 Next
               </button>
@@ -777,128 +740,121 @@ export default function Marketplace({ user, onViewDetails }) {
         </section>
       </div>
 
-      {/* Inline Quick View Modal Backdrop */}
-      <AnimatePresence>
-        {quickViewPet && (
-          <div className="quickview-backdrop-blur" onClick={() => setQuickViewPet(null)}>
-            <motion.div 
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              className="quickview-dialog-card"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="quickview-dialog-header">
-                <h3>Quick Review Matrix</h3>
-                <button className="close-dialog-btn" onClick={() => setQuickViewPet(null)}>&times;</button>
-              </div>
+      {/* QUICK VIEW MODAL */}
+      {quickViewPet && (
+        <div className="pet-details-drawer-overlay" onClick={() => setQuickViewPet(null)}>
+          <div className="pet-details-drawer" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '600px', borderRadius: '20px' }}>
+            <div className="pet-drawer-header">
+              <h3 className="pet-drawer-title">{quickViewPet.name} Quick Overview</h3>
+              <button type="button" className="pet-drawer-close-btn" onClick={() => setQuickViewPet(null)}>
+                <X size={20} />
+              </button>
+            </div>
 
-              <div className="quickview-dialog-body">
-                <div className="quickview-photo-panel">
-                  <PetImage src={quickViewPet.image} imageSettings={quickViewPet.imageSettings} type="details" className="quickview-img" />
-                  <span className={`quickview-status-badge ${quickViewPet.activeStatus.toLowerCase()}`}>
-                    {quickViewPet.activeStatus === 'FOR_SALE' ? 'FOR SALE' : 'ADOPTION'}
+            <div style={{ display: 'flex', gap: '16px', marginBottom: '16px' }}>
+              <div style={{ width: '140px', height: '140px', borderRadius: '12px', overflow: 'hidden', flexShrink: 0 }}>
+                <PetImage src={quickViewPet.image} imageSettings={quickViewPet.imageSettings} type="card" style={{ height: '100%' }} />
+              </div>
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <h4 style={{ fontSize: '18px', fontWeight: '800', color: '#0F172A', margin: 0 }}>{quickViewPet.name}</h4>
+                <p style={{ fontSize: '12px', color: '#64748B', margin: 0 }}>{quickViewPet.breed} • {quickViewPet.species}</p>
+                <div style={{ marginTop: '4px' }}>
+                  {quickViewPet.activeStatus === 'FOR_SALE' ? (
+                    <span style={{ fontSize: '16px', fontWeight: '800', color: '#10B981' }}>
+                      {quickViewPet.price ? `${quickViewPet.price.toLocaleString()} PKR` : 'Call for Price'}
+                    </span>
+                  ) : (
+                    <span style={{ fontSize: '12px', fontWeight: '800', color: '#EA580C', backgroundColor: '#FFEDD5', padding: '3px 8px', borderRadius: '6px' }}>
+                      Free Adoption
+                    </span>
+                  )}
+                </div>
+                <p style={{ fontSize: '12px', color: '#334155', margin: '4px 0 0 0' }}>
+                  <MapPin size={12} style={{ display: 'inline', marginRight: '4px' }} />
+                  {quickViewPet.city}, {quickViewPet.province}
+                </p>
+              </div>
+            </div>
+
+            <div className="pet-card-rows-list" style={{ marginBottom: '20px' }}>
+              <div className="pet-row-item">
+                <span className="pet-row-label">Age</span>
+                <span className="pet-row-val">{quickViewPet.age}</span>
+              </div>
+              <div className="pet-row-item">
+                <span className="pet-row-label">Gender</span>
+                <span className="pet-row-val">{quickViewPet.gender}</span>
+              </div>
+              <div className="pet-row-item">
+                <span className="pet-row-label">Vaccination</span>
+                <span className="pet-row-val">{quickViewPet.isVaccinated ? 'Vaccinated' : 'Not Vaccinated'}</span>
+              </div>
+              {quickViewPet.aboutPet && (
+                <div className="pet-row-item vertical border-none">
+                  <span className="pet-row-label">Biography</span>
+                  <span className="pet-row-val" style={{ width: '100%', textAlign: 'left', marginTop: '4px' }}>
+                    {quickViewPet.aboutPet}
                   </span>
                 </div>
+              )}
+            </div>
 
-                <div className="quickview-details-panel">
-                  <h4 className="qv-title">{quickViewPet.name}</h4>
-                  <span className="qv-breed">{quickViewPet.breed} • {quickViewPet.species}</span>
-
-                  <div className="qv-price-row">
-                    {quickViewPet.activeStatus === 'FOR_SALE' ? (
-                      <span className="qv-price-val">{quickViewPet.price ? `${quickViewPet.price.toLocaleString()} PKR` : 'Call'}</span>
-                    ) : (
-                      <span className="qv-adopt-val">Free Adoption</span>
-                    )}
-                  </div>
-
-                  <div className="qv-specs-table">
-                    <div className="qv-spec-row"><strong>Age:</strong> <span>{quickViewPet.age}</span></div>
-                    <div className="qv-spec-row"><strong>Gender:</strong> <span>{quickViewPet.gender}</span></div>
-                    <div className="qv-spec-row"><strong>Weight:</strong> <span>{quickViewPet.weight}</span></div>
-                    <div className="qv-spec-row"><strong>Vaccinated:</strong> <span>{quickViewPet.isVaccinated ? 'Yes' : 'No'}</span></div>
-                    <div className="qv-spec-row"><strong>Neutered/Spayed:</strong> <span>{quickViewPet.neuteredSpayed ? 'Yes' : 'No'}</span></div>
-                    <div className="qv-spec-row"><strong>Training:</strong> <span>{quickViewPet.trainingLevel}</span></div>
-                    <div className="qv-spec-row"><strong>Kids Friendly:</strong> <span>{quickViewPet.friendlyWithKids ? 'Yes' : 'No'}</span></div>
-                    <div className="qv-spec-row"><strong>Pets Friendly:</strong> <span>{quickViewPet.friendlyWithPets ? 'Yes' : 'No'}</span></div>
-                  </div>
-
-                  <p className="qv-about-snippet">
-                    {quickViewPet.aboutPet || 'No bio description provided for this profile.'}
-                  </p>
-
-                  <div className="qv-dialog-actions">
-                    <button 
-                      className="qv-action-btn primary"
-                      onClick={() => {
-                        onViewDetails(quickViewPet._id);
-                        setQuickViewPet(null);
-                      }}
-                    >
-                      View Details Page
-                    </button>
-                    <button className="qv-action-btn outline" onClick={() => setQuickViewPet(null)}>Close</button>
-                  </div>
-                </div>
-              </div>
-            </motion.div>
+            <div className="pet-modal-actions">
+              <button type="button" className="pet-modal-btn-cancel" onClick={() => setQuickViewPet(null)}>
+                Close
+              </button>
+              <button 
+                type="button" 
+                className="pet-modal-btn-save" 
+                onClick={() => {
+                  const targetId = quickViewPet._id || quickViewPet.id;
+                  setQuickViewPet(null);
+                  onViewDetails(targetId);
+                }}
+              >
+                View Full Profile
+              </button>
+            </div>
           </div>
-        )}
-      </AnimatePresence>
+        </div>
+      )}
 
-      {/* Report Modal */}
-      <AnimatePresence>
-        {reportingPet && (
-          <div className="quickview-backdrop-blur" onClick={() => setReportingPet(null)}>
-            <motion.div 
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              className="report-dialog-card"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="quickview-dialog-header">
-                <h3>Report Inappropriate Listing</h3>
-                <button className="close-dialog-btn" onClick={() => setReportingPet(null)}>&times;</button>
-              </div>
+      {/* REPORT LISTING MODAL */}
+      {reportingPet && (
+        <div className="pet-details-drawer-overlay" onClick={() => setReportingPet(null)}>
+          <div className="pet-details-drawer" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '480px' }}>
+            <div className="pet-drawer-header">
+              <h3 className="pet-drawer-title">Report Listing: {reportingPet.name}</h3>
+              <button type="button" className="pet-drawer-close-btn" onClick={() => setReportingPet(null)}>
+                <X size={20} />
+              </button>
+            </div>
 
-              <form onSubmit={handleSubmitReport} className="report-form" style={{ padding: '20px' }}>
-                <p style={{ fontSize: '12px', color: 'var(--color-muted)', marginBottom: '16px' }}>
-                  Please let us know why you are reporting the listing for <strong>{reportingPet.name}</strong>. Admins will review the case shortly.
-                </p>
-
+            <form onSubmit={handleSubmitReport}>
+              <div className="form-group" style={{ marginBottom: '16px' }}>
+                <label className="form-label">Reason for reporting</label>
                 <textarea 
-                  className="form-control"
-                  style={{ width: '100%', height: '100px', padding: '12px', borderRadius: '8px', border: '1px solid var(--color-border)', fontSize: '13px' }}
-                  placeholder="Specify violation (e.g. offensive content, incorrect pricing, duplicate, scam...)"
+                  className="form-control login-input" 
+                  style={{ height: '90px', padding: '10px' }}
+                  placeholder="Inaccurate details, inappropriate content, fraudulent pricing..."
                   value={reportReason}
                   onChange={(e) => setReportReason(e.target.value)}
                   required
                 />
+              </div>
 
-                <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '16px' }}>
-                  <button 
-                    type="button" 
-                    className="qv-action-btn outline" 
-                    onClick={() => setReportingPet(null)}
-                    disabled={isSubmittingReport}
-                  >
-                    Cancel
-                  </button>
-                  <button 
-                    type="submit" 
-                    className="qv-action-btn primary report-submit-btn"
-                    disabled={isSubmittingReport || !reportReason.trim()}
-                  >
-                    {isSubmittingReport ? 'Submitting...' : 'Submit Report'}
-                  </button>
-                </div>
-              </form>
-            </motion.div>
+              <div className="pet-modal-actions">
+                <button type="button" className="pet-modal-btn-cancel" onClick={() => setReportingPet(null)}>
+                  Cancel
+                </button>
+                <button type="submit" className="pet-delete-confirm-btn" disabled={isSubmittingReport}>
+                  {isSubmittingReport ? 'Submitting...' : 'Submit Report'}
+                </button>
+              </div>
+            </form>
           </div>
-        )}
-      </AnimatePresence>
+        </div>
+      )}
 
     </div>
   );

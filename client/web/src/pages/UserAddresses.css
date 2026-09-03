@@ -338,10 +338,23 @@
    SHADCN FORM DIALOG STYLING
    ------------------------------------------ */
 .address-dialog-content {
+  position: relative !important;
+  top: auto !important;
+  left: auto !important;
+  transform: none !important;
+  margin: auto !important;
+  width: 100% !important;
   max-width: 580px !important;
-  border-radius: 14px !important;
+  max-height: 88vh !important;
+  display: flex !important;
+  flex-direction: column !important;
+  border-radius: 16px !important;
   padding: 24px !important;
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1) !important;
+  background-color: #FFFFFF !important;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25) !important;
+  border: 1px solid #E2E8F0 !important;
+  box-sizing: border-box !important;
+  overflow: hidden !important;
 }
 
 .address-dialog-title {
@@ -370,6 +383,18 @@
   display: flex;
   flex-direction: column;
   gap: 14px;
+  overflow-y: auto;
+  flex: 1;
+  padding-right: 4px;
+}
+
+.address-form-body::-webkit-scrollbar {
+  width: 6px;
+}
+
+.address-form-body::-webkit-scrollbar-thumb {
+  background-color: #CBD5E1;
+  border-radius: 4px;
 }
 
 .address-form-row {
@@ -476,9 +501,22 @@
    SHADCN ALERT DIALOG STYLING
    ------------------------------------------ */
 .address-alert-content {
+  position: relative !important;
+  top: auto !important;
+  left: auto !important;
+  transform: none !important;
+  margin: auto !important;
+  width: 100% !important;
   max-width: 440px !important;
-  border-radius: 12px !important;
+  max-height: 88vh !important;
+  display: flex !important;
+  flex-direction: column !important;
+  border-radius: 14px !important;
   padding: 20px !important;
+  background-color: #FFFFFF !important;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25) !important;
+  border: 1px solid #E2E8F0 !important;
+  box-sizing: border-box !important;
 }
 
 .address-alert-title {

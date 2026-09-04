@@ -2,10 +2,27 @@ import API_URL from '@/config';
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { 
   Send, ArrowLeft, User, MapPin, PawPrint, ShieldCheck, 
-  Clock, AlertCircle, RefreshCw
+  Clock, AlertCircle, RefreshCw, Search, SlidersHorizontal,
+  Phone, MoreVertical, X, Paperclip, Camera, MessageSquareCode,
+  ChevronRight
 } from 'lucide-react';
 import PetImage from '../components/PetImage';
 import './PetChat.css';
+
+function formatRelativeTime(dateString) {
+  if (!dateString) return 'Just now';
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffSec = Math.floor((now - date) / 1000);
+  if (diffSec < 60) return 'Just now';
+  const diffMin = Math.floor(diffSec / 60);
+  if (diffMin < 60) return `${diffMin}m ago`;
+  const diffHr = Math.floor(diffMin / 60);
+  if (diffHr < 24) return `${diffHr}h ago`;
+  const diffDay = Math.floor(diffHr / 24);
+  if (diffDay < 7) return `${diffDay}d ago`;
+  return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+}
 
 export default function PetChat({ 
   user, 
@@ -18,51 +35,21 @@ export default function PetChat({
   onBackToMarketplace, 
   onViewPetDetails 
 }) {
+  // 1. TOP-LEVEL STATE DEFINITIONS
   const [conversation, setConversation] = useState(null);
   const [messages, setMessages] = useState([]);
   const [inputText, setInputText] = useState('');
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState('');
-  
-  // Inbox conversations list for switching
   const [userConversations, setUserConversations] = useState([]);
-
-  // Fetch user conversations inbox
-  useEffect(() => {
-    if (!userId) return;
-    fetch(`${API_URL}/api/chat/user/${userId}`)
-      .then(res => res.json())
-      .then(data => {
-        if (data.conversations && Array.isArray(data.conversations)) {
-          setUserConversations(data.conversations);
-        }
-      })
-      .catch(err => console.error('Error fetching user conversations:', err));
-  }, [userId, conversation?.id]);
-
-  // Switch active conversation handler
-  const handleSwitchConversation = (selectedConv) => {
-    if (!selectedConv || (conversation && conversation.id === selectedConv.id)) return;
-    setConversation(selectedConv);
-    if (selectedConv.pet) setChatPet(selectedConv.pet);
-    if (selectedConv.otherUser) setChatOwner(selectedConv.otherUser);
-    setLoading(true);
-    fetch(`${API_URL}/api/chat/messages/${selectedConv.id}`)
-      .then(res => res.json())
-      .then(data => {
-        setMessages(data.messages || []);
-      })
-      .catch(err => console.error('Error loading messages for selected conversation:', err))
-      .finally(() => {
-        setLoading(false);
-        setTimeout(scrollToBottom, 100);
-      });
-  };
+  const [searchQuery, setSearchQuery] = useState('');
+  const [chatPet, setChatPet] = useState(null);
+  const [chatOwner, setChatOwner] = useState(null);
 
   const messagesEndRef = useRef(null);
 
-  // Normalize input props
+  // 2. NORMALIZED DERIVED VARIABLES (DECLARING BEFORE HOOKS)
   const activeUser = user || currentUser;
   const activePet = pet || initialPet || chatPet;
   const activeOwner = owner || initialOwner || chatOwner || (activePet && typeof activePet.owner === 'object' ? activePet.owner : null);
@@ -78,7 +65,40 @@ export default function PetChat({
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  // Initialize or fetch conversation
+  // 3. FETCH USER CONVERSATIONS INBOX
+  useEffect(() => {
+    if (!userId) return;
+    fetch(`${API_URL}/api/chat/user/${userId}`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.conversations && Array.isArray(data.conversations)) {
+          setUserConversations(data.conversations);
+        }
+      })
+      .catch(err => console.error('Error fetching user conversations:', err));
+  }, [userId, conversation?.id]);
+
+  // 4. SWITCH ACTIVE CONVERSATION HANDLER
+  const handleSwitchConversation = (selectedConv) => {
+    if (!selectedConv || (conversation && conversation.id === selectedConv.id)) return;
+    setConversation(selectedConv);
+    if (selectedConv.pet) setChatPet(selectedConv.pet);
+    if (selectedConv.otherUser) setChatOwner(selectedConv.otherUser);
+    setLoading(true);
+    setError('');
+    fetch(`${API_URL}/api/chat/messages/${selectedConv.id}`)
+      .then(res => res.json())
+      .then(data => {
+        setMessages(data.messages || []);
+      })
+      .catch(err => console.error('Error loading messages for selected conversation:', err))
+      .finally(() => {
+        setLoading(false);
+        setTimeout(scrollToBottom, 100);
+      });
+  };
+
+  // 5. INITIALIZE OR FETCH CONVERSATION
   const initConversation = useCallback(async () => {
     if (!userId) {
       setError('Please log in to access pet messages.');
@@ -103,6 +123,8 @@ export default function PetChat({
             targetPetId = latestConv.petId;
             targetOwnerId = latestConv.senderId === userId ? latestConv.receiverId : latestConv.senderId;
             setConversation(latestConv);
+            if (latestConv.pet) setChatPet(latestConv.pet);
+            if (latestConv.otherUser) setChatOwner(latestConv.otherUser);
           }
         }
       }
@@ -114,7 +136,7 @@ export default function PetChat({
       }
 
       // Fetch pet details if missing
-      if (!activePet) {
+      if (!activePet && targetPetId) {
         try {
           const pRes = await fetch(`${API_URL}/api/pets/${targetPetId}`);
           if (pRes.ok) {
@@ -127,7 +149,7 @@ export default function PetChat({
       }
 
       // Fetch owner details if missing
-      if (!activeOwner) {
+      if (!activeOwner && targetOwnerId) {
         try {
           const oRes = await fetch(`${API_URL}/api/auth/profile/${targetOwnerId}`);
           if (oRes.ok) {
@@ -183,7 +205,7 @@ export default function PetChat({
     initConversation();
   }, [initConversation]);
 
-  // Polling for incoming messages
+  // 6. POLLING FOR INCOMING MESSAGES
   useEffect(() => {
     if (!conversation || !conversation.id) return;
     const interval = setInterval(async () => {
@@ -203,7 +225,7 @@ export default function PetChat({
     return () => clearInterval(interval);
   }, [conversation, messages.length]);
 
-  // Send Message Handler
+  // 7. SEND MESSAGE HANDLER
   const handleSendMessage = async (e) => {
     e.preventDefault();
     if (!inputText.trim() || !conversation || sending) return;
@@ -252,116 +274,287 @@ export default function PetChat({
     }
   };
 
+  // Filter conversations by search query
+  const filteredConversations = userConversations.filter(c => {
+    if (!searchQuery.trim()) return true;
+    const q = searchQuery.toLowerCase();
+    const partnerName = (c.otherUser?.name || '').toLowerCase();
+    const petName = (c.pet?.name || '').toLowerCase();
+    const petBreed = (c.pet?.breed || '').toLowerCase();
+    return partnerName.includes(q) || petName.includes(q) || petBreed.includes(q);
+  });
+
   return (
     <div className="pet-chat-container">
       
-      {/* CHAT HEADER NAV */}
-      <div className="pet-chat-header-bar">
-        <button type="button" className="chat-back-btn" onClick={activeOnBack}>
-          <ArrowLeft size={16} />
-          <span>Back to Marketplace</span>
-        </button>
-        <div className="chat-header-meta">
-          {userConversations && userConversations.length > 1 ? (
-            <select
-              className="chat-header-select"
-              value={conversation?.id || ''}
-              onChange={(e) => {
-                const targetConv = userConversations.find(c => c.id === e.target.value);
-                if (targetConv) handleSwitchConversation(targetConv);
-              }}
-              style={{
-                padding: '6px 12px',
-                borderRadius: '8px',
-                border: '1px solid var(--color-border)',
-                fontSize: '12px',
-                fontWeight: '700',
-                backgroundColor: '#F8FAFC',
-                color: '#0F172A',
-                cursor: 'pointer'
-              }}
-            >
-              {userConversations.map((c) => {
-                const partnerName = c.otherUser ? c.otherUser.name : 'Participant';
-                const petName = c.pet ? c.pet.name : 'Pet';
-                return (
-                  <option key={c.id} value={c.id}>
-                    Chat with {partnerName} re: {petName}
-                  </option>
-                );
-              })}
-            </select>
-          ) : (
-            <span className="chat-header-subtitle">Direct Inquiry Messaging</span>
-          )}
+      {/* OPTIONAL TOP NAV BAR */}
+      {activeOnBack && (
+        <div className="pet-chat-top-bar">
+          <button type="button" className="chat-back-btn" onClick={activeOnBack}>
+            <ArrowLeft size={16} />
+            <span>Back to Marketplace</span>
+          </button>
         </div>
-      </div>
+      )}
 
-      {/* 70% / 30% CHAT & PET DETAILS WORKSPACE */}
+      {/* MAIN WORKSPACE GRID: INBOX CONVERSATION LIST & ACTIVE CHAT */}
       <div className="pet-chat-workspace">
-        
-        {/* LEFT COLUMN: 70% MAIN CHAT CONVERSATION */}
-        <section className="pet-chat-main-column">
-          
-          {/* Conversation Header Card */}
-          <div className="chat-convo-header">
-            <div className="chat-owner-avatar-box">
-              {activeOwner && activeOwner.profilePic ? (
-                <img src={activeOwner.profilePic} alt={ownerName} className="owner-avatar-img" />
-              ) : (
-                <User size={18} />
-              )}
-              <span className="status-online-dot" />
+
+        {/* LEFT PANEL: CONVERSATION LIST */}
+        <aside className="pet-chat-inbox-panel">
+          <div className="inbox-header-box">
+            <div className="inbox-title-row">
+              <div>
+                <h2 className="inbox-main-title">Pet Messages</h2>
+                <p className="inbox-subtitle">All your conversations with pet owners</p>
+              </div>
             </div>
 
-            <div className="chat-owner-info">
-              <div className="owner-name-row">
-                <h3 className="owner-name-title">{ownerName}</h3>
-                <span className="owner-status-badge">Available Owner</span>
-              </div>
-              <span className="chat-pet-ref-tag">
-                <PawPrint size={11} style={{ marginRight: '4px' }} />
-                Inquiry regarding <strong>{activePet ? activePet.name : 'Pet Listing'}</strong>
-              </span>
+            {/* Search Bar */}
+            <div className="inbox-search-bar">
+              <Search size={16} className="search-icon" />
+              <input
+                type="text"
+                className="inbox-search-input"
+                placeholder="Search owners or pets..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+              <button type="button" className="inbox-filter-btn" title="Filter conversations">
+                <SlidersHorizontal size={14} />
+              </button>
             </div>
           </div>
 
-          {/* Messages History List */}
-          <div className="chat-messages-scroll-area">
+          {/* Conversation List Scroll Area */}
+          <div className="inbox-cards-list">
+            {userConversations.length === 0 ? (
+              <div className="inbox-empty-card">
+                <MessageSquareCode size={32} className="empty-icon" />
+                <p className="empty-title">No Conversations</p>
+                <p className="empty-desc">Message pet owners on the Marketplace to start chatting.</p>
+              </div>
+            ) : filteredConversations.length === 0 ? (
+              <div className="inbox-empty-card">
+                <p className="empty-desc">No matching conversations found.</p>
+              </div>
+            ) : (
+              filteredConversations.map((conv) => {
+                const isSelected = conversation && conversation.id === conv.id;
+                const partner = conv.otherUser || {};
+                const petInfo = conv.pet || {};
+                const partnerName = partner.name || 'Pet Owner';
+                const petName = petInfo.name || 'Pet';
+                const petBreed = petInfo.breed ? `${petInfo.breed} • ${petInfo.species || 'Pet'}` : (petInfo.species || 'Pet');
+                const timeAgo = formatRelativeTime(conv.updatedAt || conv.createdAt);
+
+                return (
+                  <div
+                    key={conv.id}
+                    className={`conversation-card ${isSelected ? 'selected' : ''}`}
+                    onClick={() => handleSwitchConversation(conv)}
+                  >
+                    {/* OWNER AVATAR (MUST represent the OWNER) */}
+                    <div className="conv-avatar-wrapper">
+                      <img
+                        src={partner.profilePic || '/logo/logo.jpeg'}
+                        alt={partnerName}
+                        className="conv-owner-avatar"
+                      />
+                      <span className="conv-online-dot" />
+                    </div>
+
+                    <div className="conv-card-body">
+                      <div className="conv-card-header-row">
+                        <h4 className="conv-owner-name">{partnerName}</h4>
+                        <span className="conv-time">{timeAgo}</span>
+                      </div>
+
+                      <div className="conv-pet-tag">
+                        <PawPrint size={11} />
+                        <span>{petName} • {petBreed}</span>
+                      </div>
+
+                      <p className="conv-last-msg">
+                        {conv.lastMessage || 'Click to view message history'}
+                      </p>
+                    </div>
+
+                    {conv.unreadCount > 0 && (
+                      <span className="conv-unread-badge">{conv.unreadCount}</span>
+                    )}
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </aside>
+
+        {/* RIGHT PANEL: ACTIVE CHAT */}
+        <main className="pet-chat-main-panel">
+          
+          {/* 1. CHAT HEADER */}
+          <div className="chat-header-bar">
+            <div className="chat-header-left">
+              <div className="chat-owner-avatar-container">
+                {activeOwner && activeOwner.profilePic ? (
+                  <img src={activeOwner.profilePic} alt={ownerName} className="chat-header-avatar" />
+                ) : (
+                  <div className="chat-header-avatar-placeholder"><User size={20} /></div>
+                )}
+                <span className="chat-header-online-dot" />
+              </div>
+
+              <div className="chat-header-user-meta">
+                <div className="chat-header-name-row">
+                  <h3 className="chat-header-name">{ownerName}</h3>
+                  <span className="chat-header-status-badge">● Online</span>
+                </div>
+                {activePet && (
+                  <span className="chat-header-pet-badge">
+                    <PawPrint size={12} style={{ marginRight: '4px' }} />
+                    <span>{activePet.name} • {activePet.breed || activePet.species}</span>
+                  </span>
+                )}
+              </div>
+            </div>
+
+            <div className="chat-header-actions">
+              <button 
+                type="button" 
+                className="header-action-btn" 
+                title="Call Owner"
+                onClick={() => {
+                  if (activeOwner?.phone) alert(`Phone Number: ${activeOwner.phone}`);
+                  else alert('Owner phone number not available.');
+                }}
+              >
+                <Phone size={16} />
+              </button>
+              <button type="button" className="header-action-btn" title="More Options">
+                <MoreVertical size={16} />
+              </button>
+              {activeOnBack && (
+                <button type="button" className="header-action-btn" title="Close Chat" onClick={activeOnBack}>
+                  <X size={16} />
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* CHAT BODY SCROLL AREA */}
+          <div className="chat-body-scroll">
+            
+            {/* 2. COMPACT PET INFORMATION CARD (DIRECTLY ABOVE MESSAGE HISTORY) */}
+            {activePet && (
+              <div className="chat-pet-context-card">
+                <div className="context-card-left">
+                  <div className="context-img-wrapper">
+                    <PetImage src={activePet.image} imageSettings={activePet.imageSettings} type="card" className="context-pet-img" />
+                    <span className={`context-status-tag ${activePet.activeStatus ? activePet.activeStatus.toLowerCase() : 'for_sale'}`}>
+                      {activePet.activeStatus === 'FOR_SALE' ? 'FOR SALE' : 'FOR ADOPTION'}
+                    </span>
+                  </div>
+
+                  <div className="context-details-info">
+                    <div className="context-title-row">
+                      <h4 className="context-pet-name">{activePet.name}</h4>
+                      <span className="context-pet-species">{activePet.breed} • {activePet.species}</span>
+                    </div>
+
+                    <div className="context-price-row">
+                      {activePet.activeStatus === 'FOR_SALE' ? (
+                        <span className="context-price">{activePet.price ? `${activePet.price.toLocaleString()} PKR` : 'Call for Price'}</span>
+                      ) : (
+                        <span className="context-free-adoption">Free Adoption</span>
+                      )}
+                    </div>
+
+                    <div className="context-meta-row">
+                      <span className="context-meta-item">
+                        <MapPin size={12} className="icon" />
+                        {activePet.city || 'Lahore'}, {activePet.province || 'Punjab'}
+                      </span>
+                      <span className="context-meta-divider">•</span>
+                      <span className="context-meta-item">Age: {activePet.age || 'N/A'}</span>
+                      <span className="context-meta-divider">•</span>
+                      <span className="context-meta-item">Gender: {activePet.gender || 'N/A'}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {onViewPetDetails && (
+                  <div className="context-card-right">
+                    <button
+                      type="button"
+                      className="context-view-btn"
+                      onClick={() => onViewPetDetails(activePet._id || activePet.id)}
+                    >
+                      <span>View Full Details</span>
+                      <ChevronRight size={14} />
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* 3. DATE DIVIDER */}
+            <div className="chat-date-divider">
+              <span className="date-line" />
+              <span className="date-badge">Today</span>
+              <span className="date-line" />
+            </div>
+
+            {/* 4. MESSAGE HISTORY */}
             {loading ? (
-              <div className="chat-loading-state">
+              <div className="chat-state-box">
                 <RefreshCw size={24} className="spinning-icon" />
-                <span>Connecting to chat session...</span>
+                <p>Loading message history...</p>
               </div>
             ) : error ? (
-              <div className="chat-error-state">
+              <div className="chat-state-box error">
                 <AlertCircle size={24} color="#EF4444" />
-                <span>{error}</span>
-                <button type="button" className="chat-retry-btn" onClick={initConversation}>Retry</button>
+                <p>{error}</p>
+                <button type="button" className="retry-btn" onClick={initConversation}>Retry</button>
               </div>
             ) : messages.length === 0 ? (
-              <div className="chat-empty-state">
-                <div className="chat-empty-icon-box">
-                  <PawPrint size={28} />
+              <div className="chat-state-box empty">
+                <div className="empty-avatar-circle">
+                  <PawPrint size={26} color="var(--color-primary)" />
                 </div>
                 <h4>Start the Conversation</h4>
-                <p>Send a message to <strong>{ownerName}</strong> about <strong>{activePet ? activePet.name : 'this pet'}</strong> to inquire about availability, health, or adoption details.</p>
+                <p>Send a message to <strong>{ownerName}</strong> about <strong>{activePet ? activePet.name : 'this pet'}</strong>.</p>
               </div>
             ) : (
               messages.map((msg) => {
-                const isUserMessage = String(msg.senderId) === String(userId);
-                const formattedTime = new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                const isUser = String(msg.senderId) === String(userId);
+                const msgTime = new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
                 return (
-                  <div 
-                    key={msg.id || msg._id} 
-                    className={`chat-bubble-wrapper ${isUserMessage ? 'user-side' : 'owner-side'}`}
-                  >
-                    <div className={`chat-bubble ${isUserMessage ? 'user-bubble' : 'owner-bubble'}`}>
-                      <p className="chat-bubble-text">{msg.text}</p>
-                      <span className="chat-bubble-time">
-                        <Clock size={9} style={{ marginRight: '3px' }} />
-                        {formattedTime}
+                  <div key={msg.id || msg._id} className={`chat-message-row ${isUser ? 'outgoing' : 'incoming'}`}>
+                    {!isUser && (
+                      <img
+                        src={activeOwner?.profilePic || '/logo/logo.jpeg'}
+                        alt={ownerName}
+                        className="message-sender-avatar"
+                      />
+                    )}
+
+                    <div className="message-bubble-wrapper">
+                      <div className={`message-bubble ${isUser ? 'outgoing-bubble' : 'incoming-bubble'}`}>
+                        <p className="message-text">{msg.text}</p>
+                        
+                        {/* Media preview if message contains mediaUrl */}
+                        {msg.mediaUrl && (
+                          <div className="message-media-preview">
+                            <img src={msg.mediaUrl} alt="Attachment" className="message-img-attachment" />
+                          </div>
+                        )}
+                      </div>
+
+                      <span className="message-timestamp">
+                        <Clock size={10} style={{ marginRight: '3px' }} />
+                        {msgTime}
                       </span>
                     </div>
                   </div>
@@ -371,105 +564,40 @@ export default function PetChat({
             <div ref={messagesEndRef} />
           </div>
 
-          {/* Chat Message Input Bar */}
-          <form className="chat-input-bar" onSubmit={handleSendMessage}>
-            <input 
-              type="text" 
-              className="chat-input-field" 
-              placeholder={`Message ${ownerName} about ${activePet ? activePet.name : 'pet'}...`}
-              value={inputText}
-              onChange={(e) => setInputText(e.target.value)}
-              disabled={loading}
-            />
-            <button 
-              type="submit" 
-              className="chat-send-btn" 
-              disabled={!inputText.trim() || sending || loading}
-            >
-              <Send size={15} />
-              <span>Send</span>
-            </button>
+          {/* 5. MESSAGE COMPOSER */}
+          <form className="chat-composer-form" onSubmit={handleSendMessage}>
+            <div className="composer-container">
+              <button type="button" className="composer-action-btn" title="Attach file">
+                <Paperclip size={18} />
+              </button>
+              <button type="button" className="composer-action-btn" title="Add photo">
+                <Camera size={18} />
+              </button>
+
+              <input
+                type="text"
+                className="composer-input"
+                placeholder="Type your message..."
+                value={inputText}
+                onChange={(e) => setInputText(e.target.value)}
+                disabled={loading}
+              />
+
+              <button
+                type="submit"
+                className="composer-send-btn"
+                disabled={!inputText.trim() || sending || loading}
+              >
+                <Send size={15} />
+                <span>Send</span>
+              </button>
+            </div>
           </form>
 
-        </section>
-
-        {/* RIGHT COLUMN: 30% PET PROFILE SUMMARY */}
-        {activePet && (
-          <aside className="pet-chat-summary-column">
-            <div className="summary-card">
-              <div className="summary-media-wrapper">
-                <PetImage src={activePet.image} imageSettings={activePet.imageSettings} type="card" className="summary-pet-img" />
-                <span className={`summary-type-badge ${activePet.activeStatus ? activePet.activeStatus.toLowerCase() : 'for_sale'}`}>
-                  {activePet.activeStatus === 'FOR_SALE' ? 'For Sale' : 'For Adoption'}
-                </span>
-              </div>
-
-              <div className="summary-content">
-                <div className="summary-header">
-                  <h4 className="summary-pet-name">{activePet.name}</h4>
-                  <span className="summary-pet-breed">{activePet.breed} • {activePet.species}</span>
-                </div>
-
-                <div className="summary-price-box">
-                  {activePet.activeStatus === 'FOR_SALE' ? (
-                    <span className="summary-price">{activePet.price ? `${activePet.price.toLocaleString()} PKR` : 'Call for Price'}</span>
-                  ) : (
-                    <span className="summary-adoption">Free Adoption</span>
-                  )}
-                </div>
-
-                <div className="summary-specs-list">
-                  <div className="summary-spec-item">
-                    <span className="spec-label">Location:</span>
-                    <span className="spec-val">
-                      <MapPin size={11} style={{ marginRight: '3px' }} />
-                      {activePet.city}, {activePet.province}
-                    </span>
-                  </div>
-
-                  <div className="summary-spec-item">
-                    <span className="spec-label">Age:</span>
-                    <span className="spec-val">{activePet.age}</span>
-                  </div>
-
-                  <div className="summary-spec-item">
-                    <span className="spec-label">Gender:</span>
-                    <span className="spec-val">{activePet.gender}</span>
-                  </div>
-
-                  {activePet.isVaccinated && (
-                    <div className="summary-spec-item">
-                      <span className="spec-label">Vaccinated:</span>
-                      <span className="spec-val text-emerald">
-                        <ShieldCheck size={11} style={{ marginRight: '3px' }} /> Yes
-                      </span>
-                    </div>
-                  )}
-                </div>
-
-                {activePet.aboutPet && (
-                  <div className="summary-bio-box">
-                    <span className="bio-label">About {activePet.name}:</span>
-                    <p className="bio-text">{activePet.aboutPet}</p>
-                  </div>
-                )}
-
-                {onViewPetDetails && (
-                  <button 
-                    type="button" 
-                    className="summary-view-details-btn"
-                    onClick={() => onViewPetDetails(activePet._id || activePet.id)}
-                  >
-                    View Full Pet Details
-                  </button>
-                )}
-              </div>
-            </div>
-          </aside>
-        )}
+        </main>
 
       </div>
-
     </div>
   );
 }
+

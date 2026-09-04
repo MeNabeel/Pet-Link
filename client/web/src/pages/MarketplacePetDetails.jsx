@@ -9,7 +9,7 @@ import { Skeleton } from '@/components/ui/Skeleton';
 import PetImage from '../components/PetImage';
 import './MarketplacePetDetails.css';
 
-export default function MarketplacePetDetails({ user, petId, onBack, onOpenChat }) {
+export default function MarketplacePetDetails({ user, petId, onBack, onOpenChat, onEditPet }) {
   const [pet, setPet] = useState(null);
   const [similarPets, setSimilarPets] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -24,6 +24,11 @@ export default function MarketplacePetDetails({ user, petId, onBack, onOpenChat 
   const [contactMessage, setContactMessage] = useState('');
   const [isSubmittingMessage, setIsSubmittingMessage] = useState(false);
 
+  // Current logged in user & pet owner IDs
+  const currentUserId = user && (user._id || user.id);
+  const petOwnerId = pet && (pet.ownerId || (typeof pet.owner === 'object' ? pet.owner._id || pet.owner.id : pet.owner));
+  const isOwner = Boolean(currentUserId && petOwnerId && String(currentUserId) === String(petOwnerId));
+
   // Fetch pet detail and similar suggestions
   useEffect(() => {
     const fetchPetDetails = async () => {
@@ -36,7 +41,28 @@ export default function MarketplacePetDetails({ user, petId, onBack, onOpenChat 
           throw new Error('Pet profile not found or server is unreachable.');
         }
         
-        const data = await response.json();
+        let data = await response.json();
+        
+        // Defensive owner resolution if owner is a string or missing profile fields
+        const resolvedOwnerId = typeof data.owner === 'object' ? (data.owner._id || data.owner.id) : (data.owner || data.ownerId);
+        if (resolvedOwnerId && (typeof data.owner !== 'object' || !data.owner?.name)) {
+          try {
+            const ownerRes = await fetch(`${API_URL}/api/auth/profile/${resolvedOwnerId}`);
+            if (ownerRes.ok) {
+              const ownerData = await ownerRes.json();
+              data = {
+                ...data,
+                owner: {
+                  ...ownerData,
+                  _id: ownerData._id || ownerData.id || resolvedOwnerId
+                }
+              };
+            }
+          } catch (ownerErr) {
+            console.error('Error fetching owner profile details:', ownerErr);
+          }
+        }
+
         setPet(data);
 
         // Fetch similar recommendation listings
@@ -379,14 +405,16 @@ export default function MarketplacePetDetails({ user, petId, onBack, onOpenChat 
               <div className="owner-card-profile-details">
                 <div className="owner-details-header">
                   <div className="owner-details-avatar">
-                    {pet.owner.profilePic ? (
+                    {pet.owner && typeof pet.owner === 'object' && pet.owner.profilePic ? (
                       <img src={pet.owner.profilePic} alt="Owner" />
                     ) : (
                       <User size={32} />
                     )}
                   </div>
                   <div>
-                    <h4 className="owner-details-name">{pet.owner.name}</h4>
+                    <h4 className="owner-details-name">
+                      {pet.owner && typeof pet.owner === 'object' ? (pet.owner.name || 'Listing Owner') : 'Listing Owner'}
+                    </h4>
                     <span className="owner-details-role">Listing Creator / Owner</span>
                   </div>
                 </div>
@@ -394,9 +422,9 @@ export default function MarketplacePetDetails({ user, petId, onBack, onOpenChat 
                 <div className="owner-contacts-list">
                   <div className="owner-contact-row">
                     <Mail size={16} color="var(--color-muted)" />
-                    <span>{pet.owner.email}</span>
+                    <span>{pet.owner && typeof pet.owner === 'object' ? (pet.owner.email || 'Contact Owner for Email') : 'Contact Owner for Email'}</span>
                   </div>
-                  {pet.owner.phone && (
+                  {pet.owner && typeof pet.owner === 'object' && pet.owner.phone && (
                     <div className="owner-contact-row">
                       <Phone size={16} color="var(--color-muted)" />
                       <span>{pet.owner.phone}</span>
@@ -404,34 +432,54 @@ export default function MarketplacePetDetails({ user, petId, onBack, onOpenChat 
                   )}
                   <div className="owner-contact-row">
                     <MapPin size={16} color="var(--color-muted)" />
-                    <span>{pet.owner.city}, {pet.owner.province}</span>
+                    <span>
+                      {pet.owner && typeof pet.owner === 'object' && pet.owner.city 
+                        ? `${pet.owner.city}, ${pet.owner.province || pet.province || ''}` 
+                        : `${pet.city || 'Lahore'}, ${pet.province || 'Punjab'}`}
+                    </span>
                   </div>
                 </div>
               </div>
 
-              {/* Dynamic Action Buttons depending on type */}
+              {/* Dynamic Action Buttons depending on ownership */}
               <div className="owner-contact-action-launchers">
-                <button 
-                  className="contact-btn message-owner"
-                  onClick={() => handleMessageTrigger('message')}
-                >
-                  <MessageSquare size={16} style={{ marginRight: '8px' }} /> Message Owner
-                </button>
-
-                {pet.activeStatus === 'FOR_SALE' ? (
+                {isOwner ? (
                   <button 
-                    className="contact-btn purchase-pet"
-                    onClick={() => handleMessageTrigger('buy')}
+                    type="button"
+                    className="contact-btn message-owner"
+                    style={{ backgroundColor: '#0066CC', color: '#FFFFFF', flex: 1 }}
+                    onClick={() => onEditPet ? onEditPet(pet._id || pet.id) : alert('Edit Pet action')}
                   >
-                    <Sparkles size={16} style={{ marginRight: '8px' }} /> Buy Pet (Buyout Offer)
+                    <PawPrint size={16} style={{ marginRight: '8px' }} /> Edit Pet Profile
                   </button>
                 ) : (
-                  <button 
-                    className="contact-btn request-adoption"
-                    onClick={() => handleMessageTrigger('adopt')}
-                  >
-                    <Heart size={16} style={{ marginRight: '8px' }} /> Request Adoption
-                  </button>
+                  <>
+                    <button 
+                      type="button"
+                      className="contact-btn message-owner"
+                      onClick={() => handleMessageTrigger('message')}
+                    >
+                      <MessageSquare size={16} style={{ marginRight: '8px' }} /> Message Owner
+                    </button>
+
+                    {pet.activeStatus === 'FOR_SALE' ? (
+                      <button 
+                        type="button"
+                        className="contact-btn purchase-pet"
+                        onClick={() => handleMessageTrigger('buy')}
+                      >
+                        <Sparkles size={16} style={{ marginRight: '8px' }} /> Buy Pet (Buyout Offer)
+                      </button>
+                    ) : (
+                      <button 
+                        type="button"
+                        className="contact-btn request-adoption"
+                        onClick={() => handleMessageTrigger('adopt')}
+                      >
+                        <Heart size={16} style={{ marginRight: '8px' }} /> Request Adoption
+                      </button>
+                    )}
+                  </>
                 )}
               </div>
             </div>

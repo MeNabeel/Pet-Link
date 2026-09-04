@@ -5,10 +5,13 @@ const mapPet = (pet) => {
   const mapped = {
     ...pet,
     _id: pet.id,
-    owner: pet.ownerId
+    owner: pet.owner ? { ...pet.owner, _id: pet.owner.id } : pet.ownerId
   };
   delete mapped.id;
   delete mapped.ownerId;
+  if (mapped.owner && typeof mapped.owner === 'object') {
+    delete mapped.owner.id;
+  }
   return mapped;
 };
 
@@ -21,6 +24,19 @@ exports.getPetsByOwner = async (req, res) => {
       where: {
         ownerId: req.params.ownerId,
         activeStatus: { not: 'ARCHIVED' }
+      },
+      include: {
+        owner: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            phone: true,
+            city: true,
+            province: true,
+            profilePic: true
+          }
+        }
       },
       orderBy: { createdAt: 'desc' }
     });
@@ -36,7 +52,20 @@ exports.getPetsByOwner = async (req, res) => {
 exports.getPetById = async (req, res) => {
   try {
     const pet = await prisma.pet.findUnique({
-      where: { id: req.params.petId }
+      where: { id: req.params.petId },
+      include: {
+        owner: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            phone: true,
+            city: true,
+            province: true,
+            profilePic: true
+          }
+        }
+      }
     });
     if (!pet) {
       return res.status(404).json({ message: 'Pet profile not found' });

@@ -7,23 +7,40 @@ import {
 import PetImage from '../components/PetImage';
 import './PetChat.css';
 
-export default function PetChat({ user, pet, owner, onBack, onViewPetDetails }) {
+export default function PetChat({ 
+  user, 
+  currentUser, 
+  pet, 
+  initialPet, 
+  owner, 
+  initialOwner, 
+  onBack, 
+  onBackToMarketplace, 
+  onViewPetDetails 
+}) {
   const [conversation, setConversation] = useState(null);
   const [messages, setMessages] = useState([]);
   const [inputText, setInputText] = useState('');
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState('');
+  
+  // Dynamic pet and owner details fetched for conversation context
+  const [chatPet, setChatPet] = useState(null);
+  const [chatOwner, setChatOwner] = useState(null);
 
   const messagesEndRef = useRef(null);
 
-  const userId = user && (user._id || user.id);
-  const petId = pet && (pet._id || pet.id);
-  
-  // Resolve target owner info
-  const targetOwner = owner || (pet && pet.owner && typeof pet.owner === 'object' ? pet.owner : null);
-  const ownerId = targetOwner ? (targetOwner._id || targetOwner.id) : (pet ? pet.ownerId || pet.owner : null);
-  const ownerName = targetOwner ? targetOwner.name : 'Listing Owner';
+  // Normalize input props
+  const activeUser = user || currentUser;
+  const activePet = pet || initialPet || chatPet;
+  const activeOwner = owner || initialOwner || chatOwner || (activePet && typeof activePet.owner === 'object' ? activePet.owner : null);
+  const activeOnBack = onBack || onBackToMarketplace;
+
+  const userId = activeUser && (activeUser._id || activeUser.id);
+  const petId = activePet && (activePet._id || activePet.id);
+  const ownerId = activeOwner ? (activeOwner._id || activeOwner.id) : (activePet ? (activePet.ownerId || (typeof activePet.owner === 'string' ? activePet.owner : activePet.owner?._id || activePet.owner?.id)) : null);
+  const ownerName = activeOwner ? (activeOwner.name || 'Listing Owner') : 'Listing Owner';
 
   // Auto-scroll to bottom of chat
   const scrollToBottom = () => {
@@ -32,8 +49,8 @@ export default function PetChat({ user, pet, owner, onBack, onViewPetDetails }) 
 
   // Initialize or fetch conversation
   const initConversation = useCallback(async () => {
-    if (!userId || !ownerId || !petId) {
-      setError('Missing conversation identifiers.');
+    if (!userId) {
+      setError('Please log in to access pet messages.');
       setLoading(false);
       return;
     }
@@ -42,14 +59,63 @@ export default function PetChat({ user, pet, owner, onBack, onViewPetDetails }) 
       setLoading(true);
       setError('');
 
+      let targetPetId = petId;
+      let targetOwnerId = ownerId;
+
+      // If user opened chat without a pre-selected pet, check user's conversation inbox
+      if (!targetPetId || !targetOwnerId) {
+        const inboxRes = await fetch(`${API_URL}/api/chat/user/${userId}`);
+        if (inboxRes.ok) {
+          const inboxData = await inboxRes.json();
+          if (inboxData.conversations && inboxData.conversations.length > 0) {
+            const latestConv = inboxData.conversations[0];
+            targetPetId = latestConv.petId;
+            targetOwnerId = latestConv.senderId === userId ? latestConv.receiverId : latestConv.senderId;
+            setConversation(latestConv);
+          }
+        }
+      }
+
+      if (!targetPetId || !targetOwnerId) {
+        setError('No active conversation selected. Browse Marketplace to message a pet owner.');
+        setLoading(false);
+        return;
+      }
+
+      // Fetch pet details if missing
+      if (!activePet) {
+        try {
+          const pRes = await fetch(`${API_URL}/api/pets/${targetPetId}`);
+          if (pRes.ok) {
+            const pData = await pRes.json();
+            setChatPet(pData);
+          }
+        } catch (e) {
+          console.error('Error loading chat pet details:', e);
+        }
+      }
+
+      // Fetch owner details if missing
+      if (!activeOwner) {
+        try {
+          const oRes = await fetch(`${API_URL}/api/auth/profile/${targetOwnerId}`);
+          if (oRes.ok) {
+            const oData = await oRes.json();
+            setChatOwner(oData);
+          }
+        } catch (e) {
+          console.error('Error loading chat owner details:', e);
+        }
+      }
+
       // 1. Get or Create Conversation
       const convRes = await fetch(`${API_URL}/api/chat/conversation`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           senderId: userId,
-          receiverId: ownerId,
-          petId
+          receiverId: targetOwnerId,
+          petId: targetPetId
         })
       });
 
@@ -67,11 +133,8 @@ export default function PetChat({ user, pet, owner, onBack, onViewPetDetails }) 
         if (msgRes.ok) {
           const msgData = await msgRes.json();
           setMessages(msgData.messages || []);
-
-          // Sync fallback localStorage
           localStorage.setItem(`petlink_chat_${convObj.id}`, JSON.stringify(msgData.messages || []));
         } else {
-          // Fallback to local storage if network error
           const localMsgs = localStorage.getItem(`petlink_chat_${convObj.id}`);
           if (localMsgs) setMessages(JSON.parse(localMsgs));
         }
@@ -83,7 +146,7 @@ export default function PetChat({ user, pet, owner, onBack, onViewPetDetails }) 
       setLoading(false);
       setTimeout(scrollToBottom, 100);
     }
-  }, [userId, ownerId, petId]);
+  }, [userId, ownerId, petId, activePet, activeOwner]);
 
   useEffect(() => {
     initConversation();
@@ -163,7 +226,7 @@ export default function PetChat({ user, pet, owner, onBack, onViewPetDetails }) 
       
       {/* CHAT HEADER NAV */}
       <div className="pet-chat-header-bar">
-        <button type="button" className="chat-back-btn" onClick={onBack}>
+        <button type="button" className="chat-back-btn" onClick={activeOnBack}>
           <ArrowLeft size={16} />
           <span>Back to Marketplace</span>
         </button>
@@ -181,8 +244,8 @@ export default function PetChat({ user, pet, owner, onBack, onViewPetDetails }) 
           {/* Conversation Header Card */}
           <div className="chat-convo-header">
             <div className="chat-owner-avatar-box">
-              {targetOwner && targetOwner.profilePic ? (
-                <img src={targetOwner.profilePic} alt={ownerName} className="owner-avatar-img" />
+              {activeOwner && activeOwner.profilePic ? (
+                <img src={activeOwner.profilePic} alt={ownerName} className="owner-avatar-img" />
               ) : (
                 <User size={18} />
               )}
@@ -196,7 +259,7 @@ export default function PetChat({ user, pet, owner, onBack, onViewPetDetails }) 
               </div>
               <span className="chat-pet-ref-tag">
                 <PawPrint size={11} style={{ marginRight: '4px' }} />
-                Inquiry regarding <strong>{pet ? pet.name : 'Pet Listing'}</strong>
+                Inquiry regarding <strong>{activePet ? activePet.name : 'Pet Listing'}</strong>
               </span>
             </div>
           </div>
@@ -251,7 +314,7 @@ export default function PetChat({ user, pet, owner, onBack, onViewPetDetails }) 
             <input 
               type="text" 
               className="chat-input-field" 
-              placeholder={`Message ${ownerName} about ${pet ? pet.name : 'pet'}...`}
+              placeholder={`Message ${ownerName} about ${activePet ? activePet.name : 'pet'}...`}
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
               disabled={loading}
@@ -269,25 +332,25 @@ export default function PetChat({ user, pet, owner, onBack, onViewPetDetails }) 
         </section>
 
         {/* RIGHT COLUMN: 30% PET PROFILE SUMMARY */}
-        {pet && (
+        {activePet && (
           <aside className="pet-chat-summary-column">
             <div className="summary-card">
               <div className="summary-media-wrapper">
-                <PetImage src={pet.image} imageSettings={pet.imageSettings} type="card" className="summary-pet-img" />
-                <span className={`summary-type-badge ${pet.activeStatus ? pet.activeStatus.toLowerCase() : 'for_sale'}`}>
-                  {pet.activeStatus === 'FOR_SALE' ? 'For Sale' : 'For Adoption'}
+                <PetImage src={activePet.image} imageSettings={activePet.imageSettings} type="card" className="summary-pet-img" />
+                <span className={`summary-type-badge ${activePet.activeStatus ? activePet.activeStatus.toLowerCase() : 'for_sale'}`}>
+                  {activePet.activeStatus === 'FOR_SALE' ? 'For Sale' : 'For Adoption'}
                 </span>
               </div>
 
               <div className="summary-content">
                 <div className="summary-header">
-                  <h4 className="summary-pet-name">{pet.name}</h4>
-                  <span className="summary-pet-breed">{pet.breed} • {pet.species}</span>
+                  <h4 className="summary-pet-name">{activePet.name}</h4>
+                  <span className="summary-pet-breed">{activePet.breed} • {activePet.species}</span>
                 </div>
 
                 <div className="summary-price-box">
-                  {pet.activeStatus === 'FOR_SALE' ? (
-                    <span className="summary-price">{pet.price ? `${pet.price.toLocaleString()} PKR` : 'Call for Price'}</span>
+                  {activePet.activeStatus === 'FOR_SALE' ? (
+                    <span className="summary-price">{activePet.price ? `${activePet.price.toLocaleString()} PKR` : 'Call for Price'}</span>
                   ) : (
                     <span className="summary-adoption">Free Adoption</span>
                   )}
@@ -298,21 +361,21 @@ export default function PetChat({ user, pet, owner, onBack, onViewPetDetails }) 
                     <span className="spec-label">Location:</span>
                     <span className="spec-val">
                       <MapPin size={11} style={{ marginRight: '3px' }} />
-                      {pet.city}, {pet.province}
+                      {activePet.city}, {activePet.province}
                     </span>
                   </div>
 
                   <div className="summary-spec-item">
                     <span className="spec-label">Age:</span>
-                    <span className="spec-val">{pet.age}</span>
+                    <span className="spec-val">{activePet.age}</span>
                   </div>
 
                   <div className="summary-spec-item">
                     <span className="spec-label">Gender:</span>
-                    <span className="spec-val">{pet.gender}</span>
+                    <span className="spec-val">{activePet.gender}</span>
                   </div>
 
-                  {pet.isVaccinated && (
+                  {activePet.isVaccinated && (
                     <div className="summary-spec-item">
                       <span className="spec-label">Vaccinated:</span>
                       <span className="spec-val text-emerald">
@@ -322,20 +385,22 @@ export default function PetChat({ user, pet, owner, onBack, onViewPetDetails }) 
                   )}
                 </div>
 
-                {pet.aboutPet && (
+                {activePet.aboutPet && (
                   <div className="summary-bio-box">
-                    <span className="bio-label">About {pet.name}:</span>
-                    <p className="bio-text">{pet.aboutPet}</p>
+                    <span className="bio-label">About {activePet.name}:</span>
+                    <p className="bio-text">{activePet.aboutPet}</p>
                   </div>
                 )}
 
-                <button 
-                  type="button" 
-                  className="summary-view-details-btn"
-                  onClick={() => onViewPetDetails(pet._id || pet.id)}
-                >
-                  View Full Pet Details
-                </button>
+                {onViewPetDetails && (
+                  <button 
+                    type="button" 
+                    className="summary-view-details-btn"
+                    onClick={() => onViewPetDetails(activePet._id || activePet.id)}
+                  >
+                    View Full Pet Details
+                  </button>
+                )}
               </div>
             </div>
           </aside>

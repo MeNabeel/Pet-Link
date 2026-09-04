@@ -10,7 +10,7 @@ import { Skeleton } from '@/components/ui/Skeleton';
 import PetImage from '../components/PetImage';
 import './Marketplace.css';
 
-export default function Marketplace({ user, onViewDetails }) {
+export default function Marketplace({ user, onViewDetails, onOpenChat, onEditPet }) {
   // UI State
   const [viewMode, setViewMode] = useState('grid'); // 'grid' | 'list'
   const [isFilterExpanded, setIsFilterExpanded] = useState(true);
@@ -474,6 +474,10 @@ export default function Marketplace({ user, onViewDetails }) {
                   const isFavorited = favoritesIds.has(targetId);
                   const isSaved = savedIds.has(targetId);
                   
+                  const currentUserId = user && (user._id || user.id);
+                  const petOwnerId = pet.ownerId || (typeof pet.owner === 'object' ? pet.owner._id || pet.owner.id : pet.owner);
+                  const isOwner = Boolean(currentUserId && petOwnerId && String(currentUserId) === String(petOwnerId));
+                  
                   return (
                     <motion.div
                       key={targetId}
@@ -580,13 +584,13 @@ export default function Marketplace({ user, onViewDetails }) {
                         {pet.owner && (
                           <div className="card-owner-profile">
                             <div className="owner-avatar">
-                              {pet.owner.profilePic ? (
+                              {typeof pet.owner === 'object' && pet.owner.profilePic ? (
                                 <img src={pet.owner.profilePic} alt="Owner" />
                               ) : (
                                 <User size={12} />
                               )}
                             </div>
-                            <span className="owner-name">Owner: {pet.owner.name}</span>
+                            <span className="owner-name">Owner: {typeof pet.owner === 'object' ? (pet.owner.name || 'Owner') : 'Owner'}</span>
                           </div>
                         )}
 
@@ -599,6 +603,17 @@ export default function Marketplace({ user, onViewDetails }) {
                           >
                             View Details
                           </button>
+
+                          {isOwner && onEditPet && (
+                            <button 
+                              type="button"
+                              className="card-action-btn secondary"
+                              style={{ backgroundColor: '#EEF5FF', color: '#0066CC', border: '1px solid #0066CC', padding: '6px 12px', borderRadius: '8px', fontSize: '12px', fontWeight: '700' }}
+                              onClick={() => onEditPet(targetId)}
+                            >
+                              Edit Pet
+                            </button>
+                          )}
 
                           <div className="extra-action-buttons">
                             <button 
@@ -895,6 +910,49 @@ export default function Marketplace({ user, onViewDetails }) {
               <button type="button" className="pet-modal-btn-cancel" onClick={() => setQuickViewPet(null)}>
                 Close
               </button>
+
+              {(() => {
+                const currentUserId = user && (user._id || user.id);
+                const quickViewOwnerId = quickViewPet.ownerId || (typeof quickViewPet.owner === 'object' ? quickViewPet.owner._id || quickViewPet.owner.id : quickViewPet.owner);
+                const isQuickViewOwner = Boolean(currentUserId && quickViewOwnerId && String(currentUserId) === String(quickViewOwnerId));
+
+                if (isQuickViewOwner && onEditPet) {
+                  return (
+                    <button 
+                      type="button" 
+                      className="pet-modal-btn-save" 
+                      style={{ backgroundColor: '#0066CC', color: '#FFFFFF' }}
+                      onClick={() => {
+                        const targetId = quickViewPet._id || quickViewPet.id;
+                        setQuickViewPet(null);
+                        onEditPet(targetId);
+                      }}
+                    >
+                      Edit Pet Profile
+                    </button>
+                  );
+                }
+
+                if (!isQuickViewOwner && onOpenChat) {
+                  return (
+                    <button 
+                      type="button" 
+                      className="pet-modal-btn-save" 
+                      style={{ backgroundColor: '#10B981', color: '#FFFFFF' }}
+                      onClick={() => {
+                        const targetPet = quickViewPet;
+                        setQuickViewPet(null);
+                        onOpenChat({ pet: targetPet, owner: targetPet.owner });
+                      }}
+                    >
+                      Message Owner
+                    </button>
+                  );
+                }
+
+                return null;
+              })()}
+
               <button 
                 type="button" 
                 className="pet-modal-btn-save" 

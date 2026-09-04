@@ -1164,6 +1164,16 @@ export default function Dashboard({ onLogout }) {
                 setSelectedPetId(id);
                 setActiveTab('marketplace-details');
               }}
+              onOpenChat={({ pet, owner }) => {
+                setSelectedChatPet(pet);
+                setSelectedChatOwner(owner);
+                setActiveTab('chat');
+              }}
+              onEditPet={(id) => {
+                setSelectedPetId(id);
+                setActiveTab('pets');
+                setPetSubView('form');
+              }}
             />
           )}
 
@@ -1177,15 +1187,24 @@ export default function Dashboard({ onLogout }) {
                 setSelectedChatOwner(owner);
                 setActiveTab('chat');
               }}
+              onEditPet={(id) => {
+                setSelectedPetId(id);
+                setActiveTab('pets');
+                setPetSubView('form');
+              }}
             />
           )}
 
           {activeTab === 'chat' && (
             <PetChat 
-              currentUser={user}
-              initialPet={selectedChatPet}
-              initialOwner={selectedChatOwner}
-              onBackToMarketplace={() => setActiveTab('marketplace')}
+              user={user}
+              pet={selectedChatPet}
+              owner={selectedChatOwner}
+              onBack={() => setActiveTab('marketplace')}
+              onViewPetDetails={(id) => {
+                setSelectedPetId(id);
+                setActiveTab('marketplace-details');
+              }}
             />
           )}
 

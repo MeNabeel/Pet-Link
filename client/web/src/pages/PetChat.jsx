@@ -4,9 +4,8 @@ import {
   Send, ArrowLeft, User, MapPin, PawPrint, ShieldCheck, 
   Clock, AlertCircle, RefreshCw, Search, SlidersHorizontal,
   Phone, MoreVertical, X, Paperclip, Camera, MessageSquareCode,
-  ChevronRight
+  ChevronRight, Archive, Trash2, CheckCheck
 } from 'lucide-react';
-import PetImage from '../components/PetImage';
 import './PetChat.css';
 
 function formatRelativeTime(dateString) {
@@ -47,9 +46,24 @@ export default function PetChat({
   const [chatPet, setChatPet] = useState(null);
   const [chatOwner, setChatOwner] = useState(null);
 
+  // Archive & Filter Tabs State
+  const [chatTab, setChatTab] = useState('all'); // 'all' | 'archived'
+  const [archivedIds, setArchivedIds] = useState(() => {
+    try {
+      const stored = localStorage.getItem('petlink_archived_chats');
+      return stored ? JSON.parse(stored) : [];
+    } catch (e) {
+      return [];
+    }
+  });
+
+  // Dropdown Menu & Delete Confirmation State
+  const [openMenuId, setOpenMenuId] = useState(null);
+  const [deleteConfirmConv, setDeleteConfirmConv] = useState(null);
+
   const messagesEndRef = useRef(null);
 
-  // 2. NORMALIZED DERIVED VARIABLES (DECLARING BEFORE HOOKS)
+  // 2. NORMALIZED DERIVED VARIABLES
   const activeUser = user || currentUser;
   const activePet = pet || initialPet || chatPet;
   const activeOwner = owner || initialOwner || chatOwner || (activePet && typeof activePet.owner === 'object' ? activePet.owner : null);
@@ -60,10 +74,24 @@ export default function PetChat({
   const ownerId = activeOwner ? (activeOwner._id || activeOwner.id) : (activePet ? (activePet.ownerId || (typeof activePet.owner === 'string' ? activePet.owner : activePet.owner?._id || activePet.owner?.id)) : null);
   const ownerName = activeOwner ? (activeOwner.name || 'Listing Owner') : 'Listing Owner';
 
+  // Pet Image URL Resolution
+  const petImgUrl = activePet?.image || (Array.isArray(activePet?.images) && activePet.images[0]) || activePet?.coverImage || activePet?.photo || null;
+
   // Auto-scroll to bottom of chat
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
+
+  // Close dropdown on global click
+  useEffect(() => {
+    const handleGlobalClick = (e) => {
+      if (!e.target.closest('.conv-three-dots-wrapper')) {
+        setOpenMenuId(null);
+      }
+    };
+    document.addEventListener('click', handleGlobalClick);
+    return () => document.removeEventListener('click', handleGlobalClick);
+  }, []);
 
   // 3. FETCH USER CONVERSATIONS INBOX
   useEffect(() => {
@@ -96,6 +124,51 @@ export default function PetChat({
         setLoading(false);
         setTimeout(scrollToBottom, 100);
       });
+  };
+
+  // Archive Handler
+  const handleToggleArchive = (convId, e) => {
+    e.stopPropagation();
+    setOpenMenuId(null);
+    setArchivedIds(prev => {
+      const updated = prev.includes(convId) ? prev.filter(id => id !== convId) : [...prev, convId];
+      localStorage.setItem('petlink_archived_chats', JSON.stringify(updated));
+      return updated;
+    });
+  };
+
+  // Open Delete Confirmation
+  const handleOpenDeleteConfirm = (conv, e) => {
+    e.stopPropagation();
+    setOpenMenuId(null);
+    setDeleteConfirmConv(conv);
+  };
+
+  // Confirm Delete Conversation
+  const confirmDeleteConversation = async () => {
+    if (!deleteConfirmConv) return;
+    const targetId = deleteConfirmConv.id;
+    
+    // Remove from userConversations
+    setUserConversations(prev => prev.filter(c => c.id !== targetId));
+    localStorage.removeItem(`petlink_chat_${targetId}`);
+    
+    try {
+      await fetch(`${API_URL}/api/chat/conversation/${targetId}`, { method: 'DELETE' });
+    } catch (e) {
+      console.error('Error deleting conversation on server:', e);
+    }
+
+    if (conversation && conversation.id === targetId) {
+      const remaining = userConversations.filter(c => c.id !== targetId);
+      if (remaining.length > 0) {
+        handleSwitchConversation(remaining[0]);
+      } else {
+        setConversation(null);
+        setMessages([]);
+      }
+    }
+    setDeleteConfirmConv(null);
   };
 
   // 5. INITIALIZE OR FETCH CONVERSATION
@@ -274,8 +347,12 @@ export default function PetChat({
     }
   };
 
-  // Filter conversations by search query
-  const filteredConversations = userConversations.filter(c => {
+  // Filter conversations by Tab ('all' vs 'archived') and Search Query
+  const activeConversations = userConversations.filter(c => !archivedIds.includes(c.id));
+  const archivedConversations = userConversations.filter(c => archivedIds.includes(c.id));
+  const displayedByTab = chatTab === 'archived' ? archivedConversations : activeConversations;
+
+  const filteredConversations = displayedByTab.filter(c => {
     if (!searchQuery.trim()) return true;
     const q = searchQuery.toLowerCase();
     const partnerName = (c.otherUser?.name || '').toLowerCase();
@@ -320,19 +397,40 @@ export default function PetChat({
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
-              <button type="button" className="inbox-filter-btn" title="Filter conversations">
-                <SlidersHorizontal size={14} />
+            </div>
+
+            {/* Filter Tabs: All Chats | Archived */}
+            <div className="inbox-tabs-bar">
+              <button
+                type="button"
+                className={`inbox-tab-btn ${chatTab === 'all' ? 'active' : ''}`}
+                onClick={() => setChatTab('all')}
+              >
+                All Chats ({activeConversations.length})
+              </button>
+              <button
+                type="button"
+                className={`inbox-tab-btn ${chatTab === 'archived' ? 'active' : ''}`}
+                onClick={() => setChatTab('archived')}
+              >
+                Archived ({archivedConversations.length})
               </button>
             </div>
           </div>
 
           {/* Conversation List Scroll Area */}
           <div className="inbox-cards-list">
-            {userConversations.length === 0 ? (
+            {displayedByTab.length === 0 ? (
               <div className="inbox-empty-card">
                 <MessageSquareCode size={32} className="empty-icon" />
-                <p className="empty-title">No Conversations</p>
-                <p className="empty-desc">Message pet owners on the Marketplace to start chatting.</p>
+                <p className="empty-title">
+                  {chatTab === 'archived' ? 'No Archived Chats' : 'No Active Conversations'}
+                </p>
+                <p className="empty-desc">
+                  {chatTab === 'archived' 
+                    ? 'Archived conversations will appear here.'
+                    : 'Message pet owners on the Marketplace to start chatting.'}
+                </p>
               </div>
             ) : filteredConversations.length === 0 ? (
               <div className="inbox-empty-card">
@@ -357,7 +455,7 @@ export default function PetChat({
                     {/* OWNER AVATAR (MUST represent the OWNER) */}
                     <div className="conv-avatar-wrapper">
                       <img
-                        src={partner.profilePic || '/logo/logo.jpeg'}
+                        src={partner.profilePic || partner.avatar || '/logo/logo.jpeg'}
                         alt={partnerName}
                         className="conv-owner-avatar"
                       />
@@ -380,9 +478,50 @@ export default function PetChat({
                       </p>
                     </div>
 
-                    {conv.unreadCount > 0 && (
-                      <span className="conv-unread-badge">{conv.unreadCount}</span>
-                    )}
+                    <div className="conv-card-right-group">
+                      {conv.unreadCount > 0 && (
+                        <span className="conv-unread-badge">{conv.unreadCount}</span>
+                      )}
+
+                      {/* THREE-DOT MENU BUTTON & DROPDOWN */}
+                      <div className="conv-three-dots-wrapper">
+                        <button
+                          type="button"
+                          className="conv-three-dots-btn"
+                          title="More actions"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setOpenMenuId(openMenuId === conv.id ? null : conv.id);
+                          }}
+                        >
+                          <MoreVertical size={16} />
+                        </button>
+
+                        {openMenuId === conv.id && (
+                          <div className="conv-dropdown-menu" onClick={(e) => e.stopPropagation()}>
+                            <button
+                              type="button"
+                              className="conv-dropdown-item"
+                              onClick={(e) => handleToggleArchive(conv.id, e)}
+                            >
+                              <Archive size={14} />
+                              <span>{archivedIds.includes(conv.id) ? 'Unarchive Chat' : 'Archive Chat'}</span>
+                            </button>
+                            
+                            <div className="conv-dropdown-divider" />
+
+                            <button
+                              type="button"
+                              className="conv-dropdown-item danger"
+                              onClick={(e) => handleOpenDeleteConfirm(conv, e)}
+                            >
+                              <Trash2 size={14} />
+                              <span>Delete Chat</span>
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 );
               })
@@ -397,8 +536,8 @@ export default function PetChat({
           <div className="chat-header-bar">
             <div className="chat-header-left">
               <div className="chat-owner-avatar-container">
-                {activeOwner && activeOwner.profilePic ? (
-                  <img src={activeOwner.profilePic} alt={ownerName} className="chat-header-avatar" />
+                {activeOwner && (activeOwner.profilePic || activeOwner.avatar) ? (
+                  <img src={activeOwner.profilePic || activeOwner.avatar} alt={ownerName} className="chat-header-avatar" />
                 ) : (
                   <div className="chat-header-avatar-placeholder"><User size={20} /></div>
                 )}
@@ -450,7 +589,15 @@ export default function PetChat({
               <div className="chat-pet-context-card">
                 <div className="context-card-left">
                   <div className="context-img-wrapper">
-                    <PetImage src={activePet.image} imageSettings={activePet.imageSettings} type="card" className="context-pet-img" />
+                    <img 
+                      src={petImgUrl || 'https://images.unsplash.com/photo-1552053831-71594a27632d?auto=format&fit=crop&q=80&w=300'} 
+                      alt={activePet.name || 'Pet'} 
+                      className="context-pet-img"
+                      onError={(e) => {
+                        e.target.onerror = null;
+                        e.target.src = 'https://images.unsplash.com/photo-1552053831-71594a27632d?auto=format&fit=crop&q=80&w=300';
+                      }}
+                    />
                     <span className={`context-status-tag ${activePet.activeStatus ? activePet.activeStatus.toLowerCase() : 'for_sale'}`}>
                       {activePet.activeStatus === 'FOR_SALE' ? 'FOR SALE' : 'FOR ADOPTION'}
                     </span>
@@ -534,7 +681,7 @@ export default function PetChat({
                   <div key={msg.id || msg._id} className={`chat-message-row ${isUser ? 'outgoing' : 'incoming'}`}>
                     {!isUser && (
                       <img
-                        src={activeOwner?.profilePic || '/logo/logo.jpeg'}
+                        src={activeOwner?.profilePic || activeOwner?.avatar || '/logo/logo.jpeg'}
                         alt={ownerName}
                         className="message-sender-avatar"
                       />
@@ -597,7 +744,37 @@ export default function PetChat({
         </main>
 
       </div>
+
+      {/* CONFIRM DELETE MODAL */}
+      {deleteConfirmConv && (
+        <div className="chat-modal-overlay" onClick={() => setDeleteConfirmConv(null)}>
+          <div className="chat-modal-box" onClick={(e) => e.stopPropagation()}>
+            <h4 className="chat-modal-title">Delete Conversation</h4>
+            <p className="chat-modal-desc">
+              Are you sure you want to delete your conversation with <strong>{deleteConfirmConv.otherUser?.name || 'this owner'}</strong> regarding <strong>{deleteConfirmConv.pet?.name || 'this pet'}</strong>?
+            </p>
+            <div className="chat-modal-actions">
+              <button 
+                type="button" 
+                className="chat-modal-btn cancel" 
+                onClick={() => setDeleteConfirmConv(null)}
+              >
+                Cancel
+              </button>
+              <button 
+                type="button" 
+                className="chat-modal-btn delete" 
+                onClick={confirmDeleteConversation}
+              >
+                Delete Chat
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
+
 

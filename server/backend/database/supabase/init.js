@@ -500,3 +500,5 @@ const initDB = async () => {
 };
 
 module.exports = initDB;
+module.exports.pool = pool;
+module.exports.initDB = initDB;

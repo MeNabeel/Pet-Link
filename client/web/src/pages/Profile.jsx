@@ -1,13 +1,72 @@
-import React, { useRef } from 'react';
+import API_URL from '@/config';
+import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { 
   Settings, ShoppingBag, LogOut, ChevronRight, Mail, Phone, Camera, MapPin, 
   Calendar, BadgeCheck, PawPrint, Heart, Bookmark, Bell, Shield,
-  ShieldCheck, HeartHandshake, Sliders, LifeBuoy
+  ShieldCheck, HeartHandshake, Sliders, LifeBuoy, X, Eye, Sparkles, Trash2
 } from 'lucide-react';
+import PetImage from '../components/PetImage';
 import './Profile.css';
 
-export default function Profile({ user, onNavigateToSettings, onLogout, onUpdateUser, onNavigateToAddresses }) {
+export default function Profile({ 
+  user, 
+  onNavigateToSettings, 
+  onLogout, 
+  onUpdateUser, 
+  onNavigateToAddresses,
+  onViewPetDetails
+}) {
   const profileInputRef = useRef(null);
+
+  // Favorites & Saved Data State
+  const [favoritesList, setFavoritesList] = useState([]);
+  const [savedList, setSavedList] = useState([]);
+  const [loadingItems, setLoadingItems] = useState(false);
+
+  // Active Overlay Modal ('none' | 'favorites' | 'saved')
+  const [activeModal, setActiveModal] = useState('none');
+  const [quickViewPet, setQuickViewPet] = useState(null);
+
+  const userId = user && (user._id || user.id);
+
+  // Fetch User Favorites & Saved Items
+  const loadUserData = useCallback(async () => {
+    if (!userId) return;
+    setLoadingItems(true);
+    try {
+      // 1. Fetch Wishlist / Favorites
+      const favRes = await fetch(`${API_URL}/api/wishlist/owner/${userId}`);
+      if (favRes.ok) {
+        const favData = await favRes.json();
+        setFavoritesList(favData.wishlist || []);
+      }
+
+      // 2. Load Saved Pet IDs from localStorage
+      const savedStored = localStorage.getItem(`petlink_saved_pets_${userId}`);
+      const savedIds = savedStored ? JSON.parse(savedStored) : [];
+
+      if (savedIds.length > 0) {
+        // Fetch marketplace listings to populate saved pet details
+        const mpRes = await fetch(`${API_URL}/api/marketplace?limit=50`);
+        if (mpRes.ok) {
+          const mpData = await mpRes.json();
+          const allPets = mpData.pets || [];
+          const matchedSaved = allPets.filter(p => savedIds.includes(p._id || p.id));
+          setSavedList(matchedSaved);
+        }
+      } else {
+        setSavedList([]);
+      }
+    } catch (err) {
+      console.error('Error fetching user profile stats data:', err);
+    } finally {
+      setLoadingItems(false);
+    }
+  }, [userId]);
+
+  useEffect(() => {
+    loadUserData();
+  }, [loadUserData]);
 
   if (!user) return null;
 
@@ -23,7 +82,35 @@ export default function Profile({ user, onNavigateToSettings, onLogout, onUpdate
   };
 
   const handleMenuClick = (title) => {
-    alert(`Navigating to the web ${title} page... Part of Sprint deliverables.`);
+    alert(`Navigating to ${title}... Available in upcoming Sprint release.`);
+  };
+
+  // Remove Favorite
+  const handleRemoveFavorite = async (e, petId) => {
+    e.stopPropagation();
+    if (!userId) return;
+    try {
+      const res = await fetch(`${API_URL}/api/wishlist/remove`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, petId })
+      });
+      if (res.ok) {
+        setFavoritesList(prev => prev.filter(p => (p._id || p.id) !== petId));
+      }
+    } catch (err) {
+      console.error('Error removing favorite:', err);
+    }
+  };
+
+  // Remove Saved
+  const handleRemoveSaved = (e, petId) => {
+    e.stopPropagation();
+    if (!userId) return;
+    const updated = savedList.filter(p => (p._id || p.id) !== petId);
+    setSavedList(updated);
+    const updatedIds = updated.map(p => p._id || p.id);
+    localStorage.setItem(`petlink_saved_pets_${userId}`, JSON.stringify(updatedIds));
   };
 
   const formattedDate = user.createdAt ? new Date(user.createdAt).toLocaleDateString('en-US', {
@@ -138,23 +225,25 @@ export default function Profile({ user, onNavigateToSettings, onLogout, onUpdate
             </div>
           </div>
 
-          <div className="profile-stat-card">
+          {/* DYNAMIC FAVORITES STAT CARD */}
+          <div className="profile-stat-card clickable" onClick={() => setActiveModal('favorites')}>
             <div className="profile-stat-icon-box" style={{ backgroundColor: 'rgba(239, 68, 68, 0.08)', color: '#EF4444' }}>
               <Heart size={18} />
             </div>
             <div className="profile-stat-info">
-              <span className="profile-stat-label">WISHLIST</span>
-              <span className="profile-stat-value">0</span>
+              <span className="profile-stat-label">FAVORITES</span>
+              <span className="profile-stat-value">{favoritesList.length}</span>
             </div>
           </div>
 
-          <div className="profile-stat-card">
+          {/* DYNAMIC SAVED ITEMS STAT CARD */}
+          <div className="profile-stat-card clickable" onClick={() => setActiveModal('saved')}>
             <div className="profile-stat-icon-box" style={{ backgroundColor: 'rgba(139, 92, 246, 0.08)', color: '#8B5CF6' }}>
               <Bookmark size={18} />
             </div>
             <div className="profile-stat-info">
               <span className="profile-stat-label">SAVED ITEMS</span>
-              <span className="profile-stat-value">0</span>
+              <span className="profile-stat-value">{savedList.length}</span>
             </div>
           </div>
         </div>
@@ -170,7 +259,6 @@ export default function Profile({ user, onNavigateToSettings, onLogout, onUpdate
             </div>
 
             <div className="profile-pref-list">
-              {/* Account Settings */}
               <div className="profile-pref-item" onClick={onNavigateToSettings}>
                 <div className="profile-pref-left">
                   <div className="profile-pref-icon-box" style={{ backgroundColor: 'rgba(0, 102, 204, 0.08)', color: 'var(--color-primary)' }}>
@@ -184,7 +272,6 @@ export default function Profile({ user, onNavigateToSettings, onLogout, onUpdate
                 <ChevronRight size={16} color="var(--color-muted)" />
               </div>
 
-              {/* Addresses */}
               <div className="profile-pref-item" onClick={onNavigateToAddresses || (() => handleMenuClick('Addresses'))}>
                 <div className="profile-pref-left">
                   <div className="profile-pref-icon-box" style={{ backgroundColor: 'rgba(22, 163, 74, 0.08)', color: '#16A34A' }}>
@@ -198,7 +285,6 @@ export default function Profile({ user, onNavigateToSettings, onLogout, onUpdate
                 <ChevronRight size={16} color="var(--color-muted)" />
               </div>
 
-              {/* Notification Preferences */}
               <div className="profile-pref-item" onClick={() => handleMenuClick('Notification Preferences')}>
                 <div className="profile-pref-left">
                   <div className="profile-pref-icon-box" style={{ backgroundColor: 'rgba(234, 179, 8, 0.08)', color: '#EAB308' }}>
@@ -212,7 +298,6 @@ export default function Profile({ user, onNavigateToSettings, onLogout, onUpdate
                 <ChevronRight size={16} color="var(--color-muted)" />
               </div>
 
-              {/* Privacy & Security */}
               <div className="profile-pref-item" onClick={() => handleMenuClick('Privacy & Security')}>
                 <div className="profile-pref-left">
                   <div className="profile-pref-icon-box" style={{ backgroundColor: 'rgba(139, 92, 246, 0.08)', color: '#8B5CF6' }}>
@@ -236,7 +321,6 @@ export default function Profile({ user, onNavigateToSettings, onLogout, onUpdate
             </div>
 
             <div className="profile-quick-actions-grid">
-              {/* My Orders */}
               <div className="profile-quick-action-card" onClick={() => handleMenuClick('My Orders')}>
                 <div className="profile-quick-icon-box" style={{ backgroundColor: 'rgba(22, 163, 74, 0.08)', color: '#16A34A' }}>
                   <ShoppingBag size={17} />
@@ -247,7 +331,6 @@ export default function Profile({ user, onNavigateToSettings, onLogout, onUpdate
                 </div>
               </div>
 
-              {/* My Pets */}
               <div className="profile-quick-action-card" onClick={() => handleMenuClick('My Pets')}>
                 <div className="profile-quick-icon-box" style={{ backgroundColor: 'rgba(0, 102, 204, 0.08)', color: 'var(--color-primary)' }}>
                   <PawPrint size={17} />
@@ -258,25 +341,25 @@ export default function Profile({ user, onNavigateToSettings, onLogout, onUpdate
                 </div>
               </div>
 
-              {/* Favorites */}
-              <div className="profile-quick-action-card" onClick={() => handleMenuClick('Favorites')}>
+              {/* FAVORITES QUICK ACTION */}
+              <div className="profile-quick-action-card" onClick={() => setActiveModal('favorites')}>
                 <div className="profile-quick-icon-box" style={{ backgroundColor: 'rgba(239, 68, 68, 0.08)', color: '#EF4444' }}>
                   <Heart size={17} />
                 </div>
                 <div className="profile-quick-text-group">
                   <span className="profile-quick-title">Favorites</span>
-                  <span className="profile-quick-desc">View favorite pets</span>
+                  <span className="profile-quick-desc">View favorite pets ({favoritesList.length})</span>
                 </div>
               </div>
 
-              {/* Saved */}
-              <div className="profile-quick-action-card" onClick={() => handleMenuClick('Saved')}>
+              {/* SAVED QUICK ACTION */}
+              <div className="profile-quick-action-card" onClick={() => setActiveModal('saved')}>
                 <div className="profile-quick-icon-box" style={{ backgroundColor: 'rgba(139, 92, 246, 0.08)', color: '#8B5CF6' }}>
                   <Bookmark size={17} />
                 </div>
                 <div className="profile-quick-text-group">
                   <span className="profile-quick-title">Saved</span>
-                  <span className="profile-quick-desc">Saved products</span>
+                  <span className="profile-quick-desc">View saved items ({savedList.length})</span>
                 </div>
               </div>
             </div>
@@ -351,6 +434,159 @@ export default function Profile({ user, onNavigateToSettings, onLogout, onUpdate
         </div>
 
       </div>
+
+      {/* FAVORITES OR SAVED OVERLAY MODAL */}
+      {activeModal !== 'none' && (
+        <div className="pet-details-drawer-overlay" onClick={() => setActiveModal('none')}>
+          <div className="pet-details-drawer" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '780px', maxHeight: '85vh' }}>
+            <div className="pet-drawer-header">
+              <h3 className="pet-drawer-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                {activeModal === 'favorites' ? (
+                  <>
+                    <Heart size={20} color="#EF4444" fill="#EF4444" />
+                    <span>My Favorite Companions ({favoritesList.length})</span>
+                  </>
+                ) : (
+                  <>
+                    <Bookmark size={20} color="#8B5CF6" fill="#8B5CF6" />
+                    <span>My Saved Items ({savedList.length})</span>
+                  </>
+                )}
+              </h3>
+              <button type="button" className="pet-drawer-close-btn" onClick={() => setActiveModal('none')}>
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="profile-items-scroll-grid">
+              {(activeModal === 'favorites' ? favoritesList : savedList).length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '40px 20px', color: '#64748B' }}>
+                  <p style={{ fontSize: '14px', fontWeight: '600' }}>
+                    {activeModal === 'favorites' 
+                      ? 'No favorite companions saved yet.' 
+                      : 'No saved items found.'}
+                  </p>
+                  <span style={{ fontSize: '12px' }}>
+                    {activeModal === 'favorites'
+                      ? 'Click the heart icon on any marketplace pet listing to add it to your favorites.'
+                      : 'Click the bookmark icon on any marketplace pet listing to save it for later.'}
+                  </span>
+                </div>
+              ) : (
+                <div className="profile-pets-grid">
+                  {(activeModal === 'favorites' ? favoritesList : savedList).map((pet) => {
+                    const petId = pet._id || pet.id;
+                    return (
+                      <div key={petId} className="profile-mini-pet-card">
+                        <div className="profile-mini-pet-img-box">
+                          <PetImage src={pet.image} imageSettings={pet.imageSettings} type="card" style={{ height: '100%' }} />
+                          <button 
+                            type="button" 
+                            className="profile-mini-remove-btn"
+                            onClick={(e) => activeModal === 'favorites' ? handleRemoveFavorite(e, petId) : handleRemoveSaved(e, petId)}
+                            title="Remove item"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
+
+                        <div className="profile-mini-pet-info">
+                          <h4 className="profile-mini-pet-name">{pet.name}</h4>
+                          <span className="profile-mini-pet-sub">{pet.breed} • {pet.species}</span>
+                          <div className="profile-mini-pet-price-row">
+                            <span className="profile-mini-price">
+                              {pet.activeStatus === 'FOR_SALE'
+                                ? (pet.price ? `${pet.price.toLocaleString()} PKR` : 'Call for Price')
+                                : 'Free Adoption'}
+                            </span>
+                            <div className="profile-mini-actions">
+                              <button 
+                                type="button"
+                                className="profile-mini-action-icon"
+                                onClick={() => setQuickViewPet(pet)}
+                                title="Quick View"
+                              >
+                                <Eye size={13} />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            <div className="pet-modal-actions">
+              <button type="button" className="pet-modal-btn-cancel" onClick={() => setActiveModal('none')}>
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* QUICK VIEW SUB-MODAL */}
+      {quickViewPet && (
+        <div className="pet-details-drawer-overlay" onClick={() => setQuickViewPet(null)} style={{ zIndex: 10050 }}>
+          <div className="pet-details-drawer" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '580px', borderRadius: '20px', zIndex: 10051 }}>
+            <div className="pet-drawer-header">
+              <h3 className="pet-drawer-title">{quickViewPet.name} Quick Overview</h3>
+              <button type="button" className="pet-drawer-close-btn" onClick={() => setQuickViewPet(null)}>
+                <X size={20} />
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', gap: '16px', marginBottom: '16px' }}>
+              <div style={{ width: '130px', height: '130px', borderRadius: '12px', overflow: 'hidden', flexShrink: 0 }}>
+                <PetImage src={quickViewPet.image} imageSettings={quickViewPet.imageSettings} type="card" style={{ height: '100%' }} />
+              </div>
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <h4 style={{ fontSize: '18px', fontWeight: '800', color: '#0F172A', margin: 0 }}>{quickViewPet.name}</h4>
+                <p style={{ fontSize: '12px', color: '#64748B', margin: 0 }}>{quickViewPet.breed} • {quickViewPet.species}</p>
+                <div style={{ marginTop: '4px' }}>
+                  {quickViewPet.activeStatus === 'FOR_SALE' ? (
+                    <span style={{ fontSize: '16px', fontWeight: '800', color: '#10B981' }}>
+                      {quickViewPet.price ? `${quickViewPet.price.toLocaleString()} PKR` : 'Call for Price'}
+                    </span>
+                  ) : (
+                    <span style={{ fontSize: '12px', fontWeight: '800', color: '#EA580C', backgroundColor: '#FFEDD5', padding: '3px 8px', borderRadius: '6px' }}>
+                      Free Adoption
+                    </span>
+                  )}
+                </div>
+                <p style={{ fontSize: '12px', color: '#334155', margin: '4px 0 0 0' }}>
+                  <MapPin size={12} style={{ display: 'inline', marginRight: '4px' }} />
+                  {quickViewPet.city}, {quickViewPet.province}
+                </p>
+              </div>
+            </div>
+
+            <div className="pet-card-rows-list" style={{ marginBottom: '20px' }}>
+              <div className="pet-row-item">
+                <span className="pet-row-label">Age</span>
+                <span className="pet-row-val">{quickViewPet.age}</span>
+              </div>
+              <div className="pet-row-item">
+                <span className="pet-row-label">Gender</span>
+                <span className="pet-row-val">{quickViewPet.gender}</span>
+              </div>
+              <div className="pet-row-item">
+                <span className="pet-row-label">Vaccination</span>
+                <span className="pet-row-val">{quickViewPet.isVaccinated ? 'Vaccinated' : 'Not Vaccinated'}</span>
+              </div>
+            </div>
+
+            <div className="pet-modal-actions">
+              <button type="button" className="pet-modal-btn-cancel" onClick={() => setQuickViewPet(null)}>
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

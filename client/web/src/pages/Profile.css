@@ -247,8 +247,117 @@
   transition: transform var(--transition-fast), border-color var(--transition-fast);
 }
 
-.profile-stat-card:hover {
+.profile-stat-card.clickable {
+  cursor: pointer;
+}
+
+.profile-stat-card:hover,
+.profile-stat-card.clickable:hover {
   transform: translateY(-1px);
+  border-color: var(--color-primary);
+}
+
+/* PROFILE QUICK ACTION ITEMS MODAL GRID */
+.profile-items-scroll-grid {
+  max-height: 60vh;
+  overflow-y: auto;
+  padding: 8px 4px;
+}
+
+.profile-pets-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 14px;
+}
+
+.profile-mini-pet-card {
+  background-color: #FFFFFF;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+}
+
+.profile-mini-pet-img-box {
+  position: relative;
+  height: 140px;
+  width: 100%;
+}
+
+.profile-mini-remove-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background-color: rgba(255, 255, 255, 0.9);
+  border: none;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #EF4444;
+  cursor: pointer;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s ease;
+}
+
+.profile-mini-remove-btn:hover {
+  transform: scale(1.1);
+  background-color: #EF4444;
+  color: #FFFFFF;
+}
+
+.profile-mini-pet-info {
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.profile-mini-pet-name {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--color-dark);
+  margin: 0;
+}
+
+.profile-mini-pet-sub {
+  font-size: 11px;
+  color: var(--color-muted);
+  font-weight: 600;
+}
+
+.profile-mini-pet-price-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 4px;
+}
+
+.profile-mini-price {
+  font-size: 12px;
+  font-weight: 800;
+  color: #10B981;
+}
+
+.profile-mini-action-icon {
+  background: var(--color-bg-light);
+  border: 1px solid var(--color-border);
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-muted);
+  cursor: pointer;
+}
+
+.profile-mini-action-icon:hover {
+  color: var(--color-primary);
   border-color: var(--color-primary);
 }
 

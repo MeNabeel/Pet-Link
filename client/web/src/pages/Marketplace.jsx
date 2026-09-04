@@ -1,9 +1,9 @@
 import API_URL from '@/config';
 import React, { useState, useEffect, useCallback } from 'react';
 import { 
-  Search, Heart, Eye, MapPin, Sparkles, AlertTriangle, 
-  RefreshCw, LayoutGrid, List, SlidersHorizontal, ShieldCheck, 
-  User, Calendar, Smile, ShieldAlert
+  Search, Heart, Bookmark, Eye, MapPin, Sparkles, AlertTriangle, 
+  RefreshCw, LayoutGrid, List, SlidersHorizontal, Filter, ShieldCheck, 
+  User, Calendar, Smile, ShieldAlert, X
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Skeleton } from '@/components/ui/Skeleton';
@@ -15,7 +15,7 @@ export default function Marketplace({ user, onViewDetails }) {
   const [viewMode, setViewMode] = useState('grid'); // 'grid' | 'list'
   const [isFilterExpanded, setIsFilterExpanded] = useState(true);
   const [quickViewPet, setQuickViewPet] = useState(null);
-  const [showOnlyWishlist, setShowOnlyWishlist] = useState(false);
+  const [activeFilterTab, setActiveFilterTab] = useState('all'); // 'all' | 'favorites' | 'saved'
   
   // Data State
   const [pets, setPets] = useState([]);
@@ -27,9 +27,12 @@ export default function Marketplace({ user, onViewDetails }) {
   const [totalPages, setTotalPages] = useState(1);
   const limit = 8;
 
-  // Wishlist State (List of favorited Pet IDs)
-  const [wishlistIds, setWishlistIds] = useState(new Set());
+  // Favorites State (Favorites Pet IDs synced via API)
+  const [favoritesIds, setFavoritesIds] = useState(new Set());
   const [savingFavId, setSavingFavId] = useState(null);
+
+  // Saved State (Saved Pet IDs stored in user profile storage)
+  const [savedIds, setSavedIds] = useState(new Set());
 
   // Filters State
   const [search, setSearch] = useState('');
@@ -60,6 +63,22 @@ export default function Marketplace({ user, onViewDetails }) {
   const [reportReason, setReportReason] = useState('');
   const [isSubmittingReport, setIsSubmittingReport] = useState(false);
 
+  const userId = user && (user._id || user.id);
+
+  // Load Saved Pet IDs from localStorage
+  useEffect(() => {
+    if (!userId) return;
+    try {
+      const stored = localStorage.getItem(`petlink_saved_pets_${userId}`);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        setSavedIds(new Set(parsed));
+      }
+    } catch (e) {
+      console.error('Error reading saved pets:', e);
+    }
+  }, [userId]);
+
   // Real-time debounce search effect
   useEffect(() => {
     const handler = setTimeout(() => {
@@ -68,21 +87,20 @@ export default function Marketplace({ user, onViewDetails }) {
     return () => clearTimeout(handler);
   }, [search]);
 
-  // Fetch Wishlist Items
-  const fetchWishlist = useCallback(async () => {
-    const userId = user && (user._id || user.id);
+  // Fetch Favorites Items
+  const fetchFavorites = useCallback(async () => {
     if (!userId) return;
     try {
       const response = await fetch(`${API_URL}/api/wishlist/owner/${userId}`);
       if (response.ok) {
         const data = await response.json();
         const ids = new Set((data.wishlist || []).map(p => p._id || p.id));
-        setWishlistIds(ids);
+        setFavoritesIds(ids);
       }
     } catch (err) {
-      console.error('Error fetching user wishlist:', err);
+      console.error('Error fetching user favorites:', err);
     }
-  }, [user]);
+  }, [userId]);
 
   // Fetch Marketplace Data
   const fetchMarketplace = useCallback(async () => {
@@ -128,7 +146,7 @@ export default function Marketplace({ user, onViewDetails }) {
       setPets(data.pets || []);
       setTotalPages((data.pagination && data.pagination.pages) || 1);
     } catch (err) {
-      console.error(err);
+      console.error('Marketplace fetch error:', err);
       setError(err.message || 'Server error loading marketplace.');
     } finally {
       setLoading(false);
@@ -144,21 +162,20 @@ export default function Marketplace({ user, onViewDetails }) {
     fetchMarketplace();
   }, [fetchMarketplace]);
 
-  // Trigger wishlist sync
+  // Trigger favorites sync
   useEffect(() => {
-    fetchWishlist();
-  }, [fetchWishlist]);
+    fetchFavorites();
+  }, [fetchFavorites]);
 
-  // Wishlist Heart Click Handler
+  // Favorites Heart Click Handler
   const handleToggleFavorite = async (e, targetPetId) => {
     e.stopPropagation();
-    const userId = user && (user._id || user.id);
     if (!userId) {
-      alert('Please log in to save pets to your wishlist.');
+      alert('Please log in to save pets to your favorites.');
       return;
     }
 
-    const isFavorited = wishlistIds.has(targetPetId);
+    const isFavorited = favoritesIds.has(targetPetId);
     setSavingFavId(targetPetId);
 
     try {
@@ -170,21 +187,44 @@ export default function Marketplace({ user, onViewDetails }) {
       });
 
       if (response.ok) {
-        const updated = new Set(wishlistIds);
+        const updated = new Set(favoritesIds);
         if (isFavorited) {
           updated.delete(targetPetId);
         } else {
           updated.add(targetPetId);
         }
-        setWishlistIds(updated);
+        setFavoritesIds(updated);
       } else {
         const errData = await response.json();
-        alert(errData.message || 'Failed to update wishlist.');
+        alert(errData.message || 'Failed to update favorites.');
       }
     } catch (err) {
-      console.error('Wishlist toggle error:', err);
+      console.error('Favorites toggle error:', err);
     } finally {
       setSavingFavId(null);
+    }
+  };
+
+  // Saved Bookmark Click Handler
+  const handleToggleSaved = (e, targetPetId) => {
+    e.stopPropagation();
+    if (!userId) {
+      alert('Please log in to save pets to your saved items.');
+      return;
+    }
+
+    const updated = new Set(savedIds);
+    if (updated.has(targetPetId)) {
+      updated.delete(targetPetId);
+    } else {
+      updated.add(targetPetId);
+    }
+    setSavedIds(updated);
+
+    try {
+      localStorage.setItem(`petlink_saved_pets_${userId}`, JSON.stringify(Array.from(updated)));
+    } catch (err) {
+      console.error('Saved pets update error:', err);
     }
   };
 
@@ -199,7 +239,7 @@ export default function Marketplace({ user, onViewDetails }) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          reporter: user._id || user.id,
+          reporter: userId,
           petId: reportingPet._id || reportingPet.id,
           reason: reportReason
         })
@@ -238,7 +278,7 @@ export default function Marketplace({ user, onViewDetails }) {
     setMaxPrice('');
     setSort('newest');
     setListingType('all');
-    setShowOnlyWishlist(false);
+    setActiveFilterTab('all');
     setPage(1);
   };
 
@@ -255,8 +295,11 @@ export default function Marketplace({ user, onViewDetails }) {
     }
   };
 
-  const displayedPets = showOnlyWishlist 
-    ? pets.filter(p => wishlistIds.has(p._id || p.id)) 
+  // Compute displayed list based on active filter tab
+  const displayedPets = activeFilterTab === 'favorites'
+    ? pets.filter(p => favoritesIds.has(p._id || p.id))
+    : activeFilterTab === 'saved'
+    ? pets.filter(p => savedIds.has(p._id || p.id))
     : pets;
 
   return (
@@ -283,193 +326,223 @@ export default function Marketplace({ user, onViewDetails }) {
             />
           </div>
 
-          {/* SAVED / WISHLIST FILTER BUTTON */}
+          {/* COLLAPSIBLE FILTER SIDEBAR TOGGLE BUTTON */}
+          <button
+            type="button"
+            className={`marketplace-filter-toggle-btn ${isFilterExpanded ? 'active' : ''}`}
+            onClick={() => setIsFilterExpanded(!isFilterExpanded)}
+            title={isFilterExpanded ? "Hide Filters Sidebar" : "Show Filters Sidebar"}
+          >
+            <SlidersHorizontal size={15} />
+            <span>Filter</span>
+          </button>
+
+          {/* FAVORITES FILTER BUTTON */}
           <button 
             type="button"
-            className={`marketplace-saved-btn ${showOnlyWishlist ? 'active' : ''}`}
-            onClick={() => { setShowOnlyWishlist(!showOnlyWishlist); setPage(1); }}
-            title={showOnlyWishlist ? "Show All Listings" : "Show Saved Wishlist"}
+            className={`marketplace-header-tab-btn ${activeFilterTab === 'favorites' ? 'active-fav' : ''}`}
+            onClick={() => {
+              setActiveFilterTab(activeFilterTab === 'favorites' ? 'all' : 'favorites');
+              setPage(1);
+            }}
+            title={activeFilterTab === 'favorites' ? "Show All Listings" : "Show Favorite Pets"}
           >
-            <Heart size={16} fill={showOnlyWishlist ? "#EF4444" : "none"} color={showOnlyWishlist ? "#EF4444" : "#64748B"} />
-            <span>Saved ({wishlistIds.size})</span>
+            <Heart size={15} fill={activeFilterTab === 'favorites' ? "#EF4444" : "none"} color={activeFilterTab === 'favorites' ? "#EF4444" : "#64748B"} />
+            <span>Favorites ({favoritesIds.size})</span>
+          </button>
+
+          {/* SAVED FILTER BUTTON */}
+          <button 
+            type="button"
+            className={`marketplace-header-tab-btn ${activeFilterTab === 'saved' ? 'active-saved' : ''}`}
+            onClick={() => {
+              setActiveFilterTab(activeFilterTab === 'saved' ? 'all' : 'saved');
+              setPage(1);
+            }}
+            title={activeFilterTab === 'saved' ? "Show All Listings" : "Show Saved Items"}
+          >
+            <Bookmark size={15} fill={activeFilterTab === 'saved' ? "#8B5CF6" : "none"} color={activeFilterTab === 'saved' ? "#8B5CF6" : "#64748B"} />
+            <span>Saved ({savedIds.size})</span>
           </button>
         </div>
       </div>
 
       {/* Main Work Layout */}
-      <div className="marketplace-work-layout">
+      <div className={`marketplace-work-layout ${!isFilterExpanded ? 'collapsed' : ''}`}>
         
         {/* Left Sticky Sidebar Form Filters */}
-        <aside className={`marketplace-filters-sidebar ${isFilterExpanded ? 'open' : 'collapsed'}`}>
-          <div className="sidebar-filter-header">
-            <span className="sidebar-title">
-              <SlidersHorizontal size={16} /> Filters
-            </span>
-            <button className="reset-filters-btn" onClick={handleResetFilters}>Reset All</button>
-          </div>
-
-          <div className="sidebar-scrollable-content">
-            {/* Listing type segmented selector */}
-            <div className="filter-group">
-              <label className="filter-label">Listing Type</label>
-              <div className="segmented-control">
-                <button 
-                  className={`segment-btn ${listingType === 'all' ? 'active' : ''}`}
-                  onClick={() => { setListingType('all'); setPage(1); }}
-                >
-                  All
-                </button>
-                <button 
-                  className={`segment-btn ${listingType === 'FOR_SALE' ? 'active' : ''}`}
-                  onClick={() => { setListingType('FOR_SALE'); setPage(1); }}
-                >
-                  For Sale
-                </button>
-                <button 
-                  className={`segment-btn ${listingType === 'FOR_ADOPTION' ? 'active' : ''}`}
-                  onClick={() => { setListingType('FOR_ADOPTION'); setPage(1); }}
-                >
-                  Adoption
-                </button>
-              </div>
+        {isFilterExpanded && (
+          <aside className="marketplace-filters-sidebar open">
+            <div className="sidebar-filter-header">
+              <span className="sidebar-title">
+                <Filter size={15} /> Filter Parameters
+              </span>
+              <button className="reset-filters-btn" onClick={handleResetFilters}>Reset All</button>
             </div>
 
-            {/* Conditional Price Range Inputs */}
-            {listingType !== 'FOR_ADOPTION' && (
-              <div className="filter-group fade-in">
-                <label className="filter-label">Price Range (PKR)</label>
-                <div className="price-inputs-row">
-                  <input 
-                    type="number" 
-                    placeholder="Min" 
-                    value={minPrice} 
-                    onChange={(e) => { setMinPrice(e.target.value); setPage(1); }} 
-                  />
-                  <span className="price-separator">to</span>
-                  <input 
-                    type="number" 
-                    placeholder="Max" 
-                    value={maxPrice} 
-                    onChange={(e) => { setMaxPrice(e.target.value); setPage(1); }} 
-                  />
+            <div className="sidebar-scrollable-content">
+              {/* Listing type segmented selector */}
+              <div className="filter-group">
+                <label className="filter-label">Listing Type</label>
+                <div className="segmented-control">
+                  <button 
+                    className={`segment-btn ${listingType === 'all' ? 'active' : ''}`}
+                    onClick={() => { setListingType('all'); setPage(1); }}
+                  >
+                    All
+                  </button>
+                  <button 
+                    className={`segment-btn ${listingType === 'FOR_SALE' ? 'active' : ''}`}
+                    onClick={() => { setListingType('FOR_SALE'); setPage(1); }}
+                  >
+                    For Sale
+                  </button>
+                  <button 
+                    className={`segment-btn ${listingType === 'FOR_ADOPTION' ? 'active' : ''}`}
+                    onClick={() => { setListingType('FOR_ADOPTION'); setPage(1); }}
+                  >
+                    Adoption
+                  </button>
                 </div>
               </div>
-            )}
 
-            {/* Species dropdown filter */}
-            <div className="filter-group">
-              <label className="filter-label">Species</label>
-              <select 
-                value={species} 
-                onChange={(e) => { setSpecies(e.target.value); setBreed(''); setPage(1); }}
-                className="filter-select"
-              >
-                <option value="">All Species</option>
-                <option value="Dog">Dogs</option>
-                <option value="Cat">Cats</option>
-                <option value="Bird">Birds</option>
-                <option value="Fish">Fish</option>
-                <option value="Rabbit">Rabbits</option>
-              </select>
-            </div>
+              {/* Conditional Price Range Inputs */}
+              {listingType !== 'FOR_ADOPTION' && (
+                <div className="filter-group fade-in">
+                  <label className="filter-label">Price Range (PKR)</label>
+                  <div className="price-inputs-row">
+                    <input 
+                      type="number" 
+                      placeholder="Min" 
+                      value={minPrice} 
+                      onChange={(e) => { setMinPrice(e.target.value); setPage(1); }} 
+                    />
+                    <span className="price-separator">to</span>
+                    <input 
+                      type="number" 
+                      placeholder="Max" 
+                      value={maxPrice} 
+                      onChange={(e) => { setMaxPrice(e.target.value); setPage(1); }} 
+                    />
+                  </div>
+                </div>
+              )}
 
-            {/* Breed input */}
-            <div className="filter-group">
-              <label className="filter-label">Breed</label>
-              <input 
-                type="text" 
-                placeholder="e.g. Persian, German Shepherd" 
-                value={breed} 
-                onChange={(e) => { setBreed(e.target.value); setPage(1); }}
-                className="filter-input"
-              />
-            </div>
+              {/* Species dropdown filter */}
+              <div className="filter-group">
+                <label className="filter-label">Species</label>
+                <select 
+                  value={species} 
+                  onChange={(e) => { setSpecies(e.target.value); setBreed(''); setPage(1); }}
+                  className="filter-select"
+                >
+                  <option value="">All Species</option>
+                  <option value="Dog">Dogs</option>
+                  <option value="Cat">Cats</option>
+                  <option value="Bird">Birds</option>
+                  <option value="Fish">Fish</option>
+                  <option value="Rabbit">Rabbits</option>
+                </select>
+              </div>
 
-            {/* Gender Selection */}
-            <div className="filter-group">
-              <label className="filter-label">Gender</label>
-              <select 
-                value={gender} 
-                onChange={(e) => { setGender(e.target.value); setPage(1); }}
-                className="filter-select"
-              >
-                <option value="">All Genders</option>
-                <option value="Male">Male</option>
-                <option value="Female">Female</option>
-              </select>
-            </div>
-
-            {/* Age dropdown filter */}
-            <div className="filter-group">
-              <label className="filter-label">Age Range</label>
-              <select 
-                value={age} 
-                onChange={(e) => { setAge(e.target.value); setPage(1); }}
-                className="filter-select"
-              >
-                <option value="">All Ages</option>
-                <option value="Puppy / Kitten">Puppy / Kitten (&lt; 6 months)</option>
-                <option value="Young">Young (&lt; 2 yrs)</option>
-                <option value="Adult">Adult (2 - 7 yrs)</option>
-                <option value="Senior">Senior (&gt; 7 yrs)</option>
-              </select>
-            </div>
-
-            {/* Location filters */}
-            <div className="filter-group">
-              <label className="filter-label">Province</label>
-              <input 
-                type="text" 
-                placeholder="e.g. Punjab, Sindh" 
-                value={province} 
-                onChange={(e) => { setProvince(e.target.value); setPage(1); }}
-                className="filter-input"
-              />
-            </div>
-
-            <div className="filter-group">
-              <label className="filter-label">City</label>
-              <input 
-                type="text" 
-                placeholder="e.g. Lahore, Karachi" 
-                value={city} 
-                onChange={(e) => { setCity(e.target.value); setPage(1); }}
-                className="filter-input"
-              />
-            </div>
-
-            {/* Checkbox Attributes */}
-            <div className="checkbox-filters-group">
-              <label className="checkbox-item">
+              {/* Breed input */}
+              <div className="filter-group">
+                <label className="filter-label">Breed</label>
                 <input 
-                  type="checkbox" 
-                  checked={vaccinated} 
-                  onChange={(e) => { setVaccinated(e.target.checked); setPage(1); }} 
+                  type="text" 
+                  placeholder="e.g. Persian, German Shepherd" 
+                  value={breed} 
+                  onChange={(e) => { setBreed(e.target.value); setPage(1); }}
+                  className="filter-input"
                 />
-                <span>Vaccinated Only</span>
-              </label>
+              </div>
 
-              <label className="checkbox-item">
-                <input 
-                  type="checkbox" 
-                  checked={friendlyWithKids} 
-                  onChange={(e) => { setFriendlyWithKids(e.target.checked); setPage(1); }} 
-                />
-                <span>Friendly with Kids</span>
-              </label>
+              {/* Gender Selection */}
+              <div className="filter-group">
+                <label className="filter-label">Gender</label>
+                <select 
+                  value={gender} 
+                  onChange={(e) => { setGender(e.target.value); setPage(1); }}
+                  className="filter-select"
+                >
+                  <option value="">All Genders</option>
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                </select>
+              </div>
 
-              <label className="checkbox-item">
+              {/* Age dropdown filter */}
+              <div className="filter-group">
+                <label className="filter-label">Age Range</label>
+                <select 
+                  value={age} 
+                  onChange={(e) => { setAge(e.target.value); setPage(1); }}
+                  className="filter-select"
+                >
+                  <option value="">All Ages</option>
+                  <option value="Puppy / Kitten">Puppy / Kitten (&lt; 6 months)</option>
+                  <option value="Young">Young (&lt; 2 yrs)</option>
+                  <option value="Adult">Adult (2 - 7 yrs)</option>
+                  <option value="Senior">Senior (&gt; 7 yrs)</option>
+                </select>
+              </div>
+
+              {/* Location filters */}
+              <div className="filter-group">
+                <label className="filter-label">Province</label>
                 <input 
-                  type="checkbox" 
-                  checked={friendlyWithPets} 
-                  onChange={(e) => { setFriendlyWithPets(e.target.checked); setPage(1); }} 
+                  type="text" 
+                  placeholder="e.g. Punjab, Sindh" 
+                  value={province} 
+                  onChange={(e) => { setProvince(e.target.value); setPage(1); }}
+                  className="filter-input"
                 />
-                <span>Friendly with Other Pets</span>
-              </label>
+              </div>
+
+              <div className="filter-group">
+                <label className="filter-label">City</label>
+                <input 
+                  type="text" 
+                  placeholder="e.g. Lahore, Karachi" 
+                  value={city} 
+                  onChange={(e) => { setCity(e.target.value); setPage(1); }}
+                  className="filter-input"
+                />
+              </div>
+
+              {/* Checkbox Attributes */}
+              <div className="checkbox-filters-group">
+                <label className="checkbox-item">
+                  <input 
+                    type="checkbox" 
+                    checked={vaccinated} 
+                    onChange={(e) => { setVaccinated(e.target.checked); setPage(1); }} 
+                  />
+                  <span>Vaccinated Only</span>
+                </label>
+
+                <label className="checkbox-item">
+                  <input 
+                    type="checkbox" 
+                    checked={friendlyWithKids} 
+                    onChange={(e) => { setFriendlyWithKids(e.target.checked); setPage(1); }} 
+                  />
+                  <span>Friendly with Kids</span>
+                </label>
+
+                <label className="checkbox-item">
+                  <input 
+                    type="checkbox" 
+                    checked={friendlyWithPets} 
+                    onChange={(e) => { setFriendlyWithPets(e.target.checked); setPage(1); }} 
+                  />
+                  <span>Friendly with Other Pets</span>
+                </label>
+              </div>
+
             </div>
-
-          </div>
-        </aside>
+          </aside>
+        )}
 
         {/* Right Directory Content Panel */}
         <section className="marketplace-directory-panel">
@@ -481,7 +554,11 @@ export default function Marketplace({ user, onViewDetails }) {
                 <Skeleton width="120px" height="18px" />
               ) : (
                 <span className="results-counter">
-                  {showOnlyWishlist ? `Showing ${displayedPets.length} saved companion(s)` : `Showing ${displayedPets.length} companion(s)`}
+                  {activeFilterTab === 'favorites' 
+                    ? `Showing ${displayedPets.length} favorite companion(s)` 
+                    : activeFilterTab === 'saved' 
+                    ? `Showing ${displayedPets.length} saved companion(s)`
+                    : `Showing ${displayedPets.length} companion(s)`}
                 </span>
               )}
             </div>
@@ -552,11 +629,17 @@ export default function Marketplace({ user, onViewDetails }) {
             <div className="marketplace-empty-state">
               <Smile size={48} className="empty-icon" />
               <h4 className="empty-title">
-                {showOnlyWishlist ? 'No saved companions in wishlist' : 'No listings found'}
+                {activeFilterTab === 'favorites' 
+                  ? 'No favorite companions found' 
+                  : activeFilterTab === 'saved' 
+                  ? 'No saved companions found' 
+                  : 'No listings found'}
               </h4>
               <p className="empty-desc">
-                {showOnlyWishlist 
-                  ? 'Click the heart icon on any pet listing to save it to your wishlist.' 
+                {activeFilterTab === 'favorites'
+                  ? 'Click the heart icon on any pet listing to save it to your favorites.'
+                  : activeFilterTab === 'saved'
+                  ? 'Click the bookmark icon on any pet listing to save it for later.'
                   : 'No furry friends match your filter settings. Reset filters to load available marketplace pets.'}
               </p>
               <button className="empty-reset-btn" onClick={handleResetFilters}>Reset Filters</button>
@@ -569,7 +652,8 @@ export default function Marketplace({ user, onViewDetails }) {
               <AnimatePresence mode="popLayout">
                 {displayedPets.map((pet) => {
                   const targetId = pet._id || pet.id;
-                  const isFavorited = wishlistIds.has(targetId);
+                  const isFavorited = favoritesIds.has(targetId);
+                  const isSaved = savedIds.has(targetId);
                   
                   return (
                     <motion.div
@@ -591,7 +675,7 @@ export default function Marketplace({ user, onViewDetails }) {
                           {pet.activeStatus === 'FOR_SALE' ? 'For Sale' : 'For Adoption'}
                         </span>
 
-                        {/* Top Right Action Overlay: Eye Icon Quick View & Heart Icon Wishlist */}
+                        {/* Top Right Action Overlay: Eye (Quick View), Heart (Favorites), Bookmark (Saved) */}
                         <div className="card-media-actions-overlay">
                           <button 
                             type="button"
@@ -610,9 +694,18 @@ export default function Marketplace({ user, onViewDetails }) {
                             className={`card-media-icon-btn heart-btn ${isFavorited ? 'favorited' : ''} ${savingFavId === targetId ? 'loading' : ''}`}
                             onClick={(e) => handleToggleFavorite(e, targetId)}
                             disabled={savingFavId === targetId}
-                            title={isFavorited ? "Remove from Wishlist" : "Save to Wishlist"}
+                            title={isFavorited ? "Remove from Favorites" : "Add to Favorites"}
                           >
                             <Heart size={15} fill={isFavorited ? "#EF4444" : "none"} color={isFavorited ? "#EF4444" : "#64748B"} />
+                          </button>
+
+                          <button 
+                            type="button"
+                            className={`card-media-icon-btn bookmark-btn ${isSaved ? 'saved' : ''}`}
+                            onClick={(e) => handleToggleSaved(e, targetId)}
+                            title={isSaved ? "Remove from Saved" : "Save for Later"}
+                          >
+                            <Bookmark size={15} fill={isSaved ? "#8B5CF6" : "none"} color={isSaved ? "#8B5CF6" : "#64748B"} />
                           </button>
                         </div>
 
@@ -717,7 +810,7 @@ export default function Marketplace({ user, onViewDetails }) {
           )}
 
           {/* Pagination bar */}
-          {totalPages > 1 && !showOnlyWishlist && (
+          {totalPages > 1 && activeFilterTab === 'all' && (
             <div className="marketplace-pagination-bar">
               <button 
                 className="pagination-btn"

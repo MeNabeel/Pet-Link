@@ -140,10 +140,10 @@
   color: #8B5CF6;
 }
 
-/* MAIN WORK LAYOUT GRID FIX (NO HORIZONTAL OVERFLOW/SHIFTING) */
+/* MAIN WORK LAYOUT GRID FIX (DIRECTORY PANEL LEFT | STICKY FILTERS SIDEBAR RIGHT) */
 .marketplace-work-layout {
   display: grid;
-  grid-template-columns: 260px minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) 260px;
   gap: 20px;
   align-items: start;
   width: 100%;
@@ -191,7 +191,7 @@
   gap: 8px;
   font-size: 13px;
   font-weight: 800;
-  color: var(--color-dark);
+  color: #0F172A;
 }
 
 .reset-filters-btn {
@@ -255,26 +255,43 @@
   box-shadow: var(--shadow-sm);
 }
 
-.price-inputs-row {
+/* STACKED PRICE INPUTS (VERTICAL SEPARATE ROWS PREVENT HORIZONTAL SCROLL) */
+.price-inputs-column {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.price-input-row {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
 }
 
-.price-inputs-row input {
+.price-input-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-muted);
+  width: 32px;
+  flex-shrink: 0;
+}
+
+.price-input-row input {
   flex: 1;
-  padding: 6px 8px;
+  padding: 6px 10px;
   border: 1.5px solid var(--color-border);
   border-radius: 8px;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
-  text-align: center;
+  color: #0F172A;
+  background-color: #F8FAFC;
+  transition: all 0.2s ease;
 }
 
-.price-separator {
-  font-size: 10px;
-  color: var(--color-muted);
-  font-weight: 700;
+.price-input-row input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  background-color: #FFFFFF;
 }
 
 .filter-select, .filter-input {

@@ -305,38 +305,20 @@ export default function Marketplace({ user, onViewDetails }) {
   return (
     <div className="marketplace-container">
       
-      {/* CLEAN COMPACT MARKETPLACE HEADER */}
+      {/* CLEAN COMPACT MARKETPLACE HEADER TOOLBAR */}
       <div className="marketplace-clean-header">
-        <div className="marketplace-header-title-box">
-          <h2 className="marketplace-title">Marketplace & Adoption Hub</h2>
-          <p className="marketplace-subtitle">
-            Browse verified companions, profiles for sale, and pets seeking immediate adoption across Pakistan.
-          </p>
+        {/* PROMINENT LEFT MARKETPLACE SEARCH BAR */}
+        <div className="marketplace-main-search">
+          <Search className="search-icon" size={16} />
+          <input 
+            type="text" 
+            placeholder="Search companion name, breed, species, or city..." 
+            value={search}
+            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+          />
         </div>
 
         <div className="marketplace-header-toolbar">
-          {/* PROMINENT MARKETPLACE SEARCH BAR */}
-          <div className="marketplace-main-search">
-            <Search className="search-icon" size={16} />
-            <input 
-              type="text" 
-              placeholder="Search by companion name, breed, species, or city..." 
-              value={search}
-              onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-            />
-          </div>
-
-          {/* COLLAPSIBLE FILTER SIDEBAR TOGGLE BUTTON */}
-          <button
-            type="button"
-            className={`marketplace-filter-toggle-btn ${isFilterExpanded ? 'active' : ''}`}
-            onClick={() => setIsFilterExpanded(!isFilterExpanded)}
-            title={isFilterExpanded ? "Hide Filters Sidebar" : "Show Filters Sidebar"}
-          >
-            <SlidersHorizontal size={15} />
-            <span>Filter</span>
-          </button>
-
           {/* FAVORITES FILTER BUTTON */}
           <button 
             type="button"
@@ -364,187 +346,24 @@ export default function Marketplace({ user, onViewDetails }) {
             <Bookmark size={15} fill={activeFilterTab === 'saved' ? "#8B5CF6" : "none"} color={activeFilterTab === 'saved' ? "#8B5CF6" : "#64748B"} />
             <span>Saved ({savedIds.size})</span>
           </button>
+
+          {/* COLLAPSIBLE FILTER SIDEBAR TOGGLE BUTTON */}
+          <button
+            type="button"
+            className={`marketplace-filter-toggle-btn ${isFilterExpanded ? 'active' : ''}`}
+            onClick={() => setIsFilterExpanded(!isFilterExpanded)}
+            title={isFilterExpanded ? "Hide Filters Sidebar" : "Show Filters Sidebar"}
+          >
+            <SlidersHorizontal size={15} />
+            <span>Filter</span>
+          </button>
         </div>
       </div>
 
-      {/* Main Work Layout */}
+      {/* Main Work Layout: LEFT Directory Panel | RIGHT Filter Sidebar */}
       <div className={`marketplace-work-layout ${!isFilterExpanded ? 'collapsed' : ''}`}>
         
-        {/* Left Sticky Sidebar Form Filters */}
-        {isFilterExpanded && (
-          <aside className="marketplace-filters-sidebar open">
-            <div className="sidebar-filter-header">
-              <span className="sidebar-title">
-                <Filter size={15} /> Filter Parameters
-              </span>
-              <button className="reset-filters-btn" onClick={handleResetFilters}>Reset All</button>
-            </div>
-
-            <div className="sidebar-scrollable-content">
-              {/* Listing type segmented selector */}
-              <div className="filter-group">
-                <label className="filter-label">Listing Type</label>
-                <div className="segmented-control">
-                  <button 
-                    className={`segment-btn ${listingType === 'all' ? 'active' : ''}`}
-                    onClick={() => { setListingType('all'); setPage(1); }}
-                  >
-                    All
-                  </button>
-                  <button 
-                    className={`segment-btn ${listingType === 'FOR_SALE' ? 'active' : ''}`}
-                    onClick={() => { setListingType('FOR_SALE'); setPage(1); }}
-                  >
-                    For Sale
-                  </button>
-                  <button 
-                    className={`segment-btn ${listingType === 'FOR_ADOPTION' ? 'active' : ''}`}
-                    onClick={() => { setListingType('FOR_ADOPTION'); setPage(1); }}
-                  >
-                    Adoption
-                  </button>
-                </div>
-              </div>
-
-              {/* Conditional Price Range Inputs */}
-              {listingType !== 'FOR_ADOPTION' && (
-                <div className="filter-group fade-in">
-                  <label className="filter-label">Price Range (PKR)</label>
-                  <div className="price-inputs-row">
-                    <input 
-                      type="number" 
-                      placeholder="Min" 
-                      value={minPrice} 
-                      onChange={(e) => { setMinPrice(e.target.value); setPage(1); }} 
-                    />
-                    <span className="price-separator">to</span>
-                    <input 
-                      type="number" 
-                      placeholder="Max" 
-                      value={maxPrice} 
-                      onChange={(e) => { setMaxPrice(e.target.value); setPage(1); }} 
-                    />
-                  </div>
-                </div>
-              )}
-
-              {/* Species dropdown filter */}
-              <div className="filter-group">
-                <label className="filter-label">Species</label>
-                <select 
-                  value={species} 
-                  onChange={(e) => { setSpecies(e.target.value); setBreed(''); setPage(1); }}
-                  className="filter-select"
-                >
-                  <option value="">All Species</option>
-                  <option value="Dog">Dogs</option>
-                  <option value="Cat">Cats</option>
-                  <option value="Bird">Birds</option>
-                  <option value="Fish">Fish</option>
-                  <option value="Rabbit">Rabbits</option>
-                </select>
-              </div>
-
-              {/* Breed input */}
-              <div className="filter-group">
-                <label className="filter-label">Breed</label>
-                <input 
-                  type="text" 
-                  placeholder="e.g. Persian, German Shepherd" 
-                  value={breed} 
-                  onChange={(e) => { setBreed(e.target.value); setPage(1); }}
-                  className="filter-input"
-                />
-              </div>
-
-              {/* Gender Selection */}
-              <div className="filter-group">
-                <label className="filter-label">Gender</label>
-                <select 
-                  value={gender} 
-                  onChange={(e) => { setGender(e.target.value); setPage(1); }}
-                  className="filter-select"
-                >
-                  <option value="">All Genders</option>
-                  <option value="Male">Male</option>
-                  <option value="Female">Female</option>
-                </select>
-              </div>
-
-              {/* Age dropdown filter */}
-              <div className="filter-group">
-                <label className="filter-label">Age Range</label>
-                <select 
-                  value={age} 
-                  onChange={(e) => { setAge(e.target.value); setPage(1); }}
-                  className="filter-select"
-                >
-                  <option value="">All Ages</option>
-                  <option value="Puppy / Kitten">Puppy / Kitten (&lt; 6 months)</option>
-                  <option value="Young">Young (&lt; 2 yrs)</option>
-                  <option value="Adult">Adult (2 - 7 yrs)</option>
-                  <option value="Senior">Senior (&gt; 7 yrs)</option>
-                </select>
-              </div>
-
-              {/* Location filters */}
-              <div className="filter-group">
-                <label className="filter-label">Province</label>
-                <input 
-                  type="text" 
-                  placeholder="e.g. Punjab, Sindh" 
-                  value={province} 
-                  onChange={(e) => { setProvince(e.target.value); setPage(1); }}
-                  className="filter-input"
-                />
-              </div>
-
-              <div className="filter-group">
-                <label className="filter-label">City</label>
-                <input 
-                  type="text" 
-                  placeholder="e.g. Lahore, Karachi" 
-                  value={city} 
-                  onChange={(e) => { setCity(e.target.value); setPage(1); }}
-                  className="filter-input"
-                />
-              </div>
-
-              {/* Checkbox Attributes */}
-              <div className="checkbox-filters-group">
-                <label className="checkbox-item">
-                  <input 
-                    type="checkbox" 
-                    checked={vaccinated} 
-                    onChange={(e) => { setVaccinated(e.target.checked); setPage(1); }} 
-                  />
-                  <span>Vaccinated Only</span>
-                </label>
-
-                <label className="checkbox-item">
-                  <input 
-                    type="checkbox" 
-                    checked={friendlyWithKids} 
-                    onChange={(e) => { setFriendlyWithKids(e.target.checked); setPage(1); }} 
-                  />
-                  <span>Friendly with Kids</span>
-                </label>
-
-                <label className="checkbox-item">
-                  <input 
-                    type="checkbox" 
-                    checked={friendlyWithPets} 
-                    onChange={(e) => { setFriendlyWithPets(e.target.checked); setPage(1); }} 
-                  />
-                  <span>Friendly with Other Pets</span>
-                </label>
-              </div>
-
-            </div>
-          </aside>
-        )}
-
-        {/* Right Directory Content Panel */}
+        {/* LEFT DIRECTORY CONTENT PANEL */}
         <section className="marketplace-directory-panel">
           
           {/* List Settings Control Header */}
@@ -671,7 +490,7 @@ export default function Marketplace({ user, onViewDetails }) {
                         <PetImage src={pet.image} imageSettings={pet.imageSettings} type="card" className="pet-img" />
                         
                         {/* Listing type badge */}
-                        <span className={`listing-type-badge ${pet.activeStatus.toLowerCase()}`}>
+                        <span className={`listing-type-badge ${pet.activeStatus ? pet.activeStatus.toLowerCase() : 'for_sale'}`}>
                           {pet.activeStatus === 'FOR_SALE' ? 'For Sale' : 'For Adoption'}
                         </span>
 
@@ -831,6 +650,186 @@ export default function Marketplace({ user, onViewDetails }) {
           )}
 
         </section>
+
+        {/* RIGHT SIDEBAR: EXPANDABLE FORM FILTERS */}
+        {isFilterExpanded && (
+          <aside className="marketplace-filters-sidebar open">
+            <div className="sidebar-filter-header">
+              <span className="sidebar-title">
+                <Filter size={15} /> Filter Parameters
+              </span>
+              <button className="reset-filters-btn" onClick={handleResetFilters}>Reset All</button>
+            </div>
+
+            <div className="sidebar-scrollable-content">
+              {/* Listing type segmented selector */}
+              <div className="filter-group">
+                <label className="filter-label">Listing Type</label>
+                <div className="segmented-control">
+                  <button 
+                    className={`segment-btn ${listingType === 'all' ? 'active' : ''}`}
+                    onClick={() => { setListingType('all'); setPage(1); }}
+                  >
+                    All
+                  </button>
+                  <button 
+                    className={`segment-btn ${listingType === 'FOR_SALE' ? 'active' : ''}`}
+                    onClick={() => { setListingType('FOR_SALE'); setPage(1); }}
+                  >
+                    For Sale
+                  </button>
+                  <button 
+                    className={`segment-btn ${listingType === 'FOR_ADOPTION' ? 'active' : ''}`}
+                    onClick={() => { setListingType('FOR_ADOPTION'); setPage(1); }}
+                  >
+                    Adoption
+                  </button>
+                </div>
+              </div>
+
+              {/* Conditional Price Range Inputs (STACKED ON SEPARATE ROWS TO PREVENT OVERFLOW) */}
+              {listingType !== 'FOR_ADOPTION' && (
+                <div className="filter-group fade-in">
+                  <label className="filter-label">Price Range (PKR)</label>
+                  <div className="price-inputs-column">
+                    <div className="price-input-row">
+                      <span className="price-input-label">Min</span>
+                      <input 
+                        type="number" 
+                        placeholder="0" 
+                        value={minPrice} 
+                        onChange={(e) => { setMinPrice(e.target.value); setPage(1); }} 
+                      />
+                    </div>
+                    <div className="price-input-row">
+                      <span className="price-input-label">Max</span>
+                      <input 
+                        type="number" 
+                        placeholder="Any" 
+                        value={maxPrice} 
+                        onChange={(e) => { setMaxPrice(e.target.value); setPage(1); }} 
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Species dropdown filter */}
+              <div className="filter-group">
+                <label className="filter-label">Species</label>
+                <select 
+                  value={species} 
+                  onChange={(e) => { setSpecies(e.target.value); setBreed(''); setPage(1); }}
+                  className="filter-select"
+                >
+                  <option value="">All Species</option>
+                  <option value="Dog">Dogs</option>
+                  <option value="Cat">Cats</option>
+                  <option value="Bird">Birds</option>
+                  <option value="Fish">Fish</option>
+                  <option value="Rabbit">Rabbits</option>
+                </select>
+              </div>
+
+              {/* Breed input */}
+              <div className="filter-group">
+                <label className="filter-label">Breed</label>
+                <input 
+                  type="text" 
+                  placeholder="e.g. Persian, German Shepherd" 
+                  value={breed} 
+                  onChange={(e) => { setBreed(e.target.value); setPage(1); }}
+                  className="filter-input"
+                />
+              </div>
+
+              {/* Gender Selection */}
+              <div className="filter-group">
+                <label className="filter-label">Gender</label>
+                <select 
+                  value={gender} 
+                  onChange={(e) => { setGender(e.target.value); setPage(1); }}
+                  className="filter-select"
+                >
+                  <option value="">All Genders</option>
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                </select>
+              </div>
+
+              {/* Age dropdown filter */}
+              <div className="filter-group">
+                <label className="filter-label">Age Range</label>
+                <select 
+                  value={age} 
+                  onChange={(e) => { setAge(e.target.value); setPage(1); }}
+                  className="filter-select"
+                >
+                  <option value="">All Ages</option>
+                  <option value="Puppy / Kitten">Puppy / Kitten (&lt; 6 months)</option>
+                  <option value="Young">Young (&lt; 2 yrs)</option>
+                  <option value="Adult">Adult (2 - 7 yrs)</option>
+                  <option value="Senior">Senior (&gt; 7 yrs)</option>
+                </select>
+              </div>
+
+              {/* Location filters */}
+              <div className="filter-group">
+                <label className="filter-label">Province</label>
+                <input 
+                  type="text" 
+                  placeholder="e.g. Punjab, Sindh" 
+                  value={province} 
+                  onChange={(e) => { setProvince(e.target.value); setPage(1); }}
+                  className="filter-input"
+                />
+              </div>
+
+              <div className="filter-group">
+                <label className="filter-label">City</label>
+                <input 
+                  type="text" 
+                  placeholder="e.g. Lahore, Karachi" 
+                  value={city} 
+                  onChange={(e) => { setCity(e.target.value); setPage(1); }}
+                  className="filter-input"
+                />
+              </div>
+
+              {/* Checkbox Attributes */}
+              <div className="checkbox-filters-group">
+                <label className="checkbox-item">
+                  <input 
+                    type="checkbox" 
+                    checked={vaccinated} 
+                    onChange={(e) => { setVaccinated(e.target.checked); setPage(1); }} 
+                  />
+                  <span>Vaccinated Only</span>
+                </label>
+
+                <label className="checkbox-item">
+                  <input 
+                    type="checkbox" 
+                    checked={friendlyWithKids} 
+                    onChange={(e) => { setFriendlyWithKids(e.target.checked); setPage(1); }} 
+                  />
+                  <span>Friendly with Kids</span>
+                </label>
+
+                <label className="checkbox-item">
+                  <input 
+                    type="checkbox" 
+                    checked={friendlyWithPets} 
+                    onChange={(e) => { setFriendlyWithPets(e.target.checked); setPage(1); }} 
+                  />
+                  <span>Friendly with Other Pets</span>
+                </label>
+              </div>
+
+            </div>
+          </aside>
+        )}
+
       </div>
 
       {/* QUICK VIEW MODAL */}

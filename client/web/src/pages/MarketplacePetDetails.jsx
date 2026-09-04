@@ -9,7 +9,7 @@ import { Skeleton } from '@/components/ui/Skeleton';
 import PetImage from '../components/PetImage';
 import './MarketplacePetDetails.css';
 
-export default function MarketplacePetDetails({ user, petId, onBack }) {
+export default function MarketplacePetDetails({ user, petId, onBack, onOpenChat }) {
   const [pet, setPet] = useState(null);
   const [similarPets, setSimilarPets] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -79,6 +79,10 @@ export default function MarketplacePetDetails({ user, petId, onBack }) {
   };
 
   const handleMessageTrigger = (actionType) => {
+    if (onOpenChat && pet && pet.owner) {
+      onOpenChat({ pet, owner: pet.owner });
+      return;
+    }
     setContactSubject(
       actionType === 'buy' 
         ? `Inquiry regarding purchasing ${pet.name}`

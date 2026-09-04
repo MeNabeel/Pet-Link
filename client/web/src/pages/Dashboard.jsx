@@ -24,6 +24,7 @@ import ShelterServices from './ShelterServices';
 import ShelterDetails from './ShelterDetails';
 import ClinicsServices from './ClinicsServices';
 import ClinicDetails from './ClinicDetails';
+import PetChat from './PetChat';
 import { 
   AlertDialog, AlertDialogContent, AlertDialogHeader, 
   AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, 
@@ -85,6 +86,8 @@ export default function Dashboard({ onLogout }) {
   const [selectedPetId, setSelectedPetId] = useState(null);
   const [selectedShelterId, setSelectedShelterId] = useState(null);
   const [selectedClinicId, setSelectedClinicId] = useState(null);
+  const [selectedChatPet, setSelectedChatPet] = useState(null);
+  const [selectedChatOwner, setSelectedChatOwner] = useState(null);
   const [isSignoutOpen, setIsSignoutOpen] = useState(false);
 
   // Sidebar & Pet/Vet main tab switcher
@@ -596,6 +599,15 @@ export default function Dashboard({ onLogout }) {
           >
             <HeartHandshake size={18} />
             <span className="dash-side-link-text">Marketplace</span>
+          </span>
+
+          <span 
+            className={`dash-side-link ${activeTab === 'chat' ? 'active' : ''}`}
+            onClick={() => { setActiveTab('chat'); setIsMobileOpen(false); }}
+            title="Pet Messages"
+          >
+            <MessageSquareCode size={18} />
+            <span className="dash-side-link-text">Pet Messages</span>
           </span>
 
           <span 
@@ -1160,6 +1172,20 @@ export default function Dashboard({ onLogout }) {
               user={user} 
               petId={selectedPetId} 
               onBack={() => setActiveTab('marketplace')} 
+              onOpenChat={({ pet, owner }) => {
+                setSelectedChatPet(pet);
+                setSelectedChatOwner(owner);
+                setActiveTab('chat');
+              }}
+            />
+          )}
+
+          {activeTab === 'chat' && (
+            <PetChat 
+              currentUser={user}
+              initialPet={selectedChatPet}
+              initialOwner={selectedChatOwner}
+              onBackToMarketplace={() => setActiveTab('marketplace')}
             />
           )}
 

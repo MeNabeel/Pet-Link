@@ -290,6 +290,28 @@ const initDB = async () => {
     `);
 
     await pool.query(`
+      CREATE TABLE IF NOT EXISTS pet_conversations (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        "senderId" VARCHAR(255) NOT NULL,
+        "receiverId" VARCHAR(255) NOT NULL,
+        "petId" VARCHAR(255) NOT NULL,
+        "lastMessage" TEXT DEFAULT '',
+        "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+        "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+      );
+    `);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS pet_messages (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        "conversationId" UUID NOT NULL REFERENCES pet_conversations(id) ON DELETE CASCADE,
+        "senderId" VARCHAR(255) NOT NULL,
+        "text" TEXT NOT NULL,
+        "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+      );
+    `);
+
+    await pool.query(`
       CREATE TABLE IF NOT EXISTS notifications (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         "userId" UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,

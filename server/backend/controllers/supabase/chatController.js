@@ -17,7 +17,7 @@ if (!pool) {
   pool = new Pool({ connectionString });
 }
 
-// Ensure chat database tables exist on query
+// Ensure chat database tables exist and deduplicate duplicate conversations
 const ensureTablesExist = async () => {
   try {
     await pool.query(`
@@ -39,12 +39,64 @@ const ensureTablesExist = async () => {
         "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT NOW()
       );
     `);
+
+    // Clean up any existing duplicate conversations in pet_conversations
+    try {
+      const dupCheck = await pool.query(`
+        SELECT "petId", LEAST("senderId", "receiverId") AS p1, GREATEST("senderId", "receiverId") AS p2, COUNT(*) 
+        FROM pet_conversations 
+        GROUP BY "petId", p1, p2 
+        HAVING COUNT(*) > 1
+      `);
+
+      if (dupCheck.rows && dupCheck.rows.length > 0) {
+        for (const dup of dupCheck.rows) {
+          const petId = dup.petId || dup.petid;
+          const p1 = dup.p1;
+          const p2 = dup.p2;
+
+          const convs = await pool.query(`
+            SELECT id FROM pet_conversations 
+            WHERE "petId" = $1 
+              AND LEAST("senderId", "receiverId") = $2 
+              AND GREATEST("senderId", "receiverId") = $3 
+            ORDER BY "updatedAt" DESC
+          `, [petId, p1, p2]);
+
+          if (convs.rows && convs.rows.length > 1) {
+            const canonicalId = convs.rows[0].id;
+            const duplicateIds = convs.rows.slice(1).map(r => r.id);
+
+            // Merge messages to canonical conversation ID
+            await pool.query(`
+              UPDATE pet_messages 
+              SET "conversationId" = $1 
+              WHERE "conversationId" = ANY($2::uuid[])
+            `, [canonicalId, duplicateIds]);
+
+            // Remove duplicate conversation records
+            await pool.query(`
+              DELETE FROM pet_conversations 
+              WHERE id = ANY($1::uuid[])
+            `, [duplicateIds]);
+          }
+        }
+      }
+
+      // Enforce DB-level uniqueness constraint
+      await pool.query(`
+        CREATE UNIQUE INDEX IF NOT EXISTS pet_conversations_unique_pair_idx 
+        ON pet_conversations ("petId", LEAST("senderId", "receiverId"), GREATEST("senderId", "receiverId"));
+      `);
+    } catch (migErr) {
+      console.error('Deduplication/Index error:', migErr.message);
+    }
   } catch (err) {
     console.error('ensureTablesExist error:', err.message);
   }
 };
 
-// @desc    Get or create conversation between user, owner, and pet
+// @desc    Get or create conversation between user, owner, and pet (Find-or-Create)
 // @route   POST /api/chat/conversation
 // @access  Public
 exports.getOrCreateConversation = async (req, res) => {
@@ -63,11 +115,12 @@ exports.getOrCreateConversation = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Pet owners cannot message themselves.' });
     }
 
-    // Check if conversation already exists (either senderId -> receiverId or receiverId -> senderId)
+    // 1. Check if conversation already exists (either senderId -> receiverId or receiverId -> senderId)
     const existing = await pool.query(
       `SELECT * FROM pet_conversations 
        WHERE "petId" = $1 
          AND (("senderId" = $2 AND "receiverId" = $3) OR ("senderId" = $3 AND "receiverId" = $2))
+       ORDER BY "updatedAt" DESC 
        LIMIT 1`,
       [petId, senderId, receiverId]
     );
@@ -83,23 +136,47 @@ exports.getOrCreateConversation = async (req, res) => {
       });
     }
 
-    // Create new conversation
-    const newConv = await pool.query(
-      `INSERT INTO pet_conversations ("senderId", "receiverId", "petId") 
-       VALUES ($1, $2, $3) 
-       RETURNING *`,
-      [senderId, receiverId, petId]
-    );
+    // 2. Insert new conversation with race condition conflict protection
+    try {
+      const newConv = await pool.query(
+        `INSERT INTO pet_conversations ("senderId", "receiverId", "petId") 
+         VALUES ($1, $2, $3) 
+         RETURNING *`,
+        [senderId, receiverId, petId]
+      );
 
-    const createdConv = newConv.rows[0];
+      const createdConv = newConv.rows[0];
 
-    return res.status(201).json({ 
-      success: true, 
-      conversation: createdConv,
-      conversationId: createdConv.id,
-      petId: createdConv.petId,
-      ownerId: receiverId
-    });
+      return res.status(201).json({ 
+        success: true, 
+        conversation: createdConv,
+        conversationId: createdConv.id,
+        petId: createdConv.petId,
+        ownerId: receiverId
+      });
+    } catch (insertErr) {
+      // Re-fetch existing if unique index prevented concurrent duplicate insertion
+      const reFetch = await pool.query(
+        `SELECT * FROM pet_conversations 
+         WHERE "petId" = $1 
+           AND (("senderId" = $2 AND "receiverId" = $3) OR ("senderId" = $3 AND "receiverId" = $2))
+         ORDER BY "updatedAt" DESC 
+         LIMIT 1`,
+        [petId, senderId, receiverId]
+      );
+
+      if (reFetch.rows && reFetch.rows.length > 0) {
+        const conv = reFetch.rows[0];
+        return res.status(200).json({ 
+          success: true, 
+          conversation: conv,
+          conversationId: conv.id,
+          petId: conv.petId,
+          ownerId: receiverId
+        });
+      }
+      throw insertErr;
+    }
   } catch (error) {
     console.error('getOrCreateConversation error:', error);
     return res.status(500).json({ success: false, message: 'Error retrieving conversation', error: error.message });
@@ -161,7 +238,7 @@ exports.sendMessage = async (req, res) => {
   }
 };
 
-// @desc    Get user conversations inbox
+// @desc    Get user conversations inbox (Deduplicated)
 // @route   GET /api/chat/user/:userId
 // @access  Public
 exports.getUserConversations = async (req, res) => {
@@ -175,8 +252,21 @@ exports.getUserConversations = async (req, res) => {
       [String(userId)]
     );
 
+    // Deduplicate in-memory to prevent duplicate cards
+    const seenMap = new Map();
+    const uniqueRows = [];
+
+    for (const row of result.rows) {
+      const partnerId = row.senderId === String(userId) ? row.receiverId : row.senderId;
+      const key = `${row.petId}_${partnerId}`;
+      if (!seenMap.has(key)) {
+        seenMap.set(key, true);
+        uniqueRows.push(row);
+      }
+    }
+
     const conversations = await Promise.all(
-      result.rows.map(async (conv) => {
+      uniqueRows.map(async (conv) => {
         const otherUserId = conv.senderId === String(userId) ? conv.receiverId : conv.senderId;
         
         let otherUser = null;
@@ -217,3 +307,22 @@ exports.getUserConversations = async (req, res) => {
     return res.status(500).json({ success: false, message: 'Error fetching user conversations', error: error.message });
   }
 };
+
+// @desc    Delete conversation
+// @route   DELETE /api/chat/conversation/:conversationId
+// @access  Public
+exports.deleteConversation = async (req, res) => {
+  try {
+    await ensureTablesExist();
+    const { conversationId } = req.params;
+    if (!conversationId) {
+      return res.status(400).json({ success: false, message: 'Please provide conversationId' });
+    }
+    await pool.query(`DELETE FROM pet_conversations WHERE id = $1`, [conversationId]);
+    return res.status(200).json({ success: true, message: 'Conversation deleted successfully' });
+  } catch (error) {
+    console.error('deleteConversation error:', error);
+    return res.status(500).json({ success: false, message: 'Error deleting conversation', error: error.message });
+  }
+};
+

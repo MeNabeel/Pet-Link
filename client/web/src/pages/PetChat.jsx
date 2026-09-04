@@ -255,6 +255,16 @@ export default function PetChat({
 
       // 2. Fetch Messages for Conversation
       if (convObj && convObj.id) {
+        // If chat was previously archived, automatically unarchive when user contacts owner again
+        setArchivedIds(prev => {
+          if (prev.includes(convObj.id)) {
+            const updated = prev.filter(id => id !== convObj.id);
+            localStorage.setItem('petlink_archived_chats', JSON.stringify(updated));
+            return updated;
+          }
+          return prev;
+        });
+
         const msgRes = await fetch(`${API_URL}/api/chat/messages/${convObj.id}`);
         if (msgRes.ok) {
           const msgData = await msgRes.json();

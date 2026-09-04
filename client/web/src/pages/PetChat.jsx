@@ -25,9 +25,40 @@ export default function PetChat({
   const [sending, setSending] = useState(false);
   const [error, setError] = useState('');
   
-  // Dynamic pet and owner details fetched for conversation context
-  const [chatPet, setChatPet] = useState(null);
-  const [chatOwner, setChatOwner] = useState(null);
+  // Inbox conversations list for switching
+  const [userConversations, setUserConversations] = useState([]);
+
+  // Fetch user conversations inbox
+  useEffect(() => {
+    if (!userId) return;
+    fetch(`${API_URL}/api/chat/user/${userId}`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.conversations && Array.isArray(data.conversations)) {
+          setUserConversations(data.conversations);
+        }
+      })
+      .catch(err => console.error('Error fetching user conversations:', err));
+  }, [userId, conversation?.id]);
+
+  // Switch active conversation handler
+  const handleSwitchConversation = (selectedConv) => {
+    if (!selectedConv || (conversation && conversation.id === selectedConv.id)) return;
+    setConversation(selectedConv);
+    if (selectedConv.pet) setChatPet(selectedConv.pet);
+    if (selectedConv.otherUser) setChatOwner(selectedConv.otherUser);
+    setLoading(true);
+    fetch(`${API_URL}/api/chat/messages/${selectedConv.id}`)
+      .then(res => res.json())
+      .then(data => {
+        setMessages(data.messages || []);
+      })
+      .catch(err => console.error('Error loading messages for selected conversation:', err))
+      .finally(() => {
+        setLoading(false);
+        setTimeout(scrollToBottom, 100);
+      });
+  };
 
   const messagesEndRef = useRef(null);
 
@@ -231,7 +262,38 @@ export default function PetChat({
           <span>Back to Marketplace</span>
         </button>
         <div className="chat-header-meta">
-          <span className="chat-header-subtitle">Direct Inquiry Messaging</span>
+          {userConversations && userConversations.length > 1 ? (
+            <select
+              className="chat-header-select"
+              value={conversation?.id || ''}
+              onChange={(e) => {
+                const targetConv = userConversations.find(c => c.id === e.target.value);
+                if (targetConv) handleSwitchConversation(targetConv);
+              }}
+              style={{
+                padding: '6px 12px',
+                borderRadius: '8px',
+                border: '1px solid var(--color-border)',
+                fontSize: '12px',
+                fontWeight: '700',
+                backgroundColor: '#F8FAFC',
+                color: '#0F172A',
+                cursor: 'pointer'
+              }}
+            >
+              {userConversations.map((c) => {
+                const partnerName = c.otherUser ? c.otherUser.name : 'Participant';
+                const petName = c.pet ? c.pet.name : 'Pet';
+                return (
+                  <option key={c.id} value={c.id}>
+                    Chat with {partnerName} re: {petName}
+                  </option>
+                );
+              })}
+            </select>
+          ) : (
+            <span className="chat-header-subtitle">Direct Inquiry Messaging</span>
+          )}
         </div>
       </div>
 
@@ -283,11 +345,11 @@ export default function PetChat({
                   <PawPrint size={28} />
                 </div>
                 <h4>Start the Conversation</h4>
-                <p>Send a message to <strong>{ownerName}</strong> about <strong>{pet ? pet.name : 'this pet'}</strong> to inquire about availability, health, or adoption details.</p>
+                <p>Send a message to <strong>{ownerName}</strong> about <strong>{activePet ? activePet.name : 'this pet'}</strong> to inquire about availability, health, or adoption details.</p>
               </div>
             ) : (
               messages.map((msg) => {
-                const isUserMessage = msg.senderId === userId;
+                const isUserMessage = String(msg.senderId) === String(userId);
                 const formattedTime = new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
                 return (

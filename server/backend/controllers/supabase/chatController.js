@@ -174,7 +174,44 @@ exports.getUserConversations = async (req, res) => {
        ORDER BY "updatedAt" DESC`,
       [String(userId)]
     );
-    return res.status(200).json({ success: true, conversations: result.rows });
+
+    const conversations = await Promise.all(
+      result.rows.map(async (conv) => {
+        const otherUserId = conv.senderId === String(userId) ? conv.receiverId : conv.senderId;
+        
+        let otherUser = null;
+        try {
+          const userRes = await pool.query(
+            `SELECT id, name, email, phone, "profilePic", city, province FROM users WHERE id = $1 LIMIT 1`,
+            [otherUserId]
+          );
+          if (userRes.rows.length > 0) {
+            const u = userRes.rows[0];
+            otherUser = { ...u, _id: u.id };
+          }
+        } catch (e) {}
+
+        let pet = null;
+        try {
+          const petRes = await pool.query(
+            `SELECT id, name, species, breed, age, image, "imageSettings", "activeStatus", price, city, province FROM pets WHERE id = $1 LIMIT 1`,
+            [conv.petId]
+          );
+          if (petRes.rows.length > 0) {
+            const p = petRes.rows[0];
+            pet = { ...p, _id: p.id };
+          }
+        } catch (e) {}
+
+        return {
+          ...conv,
+          otherUser,
+          pet
+        };
+      })
+    );
+
+    return res.status(200).json({ success: true, conversations });
   } catch (error) {
     console.error('getUserConversations error:', error);
     return res.status(500).json({ success: false, message: 'Error fetching user conversations', error: error.message });

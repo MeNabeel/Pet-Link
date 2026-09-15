@@ -27,6 +27,31 @@ const ensureShelterTables = async () => {
   if (tablesChecked) return;
   try {
     await pool.query(`
+      CREATE TABLE IF NOT EXISTS users (
+        id TEXT PRIMARY KEY,
+        name VARCHAR(255) NOT NULL,
+        email VARCHAR(255) NOT NULL UNIQUE,
+        phone VARCHAR(50) DEFAULT '',
+        address TEXT DEFAULT '',
+        role VARCHAR(50) DEFAULT 'user',
+        password VARCHAR(255) NOT NULL,
+        username VARCHAR(100) DEFAULT '',
+        "recoveryEmail" VARCHAR(255) DEFAULT '',
+        gender VARCHAR(20) DEFAULT 'male',
+        dob VARCHAR(50) DEFAULT '',
+        city VARCHAR(100) DEFAULT '',
+        province VARCHAR(100) DEFAULT '',
+        country VARCHAR(100) DEFAULT 'Pakistan',
+        bio TEXT DEFAULT '',
+        "profilePic" TEXT DEFAULT '',
+        "coverPhoto" TEXT DEFAULT '',
+        status VARCHAR(50) DEFAULT 'Active',
+        "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+        "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+      );
+    `);
+
+    await pool.query(`
       CREATE TABLE IF NOT EXISTS shelter_profiles (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         "userId" TEXT NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,

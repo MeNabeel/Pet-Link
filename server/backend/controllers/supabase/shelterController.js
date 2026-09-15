@@ -25,7 +25,7 @@ const ensureShelterTables = async () => {
     await pool.query(`
       CREATE TABLE IF NOT EXISTS shelter_profiles (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        "userId" UUID NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+        "userId" TEXT NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
         name VARCHAR(255) NOT NULL UNIQUE,
         logo TEXT DEFAULT '',
         description TEXT DEFAULT '',
@@ -71,7 +71,9 @@ const ensureShelterTables = async () => {
         "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
         "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT NOW()
       );
+    `);
 
+    await pool.query(`
       CREATE TABLE IF NOT EXISTS shelter_services (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         "shelterId" UUID NOT NULL REFERENCES shelter_profiles(id) ON DELETE CASCADE,
@@ -90,13 +92,15 @@ const ensureShelterTables = async () => {
         "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
         "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT NOW()
       );
+    `);
 
+    await pool.query(`
       CREATE TABLE IF NOT EXISTS shelter_bookings (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         "shelterId" UUID NOT NULL REFERENCES shelter_profiles(id) ON DELETE CASCADE,
         "serviceId" UUID REFERENCES shelter_services(id) ON DELETE SET NULL,
-        "petId" UUID NOT NULL REFERENCES pets(id) ON DELETE CASCADE,
-        "ownerId" UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        "petId" TEXT NOT NULL REFERENCES pets(id) ON DELETE CASCADE,
+        "ownerId" TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
         "checkInDate" TIMESTAMP WITH TIME ZONE NOT NULL,
         "checkOutDate" TIMESTAMP WITH TIME ZONE NOT NULL,
         duration INTEGER NOT NULL,
@@ -111,32 +115,38 @@ const ensureShelterTables = async () => {
         "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
         "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT NOW()
       );
+    `);
 
+    await pool.query(`
       CREATE TABLE IF NOT EXISTS shelter_messages (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         "bookingId" UUID NOT NULL REFERENCES shelter_bookings(id) ON DELETE CASCADE,
-        "senderId" UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-        "receiverId" UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        "senderId" TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        "receiverId" TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
         message TEXT NOT NULL,
         "isRead" BOOLEAN DEFAULT FALSE,
         "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT NOW()
       );
+    `);
 
+    await pool.query(`
       CREATE TABLE IF NOT EXISTS shelter_reviews (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         "shelterId" UUID NOT NULL REFERENCES shelter_profiles(id) ON DELETE CASCADE,
         "bookingId" UUID NOT NULL UNIQUE REFERENCES shelter_bookings(id) ON DELETE CASCADE,
-        "userId" UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        "userId" TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
         rating INTEGER NOT NULL,
         comment TEXT DEFAULT '',
         response TEXT DEFAULT '',
         "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
         "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT NOW()
       );
+    `);
 
+    await pool.query(`
       CREATE TABLE IF NOT EXISTS shelter_wishlist (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        "userId" UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        "userId" TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
         "shelterId" UUID NOT NULL REFERENCES shelter_profiles(id) ON DELETE CASCADE,
         "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
         UNIQUE("userId", "shelterId")

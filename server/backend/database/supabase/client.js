@@ -8,7 +8,11 @@ const dotenv = require('dotenv');
 dotenv.config();
 
 const connectionString = process.env.DATABASE_URL;
-const pool = new Pool({ connectionString });
+const isSupabaseOrProd = process.env.NODE_ENV === 'production' || (connectionString && (connectionString.includes('supabase') || connectionString.includes('pooler.supabase.com')));
+const pool = new Pool({
+  connectionString,
+  ssl: isSupabaseOrProd ? { rejectUnauthorized: false } : false
+});
 const adapter = new PrismaPg(pool);
 
 const prisma = new PrismaClient({ adapter });

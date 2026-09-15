@@ -5,7 +5,11 @@ const jwt = require('jsonwebtoken');
 dotenv.config();
 
 const connectionString = process.env.DIRECT_URL || process.env.DATABASE_URL;
-const pool = new Pool({ connectionString });
+const isSupabaseOrProd = process.env.NODE_ENV === 'production' || (connectionString && (connectionString.includes('supabase') || connectionString.includes('pooler.supabase.com')));
+const pool = new Pool({
+  connectionString,
+  ssl: isSupabaseOrProd ? { rejectUnauthorized: false } : false
+});
 
 // Ensure table exists on production Render DB
 const ensureAddressTable = async () => {

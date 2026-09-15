@@ -14,7 +14,11 @@ try {
 }
 if (!pool) {
   const connectionString = process.env.DIRECT_URL || process.env.DATABASE_URL;
-  pool = new Pool({ connectionString });
+  const isSupabaseOrProd = process.env.NODE_ENV === 'production' || (connectionString && (connectionString.includes('supabase') || connectionString.includes('pooler.supabase.com')));
+  pool = new Pool({
+    connectionString,
+    ssl: isSupabaseOrProd ? { rejectUnauthorized: false } : false
+  });
 }
 
 // Ensure all shelter-related database tables exist
@@ -182,12 +186,14 @@ const checkRole = async (userId, allowedRoles = ['shelter_provider', 'admin']) =
   try {
     const res = await pool.query('SELECT role FROM users WHERE id = $1', [userId]);
     if (res.rows.length === 0) return false;
-    return allowedRoles.includes(res.rows[0].role);
+    const dbRole = res.rows[0].role ? res.rows[0].role.toLowerCase().trim() : '';
+    return allowedRoles.some(r => r.toLowerCase() === dbRole || dbRole.includes('shelter'));
   } catch (err) {
     console.error('checkRole error:', err.message);
     return false;
   }
 };
+
 
 // @desc    Check unique shelter name
 // @route   GET /api/shelter/check-name

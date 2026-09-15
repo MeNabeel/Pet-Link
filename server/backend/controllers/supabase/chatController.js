@@ -14,7 +14,11 @@ try {
 
 if (!pool) {
   const connectionString = process.env.DIRECT_URL || process.env.DATABASE_URL;
-  pool = new Pool({ connectionString });
+  const isSupabaseOrProd = process.env.NODE_ENV === 'production' || (connectionString && (connectionString.includes('supabase') || connectionString.includes('pooler.supabase.com')));
+  pool = new Pool({
+    connectionString,
+    ssl: isSupabaseOrProd ? { rejectUnauthorized: false } : false
+  });
 }
 
 // Ensure chat database tables exist and deduplicate duplicate conversations

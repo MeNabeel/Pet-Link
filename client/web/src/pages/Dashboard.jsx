@@ -5,7 +5,7 @@ import {
   MessageSquareCode, MapPin, LogOut, ChevronRight, ChevronDown, Phone,
   HeartHandshake, Activity, Users, Menu, X, Bell, BellOff,
   Stethoscope, Syringe, Headphones, Sparkles, Plus,
-  Star, Calendar, Clock, User
+  Star, Calendar, Clock, User, AlertTriangle
 } from 'lucide-react';
 import { safeSetUserStorage } from '../utils/storage';
 import './Dashboard.css';
@@ -25,6 +25,57 @@ import ShelterDetails from './ShelterDetails';
 import ClinicsServices from './ClinicsServices';
 import ClinicDetails from './ClinicDetails';
 import PetChat from './PetChat';
+
+class ShelterErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error, errorInfo) {
+    console.error("Shelter Component Render Error:", error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{ padding: '48px', display: 'flex', flexDirection: 'column', alignItems: 'center', backgroundColor: '#FFFFFF', borderRadius: '12px', border: '1px solid #FCA5A5', margin: '24px 0', textAlign: 'center' }}>
+          <div style={{ width: '56px', height: '56px', borderRadius: '50%', backgroundColor: '#FEF2F2', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '16px' }}>
+            <AlertTriangle size={28} color="#EF4444" />
+          </div>
+          <h3 style={{ fontSize: '18px', fontWeight: '700', color: '#991B1B', margin: 0 }}>Something Went Wrong</h3>
+          <p style={{ marginTop: '6px', fontSize: '14px', color: '#7F1D1D', maxWidth: '480px' }}>
+            An unexpected error occurred while displaying the shelter section.
+          </p>
+          <div style={{ display: 'flex', gap: '12px', marginTop: '20px' }}>
+            <button 
+              onClick={() => this.setState({ hasError: false, error: null })}
+              style={{ padding: '10px 20px', backgroundColor: '#EF4444', color: '#FFFFFF', border: 'none', borderRadius: '8px', fontWeight: '600', cursor: 'pointer' }}
+            >
+              Try Again
+            </button>
+            {this.props.onReset && (
+              <button 
+                onClick={() => {
+                  this.setState({ hasError: false, error: null });
+                  this.props.onReset();
+                }}
+                style={{ padding: '10px 20px', backgroundColor: '#F1F5F9', color: '#334155', border: '1px solid #CBD5E1', borderRadius: '8px', fontWeight: '600', cursor: 'pointer' }}
+              >
+                Back to Shelter Services
+              </button>
+            )}
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 import { 
   AlertDialog, AlertDialogContent, AlertDialogHeader, 
   AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, 
@@ -1243,21 +1294,25 @@ export default function Dashboard({ onLogout }) {
           )}
 
           {activeTab === 'shelter' && (
-            <ShelterServices 
-              user={user} 
-              onViewDetails={(id) => {
-                setSelectedShelterId(id);
-                setActiveTab('shelter-details');
-              }}
-            />
+            <ShelterErrorBoundary onReset={() => setActiveTab('shelter')}>
+              <ShelterServices 
+                user={user} 
+                onViewDetails={(id) => {
+                  setSelectedShelterId(id);
+                  setActiveTab('shelter-details');
+                }}
+              />
+            </ShelterErrorBoundary>
           )}
 
           {activeTab === 'shelter-details' && (
-            <ShelterDetails 
-              user={user} 
-              shelterId={selectedShelterId} 
-              onBack={() => setActiveTab('shelter')} 
-            />
+            <ShelterErrorBoundary onReset={() => setActiveTab('shelter')}>
+              <ShelterDetails 
+                user={user} 
+                shelterId={selectedShelterId} 
+                onBack={() => setActiveTab('shelter')} 
+              />
+            </ShelterErrorBoundary>
           )}
 
           {activeTab === 'clinics' && (

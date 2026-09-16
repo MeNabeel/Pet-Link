@@ -2,7 +2,7 @@ import API_URL from '../config';
 import React, { useState, useEffect } from 'react';
 import { 
   StyleSheet, Text, View, TextInput, TouchableOpacity, FlatList, 
-  ActivityIndicator, Image, Dimensions
+  ActivityIndicator, Image, Dimensions, ScrollView
 } from 'react-native';
 import { Feather, FontAwesome5 } from '@expo/vector-icons';
 import { COLORS } from '../constants/theme';

@@ -70,7 +70,21 @@ export default function ShelterDetails({ user, shelterId, onBack }) {
     );
   }
 
-  if (!shelter) return null;
+  if (!shelter) {
+    return (
+      <div style={{ padding: '48px', display: 'flex', flexDirection: 'column', alignItems: 'center', backgroundColor: '#FFFFFF', borderRadius: '12px', border: '1px solid #E2E8F0', margin: '24px 0' }}>
+        <AlertTriangle size={48} color="#EF4444" />
+        <h3 style={{ marginTop: '16px', fontSize: '18px', fontWeight: '700', color: '#0F172A' }}>Shelter Details Unavailable</h3>
+        <p style={{ marginTop: '4px', fontSize: '14px', color: '#64748B' }}>The requested shelter profile could not be retrieved from the database.</p>
+        <button 
+          onClick={onBack}
+          style={{ marginTop: '16px', padding: '10px 20px', backgroundColor: 'var(--color-primary)', color: '#FFFFFF', border: 'none', borderRadius: '8px', fontWeight: '600', cursor: 'pointer' }}
+        >
+          Back to Shelter Services
+        </button>
+      </div>
+    );
+  }
 
   // Calculate pricing
   const service = shelter.services?.find(s => s.id === selectedServiceId) || shelter;

@@ -174,25 +174,32 @@ export default function Dashboard({ onLogout }) {
   }, []);
 
   // Fetch Notifications from Backend
-  useEffect(() => {
+  const fetchNotifications = () => {
     const userId = user?._id || user?.id;
-    if (userId) {
-      fetch(`${API_URL}/api/clinics/notifications`, {
-        headers: { 
-            'x-requester-id': userId,
-            'Authorization': `Bearer ${user?.token || localStorage.getItem('token') || ''}`
+    if (!userId) return;
+    const headers = { 
+      'x-requester-id': userId,
+      'Authorization': `Bearer ${user?.token || localStorage.getItem('token') || ''}`
+    };
+    fetch(`${API_URL}/api/notifications`, { headers })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && Array.isArray(data.notifications)) {
+          setNotifications(data.notifications);
+        } else {
+          fetch(`${API_URL}/api/clinics/notifications`, { headers })
+            .then(r => r.json())
+            .then(cd => {
+              if (Array.isArray(cd)) setNotifications(cd);
+              else if (cd && Array.isArray(cd.notifications)) setNotifications(cd.notifications);
+            }).catch(() => {});
         }
       })
-        .then(res => res.json())
-        .then(notifData => {
-          if (Array.isArray(notifData)) {
-            setNotifications(notifData);
-          } else if (notifData && Array.isArray(notifData.notifications)) {
-            setNotifications(notifData.notifications);
-          }
-        })
-        .catch(err => console.error('Error loading notifications:', err));
-    }
+      .catch(err => console.error('Error loading notifications:', err));
+  };
+
+  useEffect(() => {
+    fetchNotifications();
   }, [user?._id || user?.id]);
 
   // Fetch Pets, Analytics, Clinics and Appointments dynamically
@@ -462,16 +469,43 @@ export default function Dashboard({ onLogout }) {
                       <div 
                         key={notif.id} 
                         className={`dash-notif-item ${!notif.isRead ? 'unread' : ''}`}
-                        onClick={() => {
+                        onClick={async () => {
                           setNotifications(prev => prev.map(n => n.id === notif.id ? { ...n, isRead: true } : n));
+                          try {
+                            const userId = user?._id || user?.id;
+                            await fetch(`${API_URL}/api/notifications/${notif.id}/read`, {
+                              method: 'PUT',
+                              headers: { 'x-requester-id': userId }
+                            });
+                          } catch (e) {}
                         }}
+                        style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', padding: '12px 16px' }}
                       >
-                        {!notif.isRead && <span className="dash-notif-dot" />}
-                        <div className="dash-notif-content">
-                          <h5 className="dash-notif-item-title">{notif.title}</h5>
-                          <p className="dash-notif-item-msg">{notif.message}</p>
-                          <span className="dash-notif-item-time">{formatRelativeTime(notif.createdAt)}</span>
+                        <div style={{ display: 'flex', gap: '10px', flex: 1 }}>
+                          {!notif.isRead && <span className="dash-notif-dot" style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#EF4444', marginTop: '6px', flexShrink: 0 }} />}
+                          <div className="dash-notif-content">
+                            <h5 className="dash-notif-item-title" style={{ fontSize: '13px', fontWeight: '600', color: '#0F172A', margin: 0 }}>{notif.title}</h5>
+                            <p className="dash-notif-item-msg" style={{ fontSize: '12px', color: '#475569', margin: '2px 0 4px 0' }}>{notif.message}</p>
+                            <span className="dash-notif-item-time" style={{ fontSize: '11px', color: '#94A3B8' }}>{formatRelativeTime(notif.createdAt)}</span>
+                          </div>
                         </div>
+                        <button
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            setNotifications(prev => prev.filter(n => n.id !== notif.id));
+                            try {
+                              const userId = user?._id || user?.id;
+                              await fetch(`${API_URL}/api/notifications/${notif.id}`, {
+                                method: 'DELETE',
+                                headers: { 'x-requester-id': userId }
+                              });
+                            } catch (e) {}
+                          }}
+                          style={{ background: 'none', border: 'none', color: '#94A3B8', cursor: 'pointer', padding: '2px 6px', fontSize: '12px' }}
+                          title="Dismiss notification"
+                        >
+                          ✕
+                        </button>
                       </div>
                     ))
                   )}

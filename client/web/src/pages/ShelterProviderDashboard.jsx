@@ -15,8 +15,9 @@ export default function ShelterProviderDashboard({ user, onLogout }) {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeMenu, setActiveMenu] = useState('overview');
+  const [isEditingSetup, setIsEditingSetup] = useState(false);
 
-  // Stepper state for profile creation
+  // Stepper state for profile creation / editing
   const [stepperStep, setStepperStep] = useState(1);
   const [shelterName, setShelterName] = useState('');
   const [nameAvailable, setNameAvailable] = useState(null); // null, true, false
@@ -680,9 +681,22 @@ export default function ShelterProviderDashboard({ user, onLogout }) {
     );
   }
 
-  if (!profile) {
+  if (!profile || isEditingSetup) {
     return (
       <div className="setup-wrapper">
+        <div style={{ padding: '16px 24px', backgroundColor: '#F8FAFC', borderBottom: '1px solid #E2E8F0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span style={{ fontSize: '14px', color: '#64748B', fontWeight: '500' }}>
+            {isEditingSetup ? 'Editing Existing Shelter Setup' : 'Initial Shelter Registration'}
+          </span>
+          {isEditingSetup && (
+            <button 
+              onClick={() => setIsEditingSetup(false)}
+              style={{ padding: '6px 14px', backgroundColor: '#E2E8F0', color: '#334155', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', fontSize: '13px' }}
+            >
+              Cancel Editing
+            </button>
+          )}
+        </div>
         {renderSetupStepper()}
       </div>
     );
@@ -1138,27 +1152,120 @@ export default function ShelterProviderDashboard({ user, onLogout }) {
         {/* Settings profile view */}
         {activeMenu === 'settings' && (
           <div className="menu-view">
-            <h3 className="section-title">Shelter Profile Settings</h3>
-            <div className="settings-profile-form">
-              <label>Shelter Name</label>
-              <input type="text" value={shelterName} onChange={(e) => setShelterName(e.target.value)} />
-
-              <label style={{ marginTop: '16px' }}>Phone</label>
-              <input type="text" value={phone} onChange={(e) => setPhone(e.target.value)} />
-
-              <label style={{ marginTop: '16px' }}>Email</label>
-              <input type="text" value={email} onChange={(e) => setEmail(e.target.value)} />
-
-              <label style={{ marginTop: '16px' }}>Address</label>
-              <input type="text" value={address} onChange={(e) => setAddress(e.target.value)} />
-
-              <label style={{ marginTop: '16px' }}>Capacity</label>
-              <input type="number" value={capacity} onChange={(e) => setCapacity(e.target.value)} />
-
-              <button className="btn-save-settings" onClick={() => handleSaveShelter('Published')}>
-                Save Profile Changes
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <div>
+                <h3 className="section-title" style={{ margin: 0 }}>Shelter Profile Management</h3>
+                <p style={{ fontSize: '13px', color: '#64748B', marginTop: '4px' }}>View and modify your public shelter profile details.</p>
+              </div>
+              <button 
+                onClick={() => {
+                  if (profile) {
+                    setShelterName(profile.name || '');
+                    setLogo(profile.logo || '');
+                    setCoverImage(profile.logo || '');
+                    setDescription(profile.description || '');
+                    setPhone(profile.phone || '');
+                    setEmail(profile.email || '');
+                    setAddress(profile.address || '');
+                    setCity(profile.city || '');
+                    setProvince(profile.province || '');
+                    setArea(profile.area || '');
+                    setShelterTypes(profile.shelterTypes || []);
+                    setAcceptedSpecies(profile.acceptedSpecies || []);
+                    setAcceptedBreeds(profile.acceptedBreeds || []);
+                    setCapacity(profile.capacity || 10);
+                    setFacilities(profile.facilities || []);
+                    setProvidesPickup(profile.providesPickup || false);
+                    setPickupServiceType(profile.pickupServiceType || 'None');
+                    setPickupRadius(profile.pickupRadius || 15);
+                    setPickupFee(profile.pickupFee || 0);
+                    setPickupFeeType(profile.pickupFeeType || 'Free');
+                    setPickupFeePerKm(profile.pickupFeePerKm || 0);
+                    setDailyRate(profile.dailyRate || 1000);
+                    setOpeningTime(profile.openingTime || '09:00');
+                    setClosingTime(profile.closingTime || '18:00');
+                    setRules(profile.rules || []);
+                  }
+                  setIsEditingSetup(true);
+                  setStepperStep(1);
+                }}
+                style={{
+                  padding: '10px 18px',
+                  backgroundColor: 'var(--color-primary)',
+                  color: '#FFFFFF',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontWeight: '600',
+                  fontSize: '14px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px'
+                }}
+              >
+                <ClipboardList size={16} />
+                <span>Edit Shelter (12 Steps)</span>
               </button>
             </div>
+
+            <Card style={{ padding: '24px' }}>
+              <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
+                <img 
+                  src={profile.logo || 'https://images.unsplash.com/photo-1587300003388-59208cc962cb?auto=format&fit=crop&q=80&w=150'} 
+                  alt="Logo" 
+                  style={{ width: '80px', height: '80px', borderRadius: '12px', objectFit: 'cover', border: '1px solid #E2E8F0' }} 
+                />
+                <div>
+                  <h2 style={{ fontSize: '22px', fontWeight: '700', color: '#0F172A', margin: 0 }}>{profile.name}</h2>
+                  <p style={{ fontSize: '14px', color: '#64748B', margin: '4px 0' }}>{profile.address}, {profile.city}, {profile.province}</p>
+                  <div style={{ display: 'flex', gap: '8px', marginTop: '6px' }}>
+                    <Badge variant="success">{profile.status}</Badge>
+                    <Badge>{profile.providesPickup ? 'Pickup Available' : 'No Pickup'}</Badge>
+                  </div>
+                </div>
+              </div>
+
+              <Separator style={{ margin: '20px 0' }} />
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
+                <div>
+                  <span style={{ fontSize: '12px', color: '#64748B', textTransform: 'uppercase' }}>Contact Phone</span>
+                  <p style={{ fontSize: '15px', fontWeight: '600', color: '#0F172A', margin: '4px 0' }}>{profile.phone || 'N/A'}</p>
+                </div>
+                <div>
+                  <span style={{ fontSize: '12px', color: '#64748B', textTransform: 'uppercase' }}>Contact Email</span>
+                  <p style={{ fontSize: '15px', fontWeight: '600', color: '#0F172A', margin: '4px 0' }}>{profile.email || 'N/A'}</p>
+                </div>
+                <div>
+                  <span style={{ fontSize: '12px', color: '#64748B', textTransform: 'uppercase' }}>Total Capacity</span>
+                  <p style={{ fontSize: '15px', fontWeight: '600', color: '#0F172A', margin: '4px 0' }}>{profile.capacity} Spaces</p>
+                </div>
+                <div>
+                  <span style={{ fontSize: '12px', color: '#64748B', textTransform: 'uppercase' }}>Daily Rate</span>
+                  <p style={{ fontSize: '15px', fontWeight: '600', color: '#0F172A', margin: '4px 0' }}>{profile.dailyRate} PKR</p>
+                </div>
+              </div>
+
+              <Separator style={{ margin: '20px 0' }} />
+
+              <div>
+                <span style={{ fontSize: '12px', color: '#64748B', textTransform: 'uppercase' }}>Accepted Species</span>
+                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '6px' }}>
+                  {(profile.acceptedSpecies || []).map(sp => (
+                    <Badge key={sp} style={{ backgroundColor: '#F1F5F9', color: '#334155' }}>{sp}</Badge>
+                  ))}
+                </div>
+              </div>
+
+              <div style={{ marginTop: '16px' }}>
+                <span style={{ fontSize: '12px', color: '#64748B', textTransform: 'uppercase' }}>Facilities</span>
+                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '6px' }}>
+                  {(profile.facilities || []).map(f => (
+                    <Badge key={f} style={{ backgroundColor: '#EFF6FF', color: '#1D4ED8' }}>{f}</Badge>
+                  ))}
+                </div>
+              </div>
+            </Card>
           </div>
         )}
       </main>

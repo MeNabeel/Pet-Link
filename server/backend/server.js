@@ -57,6 +57,7 @@ app.use('/api/shelter', require('./routes/shelterRoutes'));
 app.use('/api/clinics', require('./routes/clinicRoutes'));
 app.use('/api/addresses', require('./routes/addressRoutes'));
 app.use('/api/chat', require('./routes/chatRoutes'));
+app.use('/api/notifications', require('./routes/notificationRoutes'));
 
 // Server Health Endpoint
 app.get('/', (req, res) => {

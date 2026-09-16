@@ -1,6 +1,7 @@
 const { Pool } = require('pg');
 const dotenv = require('dotenv');
 const jwt = require('jsonwebtoken');
+const { createNotificationInternal } = require('./notificationController');
 
 dotenv.config();
 
@@ -727,6 +728,20 @@ exports.updateBookingStatus = async (req, res) => {
       return res.status(404).json({ message: 'Booking not found' });
     }
 
+    // Trigger notification to pet owner
+    try {
+      const { rows: shelterRow } = await pool.query('SELECT name FROM shelter_profiles WHERE id = $1', [profiles[0].id]);
+      const shelterName = shelterRow[0]?.name || 'Shelter';
+      await createNotificationInternal(
+        updated[0].ownerId,
+        `Booking ${status}`,
+        `Your boarding request at ${shelterName} was ${status.toLowerCase()}${status === 'Rejected' && rejectionReason ? `: ${rejectionReason}` : '.'}`,
+        'ShelterBooking'
+      );
+    } catch (notifErr) {
+      console.error('Error triggering booking status notification:', notifErr.message);
+    }
+
     // Calculate occupied spaces
     const activeRes = await pool.query(
       `SELECT count(*) FROM shelter_bookings WHERE "shelterId" = $1 AND status IN ('Accepted', 'Active')`,
@@ -863,7 +878,24 @@ exports.createBookingRequest = async (req, res) => {
       ]
     );
 
-    return res.status(201).json(rows[0]);
+    const newBooking = rows[0];
+
+    // Trigger notification to shelter provider
+    try {
+      const { rows: shelterRow } = await pool.query('SELECT "userId", name FROM shelter_profiles WHERE id = $1', [body.shelterId]);
+      if (shelterRow.length > 0) {
+        await createNotificationInternal(
+          shelterRow[0].userId,
+          'New Boarding Request',
+          `You received a new shelter boarding request for ${shelterRow[0].name}.`,
+          'ShelterBooking'
+        );
+      }
+    } catch (notifErr) {
+      console.error('Error sending provider notification:', notifErr.message);
+    }
+
+    return res.status(201).json(newBooking);
   } catch (error) {
     console.error('Error submitting booking request:', error);
     return res.status(500).json({ message: 'Error submitting booking request', error: error.message });
@@ -1055,7 +1087,21 @@ exports.sendMessage = async (req, res) => {
       [bookingId, requesterId, receiverId, message, now]
     );
 
-    return res.status(201).json(rows[0]);
+    const newMessage = rows[0];
+
+    // Trigger notification to message receiver
+    try {
+      await createNotificationInternal(
+        receiverId,
+        'New Shelter Message',
+        `You received a new message regarding shelter boarding stay.`,
+        'Message'
+      );
+    } catch (notifErr) {
+      console.error('Error triggering message notification:', notifErr.message);
+    }
+
+    return res.status(201).json(newMessage);
   } catch (error) {
     console.error('Error sending message:', error);
     return res.status(500).json({ message: 'Error sending message', error: error.message });

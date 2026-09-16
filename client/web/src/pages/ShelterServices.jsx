@@ -1,6 +1,6 @@
 import API_URL from '@/config';
 import React, { useState, useEffect } from 'react';
-import { Search, MapPin, Sparkles, Star, Truck, Heart, ArrowRight } from 'lucide-react';
+import { Search, MapPin, Sparkles, Star, Truck, Heart, ArrowRight, Building2, RefreshCw, AlertCircle } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import './Marketplace.css'; // Leverage existing page styles for grids and search bars
@@ -8,15 +8,17 @@ import './Marketplace.css'; // Leverage existing page styles for grids and searc
 export default function ShelterServices({ user, onViewDetails }) {
   const [shelters, setShelters] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [cityFilter, setCityFilter] = useState('');
   const [speciesFilter, setSpeciesFilter] = useState('');
   const [pickupFilter, setPickupFilter] = useState(false);
-  const [maxPrice, setMaxPrice] = useState(5000);
+  const [maxPrice, setMaxPrice] = useState(10000);
 
   const fetchShelters = async () => {
     try {
       setLoading(true);
+      setError(null);
       let url = `${API_URL}/api/shelter/public/list?`;
       if (cityFilter) url += `city=${encodeURIComponent(cityFilter)}&`;
       if (speciesFilter) url += `species=${encodeURIComponent(speciesFilter)}&`;
@@ -26,21 +28,28 @@ export default function ShelterServices({ user, onViewDetails }) {
       if (res.ok) {
         const data = await res.json();
         
-        // Front-end filter for text searches
-        let filtered = data;
+        let list = Array.isArray(data) ? data : (data.shelters || []);
+        let filtered = list;
+        
         if (searchTerm) {
+          const term = searchTerm.toLowerCase();
           filtered = filtered.filter(s => 
-            s.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-            s.city.toLowerCase().includes(searchTerm.toLowerCase())
+            (s.name && s.name.toLowerCase().includes(term)) || 
+            (s.city && s.city.toLowerCase().includes(term)) ||
+            (s.address && s.address.toLowerCase().includes(term))
           );
         }
-        // Filter by price
-        filtered = filtered.filter(s => s.dailyRate <= maxPrice);
+        
+        filtered = filtered.filter(s => (s.dailyRate || 0) <= maxPrice);
 
         setShelters(filtered);
+      } else {
+        const errJson = await res.json().catch(() => ({}));
+        setError(errJson.message || 'Unable to load shelter boarding services at this time.');
       }
     } catch (err) {
       console.error('Error fetching discovery shelters:', err);
+      setError('Network or server connection error. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -130,7 +139,20 @@ export default function ShelterServices({ user, onViewDetails }) {
       </div>
 
       {/* Shelter Grid list */}
-      {loading ? (
+      {error ? (
+        <div className="market-empty-box" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '48px', color: '#94A3B8', backgroundColor: '#FEF2F2', border: '1px solid #FCA5A5', borderRadius: '12px' }}>
+          <AlertCircle size={48} color="#EF4444" />
+          <p style={{ marginTop: '16px', fontSize: '16px', fontWeight: '600', color: '#991B1B' }}>Unable to load shelters</p>
+          <p style={{ marginTop: '4px', fontSize: '14px', color: '#7F1D1D' }}>{error}</p>
+          <button 
+            onClick={fetchShelters}
+            style={{ marginTop: '16px', padding: '10px 20px', backgroundColor: '#EF4444', color: '#FFFFFF', border: 'none', borderRadius: '8px', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}
+          >
+            <RefreshCw size={16} />
+            <span>Retry Loading</span>
+          </button>
+        </div>
+      ) : loading ? (
         <div className="market-loading-box" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '64px' }}>
           <div className="spinner-loader" style={{ borderColor: 'var(--color-primary)' }}></div>
           <p style={{ marginTop: '16px', color: '#64748B' }}>Discovering matching shelters in your city...</p>
@@ -143,7 +165,7 @@ export default function ShelterServices({ user, onViewDetails }) {
       ) : (
         <div className="market-grid">
           {shelters.map(s => {
-            const spacesAvailable = Math.max(0, s.capacity - s.occupiedSpaces);
+            const spacesAvailable = Math.max(0, (s.capacity || 0) - (s.occupiedSpaces || 0));
             return (
               <Card key={s.id} className="pet-card fade-in" style={{ cursor: 'default' }}>
                 <div className="pet-card-image-wrapper">
@@ -168,7 +190,7 @@ export default function ShelterServices({ user, onViewDetails }) {
 
                   <div className="pet-card-location" style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#64748B', marginTop: '4px' }}>
                     <MapPin size={12} />
-                    <span>{s.address}, {s.city}</span>
+                    <span>{s.address || 'Location'}, {s.city || 'Pakistan'}</span>
                   </div>
 
                   <Separator style={{ margin: '14px 0' }} />
@@ -176,7 +198,7 @@ export default function ShelterServices({ user, onViewDetails }) {
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '13px', color: '#475569' }}>
                     <span>Spaces Available:</span>
                     <strong style={{ color: spacesAvailable > 0 ? '#16A34A' : '#EF4444' }}>
-                      {spacesAvailable} / {s.capacity}
+                      {spacesAvailable} / {s.capacity || 0}
                     </strong>
                   </div>
 
@@ -190,7 +212,7 @@ export default function ShelterServices({ user, onViewDetails }) {
                   <div className="pet-card-footer" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '20px' }}>
                     <div>
                       <span style={{ fontSize: '11px', color: '#64748B', textTransform: 'uppercase', display: 'block' }}>Starting Rate</span>
-                      <strong style={{ fontSize: '18px', color: '#0F172A' }}>{s.dailyRate} PKR</strong>
+                      <strong style={{ fontSize: '18px', color: '#0F172A' }}>{s.dailyRate || 0} PKR</strong>
                     </div>
 
                     <button 
@@ -205,7 +227,7 @@ export default function ShelterServices({ user, onViewDetails }) {
                         fontWeight: '600',
                         cursor: 'pointer',
                         display: 'flex',
-                        alignis: 'center',
+                        alignItems: 'center',
                         gap: '6px'
                       }}
                     >
@@ -223,17 +245,3 @@ export default function ShelterServices({ user, onViewDetails }) {
   );
 }
 
-// Simple building helper icon
-function Building2({ size, color }) {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-building-2">
-      <path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/>
-      <path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/>
-      <path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/>
-      <path d="M10 6h4"/>
-      <path d="M10 10h4"/>
-      <path d="M10 14h4"/>
-      <path d="M10 18h4"/>
-    </svg>
-  );
-}

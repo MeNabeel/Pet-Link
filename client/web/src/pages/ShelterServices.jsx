@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Search, MapPin, Sparkles, Star, Truck, Heart, ArrowRight, Building2, RefreshCw, AlertCircle } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
 import './Marketplace.css'; // Leverage existing page styles for grids and search bars
 
 export default function ShelterServices({ user, onViewDetails }) {

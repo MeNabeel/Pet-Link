@@ -1315,6 +1315,11 @@ export default function Dashboard({ onLogout }) {
                 user={user} 
                 shelterId={selectedShelterId} 
                 onBack={() => setActiveTab('shelter')} 
+                onOpenChat={({ pet, owner }) => {
+                  setSelectedChatPet(pet);
+                  setSelectedChatOwner(owner);
+                  setActiveTab('chat');
+                }}
               />
             </ShelterErrorBoundary>
           )}

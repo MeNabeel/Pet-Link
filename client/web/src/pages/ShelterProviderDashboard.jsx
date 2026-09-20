@@ -1161,37 +1161,37 @@ function ShelterProviderContent({ user, onLogout }) {
 
         {/* MAIN CONTENT AREA */}
         <main className="dash-content">
-          {/* Welcome Hero Card */}
-          <div className="dash-welcome-card">
-            <PetPattern />
-            <div className="dash-welcome-content">
-              <h2 className="dash-welcome-title">Welcome back, {profile?.name || user?.name || 'Shelter Provider'}!</h2>
-              <p className="dash-welcome-text">
-                Manage your shelter services, bookings, availability and hosted pets.
-              </p>
-              <div className="dash-welcome-address">
-                <div className="dash-welcome-meta-item">
-                  <Badge variant="success">{profile?.status || 'Published'}</Badge>
-                </div>
-                {profile?.address && (
-                  <div className="dash-welcome-meta-item">
-                    <MapPin size={14} />
-                    <span>{profile.address}, {profile.city}</span>
-                  </div>
-                )}
-                {profile?.phone && (
-                  <div className="dash-welcome-meta-item">
-                    <ShieldCheck size={14} />
-                    <span>{profile.phone}</span>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-
           {/* DYNAMIC TAB CONTROLS */}
           {activeMenu === 'overview' && (
             <div className="dash-tab-pane">
+              {/* Welcome Hero Card */}
+              <div className="dash-welcome-card">
+                <PetPattern />
+                <div className="dash-welcome-content">
+                  <h2 className="dash-welcome-title">Welcome back, {profile?.name || user?.name || 'Shelter Provider'}!</h2>
+                  <p className="dash-welcome-text">
+                    Manage your shelter services, bookings, availability and hosted pets.
+                  </p>
+                  <div className="dash-welcome-address">
+                    <div className="dash-welcome-meta-item">
+                      <Badge variant="success">{profile?.status || 'Published'}</Badge>
+                    </div>
+                    {profile?.address && (
+                      <div className="dash-welcome-meta-item">
+                        <MapPin size={14} />
+                        <span>{profile.address}, {profile.city}</span>
+                      </div>
+                    )}
+                    {profile?.phone && (
+                      <div className="dash-welcome-meta-item">
+                        <ShieldCheck size={14} />
+                        <span>{profile.phone}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
               {/* Metric Cards Grid */}
               <div className="dash-metrics-grid">
                 <div className="metric-card" onClick={() => setActiveMenu('settings')}>

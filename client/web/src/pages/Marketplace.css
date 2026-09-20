@@ -819,3 +819,199 @@
   font-weight: 700;
   color: var(--color-muted);
 }
+
+/* ====================================================
+   HORIZONTAL SHELTER BOARDING CARDS & FILTERS
+==================================================== */
+.shelter-horizontal-card {
+  display: grid;
+  grid-template-columns: 160px 1fr 180px;
+  gap: 20px;
+  align-items: center;
+  background-color: #FFFFFF;
+  border: 1px solid #E5E7EB;
+  border-radius: 16px;
+  padding: 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+.shelter-horizontal-card:hover {
+  transform: translateY(-2px);
+  border-color: #0066CC;
+  box-shadow: 0 4px 12px rgba(0, 102, 204, 0.08);
+}
+
+.shelter-card-image-box {
+  position: relative;
+  width: 160px;
+  height: 110px;
+  border-radius: 12px;
+  overflow: hidden;
+  flex-shrink: 0;
+  border: 1px solid #E5E7EB;
+}
+
+.shelter-card-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.shelter-type-badge {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  background-color: rgba(17, 24, 39, 0.85);
+  color: #FFFFFF;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 6px;
+  backdrop-filter: blur(4px);
+}
+
+.shelter-card-center {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.shelter-card-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.shelter-name {
+  font-size: 17px;
+  font-weight: 800;
+  color: #111827;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.shelter-rating {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #111827;
+  background-color: #FEF3C7;
+  padding: 2px 8px;
+  border-radius: 99px;
+  flex-shrink: 0;
+}
+
+.shelter-location {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  color: #64748B;
+}
+
+.shelter-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-top: 4px;
+  flex-wrap: wrap;
+}
+
+.shelter-spaces-info {
+  font-size: 12.5px;
+  color: #475569;
+}
+
+.meta-label {
+  margin-right: 6px;
+}
+
+.spaces-avail {
+  color: #16A34A;
+  font-weight: 700;
+}
+
+.spaces-full {
+  color: #EF4444;
+  font-weight: 700;
+}
+
+.pickup-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #059669;
+  background-color: #ECFDF5;
+  padding: 3px 9px;
+  border-radius: 6px;
+  border: 1px solid #A7F3D0;
+}
+
+.shelter-card-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 12px;
+  padding-left: 16px;
+  border-left: 1px solid #F1F5F9;
+}
+
+.shelter-pricing {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.price-label {
+  font-size: 10px;
+  font-weight: 800;
+  color: #64748B;
+  letter-spacing: 0.05em;
+}
+
+.price-val {
+  font-size: 20px;
+  font-weight: 800;
+  color: #111827;
+}
+
+@media (max-width: 991px) {
+  .shelter-horizontal-card {
+    grid-template-columns: 140px 1fr;
+    gap: 16px;
+  }
+  .shelter-card-right {
+    grid-column: 1 / -1;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    border-left: none;
+    border-top: 1px solid #F1F5F9;
+    padding-left: 0;
+    padding-top: 12px;
+  }
+  .shelter-pricing {
+    align-items: flex-start;
+  }
+}
+
+@media (max-width: 640px) {
+  .shelter-horizontal-card {
+    grid-template-columns: 1fr;
+  }
+  .shelter-card-image-box {
+    width: 100%;
+    height: 160px;
+  }
+}
+

@@ -1,21 +1,74 @@
 import API_URL from '@/config';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Building2, Home, MapPin, ClipboardList, Calendar, 
   MessageSquare, Star, Settings, Plus, Sparkles, Check, 
-  AlertCircle, X, ChevronRight, User, PawPrint, Truck, 
-  DollarSign, Clock, ShieldCheck, Heart, AlertTriangle
+  AlertCircle, X, ChevronRight, ChevronDown, User, PawPrint, Truck, 
+  DollarSign, Clock, ShieldCheck, Heart, AlertTriangle, LayoutDashboard,
+  CalendarDays, Bell, BellOff, LogOut, Menu, CheckCircle2, Activity
 } from 'lucide-react';
 import './ShelterProviderDashboard.css';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { 
+  AlertDialog, AlertDialogContent, AlertDialogHeader, 
+  AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, 
+  AlertDialogCancel, AlertDialogAction 
+} from '@/components/ui/alert-dialog';
+
+// Reusable SVG Background Pet Pattern (Matching User Dashboard)
+function PetPattern() {
+  return (
+    <div className="dash-pet-pattern" aria-hidden="true">
+      <svg width="100%" height="100%" viewBox="0 0 800 300" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+        <g stroke="#0066CC" fill="none" strokeWidth="1.8" opacity="0.14">
+          <g transform="translate(670, -25) rotate(15) scale(1.4)">
+            <ellipse cx="30" cy="40" rx="15" ry="18" fill="#0066CC" opacity="0.08" />
+            <circle cx="9" cy="14" r="5" fill="#0066CC" opacity="0.08" />
+            <circle cx="23" cy="6" r="5.5" fill="#0066CC" opacity="0.08" />
+            <circle cx="37" cy="6" r="5.5" fill="#0066CC" opacity="0.08" />
+            <circle cx="51" cy="14" r="5" fill="#0066CC" opacity="0.08" />
+          </g>
+          <path d="M 640 140 C 640 115, 665 105, 685 125 C 705 105, 730 115, 730 140 C 730 168, 685 195, 685 195 C 685 195, 640 168, 640 140 Z" strokeWidth="2" strokeDasharray="4 3" />
+          <g transform="translate(730, 195) rotate(-20) scale(0.95)">
+            <ellipse cx="30" cy="40" rx="12" ry="15" fill="#0066CC" opacity="0.06" />
+            <circle cx="10" cy="16" r="4.5" />
+            <circle cx="22" cy="9" r="5" />
+            <circle cx="36" cy="9" r="5" />
+            <circle cx="48" cy="16" r="4.5" />
+          </g>
+          <path d="M 440 25 C 440 12, 458 8, 470 18 C 482 8, 500 12, 500 25 C 500 42, 470 58, 470 58 C 470 58, 440 42, 440 25 Z" strokeWidth="1.5" strokeDasharray="3 2" />
+          <g transform="translate(260, 205) rotate(22) scale(0.75)">
+            <ellipse cx="30" cy="40" rx="12" ry="15" />
+            <circle cx="10" cy="16" r="4.5" />
+            <circle cx="22" cy="9" r="5" />
+            <circle cx="36" cy="9" r="5" />
+            <circle cx="48" cy="16" r="4.5" />
+          </g>
+          <path d="M -50 190 Q 220 90, 480 210 T 950 130" strokeWidth="1.5" opacity="0.5" strokeDasharray="6 4" />
+          <path d="M -30 230 Q 320 290, 640 150 T 980 250" strokeWidth="1" opacity="0.35" />
+        </g>
+      </svg>
+    </div>
+  );
+}
 
 export default function ShelterProviderDashboard({ user, onLogout }) {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeMenu, setActiveMenu] = useState('overview');
   const [isEditingSetup, setIsEditingSetup] = useState(false);
+
+  // Layout UI navigation & dropdown popover states
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
+  const [isNotifDropdownOpen, setIsNotifDropdownOpen] = useState(false);
+  const [isSignoutOpen, setIsSignoutOpen] = useState(false);
+
+  const profileRef = useRef(null);
+  const notifRef = useRef(null);
 
   // Stepper state for profile creation / editing
   const [stepperStep, setStepperStep] = useState(1);
@@ -69,6 +122,20 @@ export default function ShelterProviderDashboard({ user, onLogout }) {
   const [isRejectOpen, setIsRejectOpen] = useState(false);
   const [selectedBookingId, setSelectedBookingId] = useState(null);
   const [rejectionReason, setRejectionReason] = useState('Availability issue');
+
+  // Dismiss dropdown popovers when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (profileRef.current && !profileRef.current.contains(event.target)) {
+        setIsProfileDropdownOpen(false);
+      }
+      if (notifRef.current && !notifRef.current.contains(event.target)) {
+        setIsNotifDropdownOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const getUserId = () => user?._id || user?.id || '';
   const getAuthHeaders = () => {
@@ -258,7 +325,8 @@ export default function ShelterProviderDashboard({ user, onLogout }) {
       if (res.ok) {
         const data = await res.json();
         setProfile(data);
-        alert(`Shelter successfully set as ${statusOverride}!`);
+        setIsEditingSetup(false);
+        alert(`Shelter profile successfully published!`);
       } else {
         const errData = await res.json();
         alert(errData.message || 'Failed to save shelter profile');
@@ -279,7 +347,7 @@ export default function ShelterProviderDashboard({ user, onLogout }) {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-requester-id': user._id
+          'x-requester-id': getUserId()
         },
         body: JSON.stringify({
           name: serviceName,
@@ -308,7 +376,7 @@ export default function ShelterProviderDashboard({ user, onLogout }) {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'x-requester-id': user._id
+          'x-requester-id': getUserId()
         },
         body: JSON.stringify({ status, rejectionReason: reason })
       });
@@ -343,7 +411,7 @@ export default function ShelterProviderDashboard({ user, onLogout }) {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-requester-id': user._id
+          'x-requester-id': getUserId()
         },
         body: JSON.stringify({
           bookingId: activeChatBooking.id,
@@ -360,6 +428,50 @@ export default function ShelterProviderDashboard({ user, onLogout }) {
       console.error(err);
     }
   };
+
+  // Review reply logic
+  async function handleRespondToReview(id, replyText) {
+    try {
+      const res = await fetch(`${API_URL}/api/shelter/reviews/${id}/response`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-requester-id': getUserId()
+        },
+        body: JSON.stringify({ response: replyText })
+      });
+      if (res.ok) {
+        fetchReviews();
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
+  // Deactivate service helper
+  async function handleUpdateServiceStatus(id, status) {
+    try {
+      const res = await fetch(`${API_URL}/api/shelter/services/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-requester-id': getUserId()
+        },
+        body: JSON.stringify({ status })
+      });
+      if (res.ok) {
+        fetchServices();
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
+  // Calculate quick metrics
+  const pendingCount = bookings.filter(b => b.status === 'Pending').length;
+  const activeCount = bookings.filter(b => b.status === 'Active').length;
+  const completedCount = bookings.filter(b => b.status === 'Completed').length;
+  const upcomingCount = bookings.filter(b => b.status === 'Accepted').length;
 
   // Stepper rendering helper
   const renderSetupStepper = () => {
@@ -671,604 +783,881 @@ export default function ShelterProviderDashboard({ user, onLogout }) {
     );
   };
 
-  // Main Dashboard Rendering
+  // Main Loading State Skeleton / Spinner
   if (loading) {
     return (
-      <div className="loading-container">
-        <ActivityIndicator size="large" color="var(--color-primary)" />
-        <p>Loading your shelter board...</p>
+      <div className="dash-container" style={{ justifyContent: 'center', alignItems: 'center' }}>
+        <div className="spinner-loader" style={{ borderColor: 'var(--color-primary)' }}></div>
+        <p style={{ marginTop: '16px', color: 'var(--color-muted)', fontWeight: 600 }}>Loading shelter dashboard...</p>
       </div>
     );
   }
 
+  // Mandatory 12-Step Setup / Editing Render
   if (!profile || isEditingSetup) {
     return (
-      <div className="setup-wrapper">
-        <div style={{ padding: '16px 24px', backgroundColor: '#F8FAFC', borderBottom: '1px solid #E2E8F0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span style={{ fontSize: '14px', color: '#64748B', fontWeight: '500' }}>
-            {isEditingSetup ? 'Editing Existing Shelter Setup' : 'Initial Shelter Registration'}
-          </span>
+      <div className="dash-container">
+        {/* Header Bar */}
+        <header className="dash-header">
+          <div className="dash-header-left">
+            <div className="dash-brand">
+              <img src="/logo/logo.jpeg" alt="PetLink Logo" className="dash-logo" />
+              <h1 className="dash-brand-name">
+                <span className="dash-brand-title-full">PetLink Shelter Setup</span>
+              </h1>
+            </div>
+          </div>
           {isEditingSetup && (
-            <button 
-              onClick={() => setIsEditingSetup(false)}
-              style={{ padding: '6px 14px', backgroundColor: '#E2E8F0', color: '#334155', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', fontSize: '13px' }}
-            >
-              Cancel Editing
-            </button>
+            <div className="dash-header-right">
+              <button 
+                onClick={() => setIsEditingSetup(false)}
+                style={{ padding: '8px 16px', backgroundColor: 'var(--color-bg-light)', color: 'var(--color-dark)', border: '1px solid var(--color-border)', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, fontSize: '13px' }}
+              >
+                Cancel Editing
+              </button>
+            </div>
           )}
+        </header>
+
+        <div className="setup-wrapper" style={{ padding: '24px 32px' }}>
+          {renderSetupStepper()}
         </div>
-        {renderSetupStepper()}
       </div>
     );
   }
 
-  // Calculate quick metrics
-  const pendingCount = bookings.filter(b => b.status === 'Pending').length;
-  const activeCount = bookings.filter(b => b.status === 'Active').length;
-  const completedCount = bookings.filter(b => b.status === 'Completed').length;
-  const upcomingCount = bookings.filter(b => b.status === 'Accepted').length;
-
+  // Unified PetLink Dashboard Presentation
   return (
-    <div className="shelter-dash-container">
-      {/* Sidebar Nav */}
-      <aside className="shelter-sidebar">
-        <div className="sidebar-brand">
-          <Building2 size={24} color="var(--color-primary)" />
-          <h2 className="sidebar-title">Shelter Panel</h2>
+    <div className="dash-container">
+      {/* ----------------------------------------------------
+         HEADER BAR (UNIFIED WITH USER DASHBOARD)
+      ---------------------------------------------------- */}
+      <header className="dash-header">
+        <div className="dash-header-left">
+          <button 
+            type="button" 
+            className="dash-sidebar-toggle-btn"
+            onClick={() => {
+              if (window.innerWidth <= 991) {
+                setIsMobileOpen(!isMobileOpen);
+              } else {
+                setIsSidebarOpen(!isSidebarOpen);
+              }
+            }}
+            aria-label="Toggle Navigation Sidebar"
+          >
+            {isSidebarOpen ? <X size={20} /> : <Menu size={20} />}
+          </button>
+
+          <div className="dash-brand" onClick={() => setActiveMenu('overview')} style={{ cursor: 'pointer' }}>
+            <img src="/logo/logo.jpeg" alt="PetLink Logo" className="dash-logo" />
+            <h1 className="dash-brand-name">
+              <span className="dash-brand-title-full">PetLink Shelter Panel</span>
+              <span className="dash-brand-title-short">Shelter Panel</span>
+            </h1>
+          </div>
         </div>
 
-        <nav className="sidebar-nav">
-          <button 
-            className={`nav-item ${activeMenu === 'overview' ? 'active' : ''}`}
-            onClick={() => setActiveMenu('overview')}
+        <div className="dash-header-right">
+          {/* Notification Bell & Popover Panel */}
+          <div className="dash-notif-wrapper" ref={notifRef}>
+            <button 
+              type="button" 
+              className={`dash-notif-btn ${isNotifDropdownOpen ? 'active' : ''}`}
+              onClick={() => {
+                setIsNotifDropdownOpen(!isNotifDropdownOpen);
+                setIsProfileDropdownOpen(false);
+              }}
+              aria-label="Notifications"
+            >
+              <Bell size={18} />
+              {pendingCount > 0 && (
+                <span className="dash-notif-badge">
+                  {pendingCount > 99 ? '99+' : pendingCount}
+                </span>
+              )}
+            </button>
+
+            {isNotifDropdownOpen && (
+              <div className="dash-notif-panel">
+                <div className="dash-notif-panel-header">
+                  <span className="dash-notif-panel-title">
+                    <span>Booking Notifications</span>
+                    {pendingCount > 0 && (
+                      <span style={{ fontSize: '11px', backgroundColor: 'rgba(0, 102, 204, 0.1)', color: 'var(--color-primary)', padding: '2px 6px', borderRadius: '10px' }}>
+                        {pendingCount} new
+                      </span>
+                    )}
+                  </span>
+                </div>
+
+                <div className="dash-notif-list">
+                  {pendingCount === 0 ? (
+                    <div className="dash-notif-empty">
+                      <BellOff size={28} color="var(--color-muted)" />
+                      <p className="dash-notif-empty-title">All caught up</p>
+                      <p className="dash-notif-empty-sub">No pending booking requests.</p>
+                    </div>
+                  ) : (
+                    bookings.filter(b => b.status === 'Pending').map((b) => (
+                      <div 
+                        key={b.id} 
+                        className="dash-notif-item unread"
+                        onClick={() => {
+                          setActiveMenu('bookings');
+                          setIsNotifDropdownOpen(false);
+                        }}
+                      >
+                        <span className="dash-notif-dot" />
+                        <div className="dash-notif-content">
+                          <h5 className="dash-notif-item-title">New Booking Request</h5>
+                          <p className="dash-notif-item-msg">{b.owner?.name} requested {b.service?.name || 'Boarding'} for {b.pet?.name}.</p>
+                          <span className="dash-notif-item-time">{new Date(b.createdAt || Date.now()).toLocaleDateString()}</span>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+
+                <div className="dash-notif-panel-footer">
+                  <span 
+                    className="dash-notif-footer-link"
+                    onClick={() => {
+                      setActiveMenu('bookings');
+                      setIsNotifDropdownOpen(false);
+                    }}
+                  >
+                    View all booking requests
+                  </span>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* User Profile Badge & Dropdown Menu */}
+          <div className="dash-user-profile-wrapper" ref={profileRef}>
+            <div 
+              className={`dash-user-profile-badge ${isProfileDropdownOpen ? 'active' : ''}`} 
+              onClick={() => {
+                setIsProfileDropdownOpen(!isProfileDropdownOpen);
+                setIsNotifDropdownOpen(false);
+              }} 
+            >
+              <img 
+                src={profile?.logo || user?.profilePic || "/logo/logo.jpeg"} 
+                alt="Avatar" 
+                className="dash-user-avatar"
+              />
+              <div className="dash-user-meta">
+                <span className="dash-user-name">{user?.name || profile?.name}</span>
+                <span className="dash-user-role">SHELTER PROVIDER</span>
+              </div>
+              <ChevronDown size={14} className={`dash-profile-chevron ${isProfileDropdownOpen ? 'open' : ''}`} />
+            </div>
+
+            {isProfileDropdownOpen && (
+              <div className="dash-profile-dropdown-menu">
+                <div 
+                  className="dash-dropdown-item"
+                  onClick={() => {
+                    setActiveMenu('settings');
+                    setIsProfileDropdownOpen(false);
+                  }}
+                >
+                  <Building size={16} />
+                  <span>Shelter Profile</span>
+                </div>
+
+                <div 
+                  className="dash-dropdown-item"
+                  onClick={() => {
+                    setIsEditingSetup(true);
+                    setStepperStep(1);
+                    setIsProfileDropdownOpen(false);
+                  }}
+                >
+                  <ClipboardList size={16} />
+                  <span>12-Step Setup</span>
+                </div>
+
+                <div className="dash-dropdown-divider" />
+
+                <div 
+                  className="dash-dropdown-item danger"
+                  onClick={() => {
+                    setIsSignoutOpen(true);
+                    setIsProfileDropdownOpen(false);
+                  }}
+                >
+                  <LogOut size={16} />
+                  <span>Sign Out</span>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </header>
+
+      {/* ----------------------------------------------------
+         BODY & SIDEBAR NAVIGATION
+      ---------------------------------------------------- */}
+      <div className="dash-body">
+        {isMobileOpen && (
+          <div 
+            className="dash-sidebar-overlay" 
+            onClick={() => setIsMobileOpen(false)}
+          />
+        )}
+
+        <aside className={`dash-sidebar ${!isSidebarOpen ? 'collapsed' : ''} ${isMobileOpen ? 'mobile-open' : ''}`}>
+          <div className="dash-side-section-header">Menu</div>
+
+          <span 
+            className={`dash-side-link ${activeMenu === 'overview' ? 'active' : ''}`}
+            onClick={() => { setActiveMenu('overview'); setIsMobileOpen(false); }}
+            title="Overview"
           >
-            <Home size={18} />
-            <span>Overview</span>
-          </button>
-          <button 
-            className={`nav-item ${activeMenu === 'services' ? 'active' : ''}`}
-            onClick={() => setActiveMenu('services')}
+            <LayoutDashboard size={18} />
+            <span className="dash-side-link-text">Dashboard</span>
+          </span>
+
+          <span 
+            className={`dash-side-link ${activeMenu === 'services' ? 'active' : ''}`}
+            onClick={() => { setActiveMenu('services'); setIsMobileOpen(false); }}
+            title="Shelter Services"
           >
-            <ClipboardList size={18} />
-            <span>Shelter Services</span>
-          </button>
-          <button 
-            className={`nav-item ${activeMenu === 'bookings' ? 'active' : ''}`}
-            onClick={() => setActiveMenu('bookings')}
+            <Building2 size={18} />
+            <span className="dash-side-link-text">Shelter Services</span>
+          </span>
+
+          <span 
+            className={`dash-side-link ${activeMenu === 'bookings' ? 'active' : ''}`}
+            onClick={() => { setActiveMenu('bookings'); setIsMobileOpen(false); }}
+            title="Booking Requests"
           >
-            <Calendar size={18} />
-            <span>Booking Requests</span>
-            {pendingCount > 0 && <span className="badge-pending">{pendingCount}</span>}
-          </button>
-          <button 
-            className={`nav-item ${activeMenu === 'messages' ? 'active' : ''}`}
-            onClick={() => setActiveMenu('messages')}
+            <CalendarDays size={18} />
+            <span className="dash-side-link-text">Booking Requests</span>
+            {pendingCount > 0 && <span className="dash-side-badge">{pendingCount}</span>}
+          </span>
+
+          <span 
+            className={`dash-side-link ${activeMenu === 'messages' ? 'active' : ''}`}
+            onClick={() => { setActiveMenu('messages'); setIsMobileOpen(false); }}
+            title="Client Messages"
           >
             <MessageSquare size={18} />
-            <span>Client Messages</span>
-          </button>
-          <button 
-            className={`nav-item ${activeMenu === 'reviews' ? 'active' : ''}`}
-            onClick={() => setActiveMenu('reviews')}
+            <span className="dash-side-link-text">Client Messages</span>
+          </span>
+
+          <span 
+            className={`dash-side-link ${activeMenu === 'reviews' ? 'active' : ''}`}
+            onClick={() => { setActiveMenu('reviews'); setIsMobileOpen(false); }}
+            title="Reviews"
           >
             <Star size={18} />
-            <span>Reviews</span>
-          </button>
-          <button 
-            className={`nav-item ${activeMenu === 'settings' ? 'active' : ''}`}
-            onClick={() => setActiveMenu('settings')}
+            <span className="dash-side-link-text">Reviews</span>
+          </span>
+
+          <div className="dash-side-section-header" style={{ marginTop: '12px' }}>Services</div>
+
+          <span 
+            className={`dash-side-link ${activeMenu === 'settings' ? 'active' : ''}`}
+            onClick={() => { setActiveMenu('settings'); setIsMobileOpen(false); }}
+            title="Shelter Profile"
           >
-            <Settings size={18} />
-            <span>Shelter Profile</span>
-          </button>
-        </nav>
+            <Building size={18} />
+            <span className="dash-side-link-text">Shelter Profile</span>
+          </span>
 
-        <div className="sidebar-footer">
-          <button className="btn-signout" onClick={onLogout}>
-            Sign Out
-          </button>
-        </div>
-      </aside>
+          <span 
+            className="dash-side-link danger-link"
+            onClick={() => setIsSignoutOpen(true)}
+            title="Sign Out"
+            style={{ marginTop: 'auto', color: '#EF4444' }}
+          >
+            <LogOut size={18} />
+            <span className="dash-side-link-text">Sign Out</span>
+          </span>
+        </aside>
 
-      {/* Main Content Area */}
-      <main className="shelter-main-content">
-        {/* Top welcome bar */}
-        <header className="shelter-header-bar">
-          <div>
-            <h1 className="welcome-title">Welcome back, {profile.name}!</h1>
-            <p className="welcome-subtitle">Manage your shelter services, bookings, availability and hosted pets.</p>
+        {/* ----------------------------------------------------
+           MAIN CONTENT AREA
+        ---------------------------------------------------- */}
+        <main className="dash-content">
+          {/* Welcome Hero Card */}
+          <div className="dash-welcome-card">
+            <PetPattern />
+            <div className="dash-welcome-content">
+              <h2 className="dash-welcome-title">Welcome back, {profile?.name || 'Shelter Provider'}!</h2>
+              <p className="dash-welcome-text">
+                Manage your shelter services, bookings, availability and hosted pets.
+              </p>
+              <div className="dash-welcome-address">
+                <div className="dash-welcome-meta-item">
+                  <Badge variant="success">{profile?.status || 'Published'}</Badge>
+                </div>
+                {profile?.address && (
+                  <div className="dash-welcome-meta-item">
+                    <MapPin size={14} />
+                    <span>{profile.address}, {profile.city}</span>
+                  </div>
+                )}
+                {profile?.phone && (
+                  <div className="dash-welcome-meta-item">
+                    <ShieldCheck size={14} />
+                    <span>{profile.phone}</span>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
-          <div className="header-status-badge">
-            <Badge variant="success">{profile.status}</Badge>
-          </div>
-        </header>
 
-        {/* Dynamic Overview Menu */}
-        {activeMenu === 'overview' && (
-          <div className="menu-view">
-            {/* Metric grid */}
-            <div className="metrics-grid">
-              <Card className="metric-box">
-                <CardContent className="metric-inner">
-                  <div className="metric-text">
+          {/* DYNAMIC TAB CONTROLS */}
+          {activeMenu === 'overview' && (
+            <div className="dash-tab-pane">
+              {/* Metric Cards Grid */}
+              <div className="dash-metrics-grid">
+                <div className="metric-card" onClick={() => setActiveMenu('settings')}>
+                  <div className="metric-icon-box" style={{ backgroundColor: 'rgba(0, 102, 204, 0.08)', color: 'var(--color-primary)' }}>
+                    <Building2 size={22} />
+                  </div>
+                  <div className="metric-info">
                     <span className="metric-label">Total Capacity</span>
-                    <span className="metric-value">{profile.capacity}</span>
+                    <span className="metric-value">{profile?.capacity || 0}</span>
                   </div>
-                  <Building2 size={24} color="var(--color-primary)" />
-                </CardContent>
-              </Card>
+                </div>
 
-              <Card className="metric-box">
-                <CardContent className="metric-inner">
-                  <div className="metric-text">
+                <div className="metric-card" onClick={() => setActiveMenu('overview')}>
+                  <div className="metric-icon-box" style={{ backgroundColor: 'rgba(22, 163, 74, 0.08)', color: '#16A34A' }}>
+                    <CheckCircle2 size={22} />
+                  </div>
+                  <div className="metric-info">
                     <span className="metric-label">Available Spaces</span>
-                    <span className="metric-value">{Math.max(0, profile.capacity - profile.occupiedSpaces)}</span>
+                    <span className="metric-value">{Math.max(0, (profile?.capacity || 0) - (profile?.occupiedSpaces || 0))}</span>
                   </div>
-                  <Check size={24} color="#16A34A" />
-                </CardContent>
-              </Card>
+                </div>
 
-              <Card className="metric-box">
-                <CardContent className="metric-inner">
-                  <div className="metric-text">
+                <div className="metric-card" onClick={() => setActiveMenu('overview')}>
+                  <div className="metric-icon-box" style={{ backgroundColor: 'rgba(234, 179, 8, 0.08)', color: '#D97706' }}>
+                    <PawPrint size={22} />
+                  </div>
+                  <div className="metric-info">
                     <span className="metric-label">Occupied Spaces</span>
-                    <span className="metric-value">{profile.occupiedSpaces}</span>
+                    <span className="metric-value">{profile?.occupiedSpaces || 0}</span>
                   </div>
-                  <PawPrint size={24} color="#EAB308" />
-                </CardContent>
-              </Card>
+                </div>
 
-              <Card className="metric-box">
-                <CardContent className="metric-inner">
-                  <div className="metric-text">
+                <div className="metric-card" onClick={() => setActiveMenu('bookings')}>
+                  <div className="metric-icon-box" style={{ backgroundColor: 'rgba(239, 68, 68, 0.08)', color: '#EF4444' }}>
+                    <Clock size={22} />
+                  </div>
+                  <div className="metric-info">
                     <span className="metric-label">Pending Requests</span>
                     <span className="metric-value">{pendingCount}</span>
                   </div>
-                  <AlertCircle size={24} color="#EF4444" />
+                </div>
+              </div>
+
+              {/* Quick Actions Grid */}
+              <h3 className="section-title">Quick Actions</h3>
+              <div className="dash-quick-grid">
+                <div className="dash-quick-card" onClick={() => setIsAddServiceOpen(true)}>
+                  <div className="dash-quick-icon">
+                    <Plus size={20} />
+                  </div>
+                  <div className="dash-quick-text">
+                    <h4>Add Shelter Service</h4>
+                    <p>Create a new boarding package or service listing</p>
+                  </div>
+                </div>
+
+                <div className="dash-quick-card" onClick={() => setActiveMenu('services')}>
+                  <div className="dash-quick-icon">
+                    <ClipboardList size={20} />
+                  </div>
+                  <div className="dash-quick-text">
+                    <h4>Manage Services</h4>
+                    <p>Edit pricing, capacity, and active status</p>
+                  </div>
+                </div>
+
+                <div className="dash-quick-card" onClick={() => setActiveMenu('bookings')}>
+                  <div className="dash-quick-icon">
+                    <Calendar size={20} />
+                  </div>
+                  <div className="dash-quick-text">
+                    <h4>View Booking Requests</h4>
+                    <p>Accept, reject or check-in pet stay reservations</p>
+                  </div>
+                </div>
+
+                <div className="dash-quick-card" onClick={() => setActiveMenu('messages')}>
+                  <div className="dash-quick-icon">
+                    <MessageSquare size={20} />
+                  </div>
+                  <div className="dash-quick-text">
+                    <h4>Open Messages</h4>
+                    <p>Communicate directly with pet owners</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Pets Currently in Shelter */}
+              <h3 className="section-title" style={{ marginTop: '28px' }}>Pets Currently in Shelter</h3>
+              <Card className="dash-card">
+                <CardContent className="stay-list-wrapper">
+                  {bookings.filter(b => b.status === 'Active').length === 0 ? (
+                    <div className="dash-empty-state">
+                      <PawPrint size={36} color="var(--color-muted)" />
+                      <h4>No pets currently staying at your shelter.</h4>
+                      <p>When pets check in for active boarding, they will be listed here.</p>
+                    </div>
+                  ) : (
+                    <div className="dash-table-wrapper">
+                      <table className="dash-table">
+                        <thead>
+                          <tr>
+                            <th>Pet Details</th>
+                            <th>Owner Info</th>
+                            <th>Service</th>
+                            <th>Stay Period</th>
+                            <th>Care Notes</th>
+                            <th>Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {bookings.filter(b => b.status === 'Active').map(b => (
+                            <tr key={b.id}>
+                              <td>
+                                <div className="pet-cell">
+                                  <img src={b.pet?.image || 'https://images.unsplash.com/photo-1587300003388-59208cc962cb?auto=format&fit=crop&q=80&w=150'} alt="Pet" className="pet-avatar" />
+                                  <div>
+                                    <span className="pet-name">{b.pet?.name}</span>
+                                    <span className="pet-breed">{b.pet?.breed}</span>
+                                  </div>
+                                </div>
+                              </td>
+                              <td>
+                                <div className="owner-cell">
+                                  <span className="owner-name">{b.owner?.name}</span>
+                                  <span className="owner-phone">{b.owner?.phone}</span>
+                                </div>
+                              </td>
+                              <td>{b.service?.name}</td>
+                              <td>
+                                <span className="stay-dates">{new Date(b.checkInDate).toLocaleDateString()} - {new Date(b.checkOutDate).toLocaleDateString()}</span>
+                              </td>
+                              <td>{b.specialInstructions || 'None'}</td>
+                              <td>
+                                <button className="dash-btn-primary" onClick={() => handleUpdateBooking(b.id, 'Completed')}>
+                                  Complete Stay
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </div>
+          )}
 
-            {/* Quick Actions */}
-            <h3 className="section-title">Quick Actions</h3>
-            <div className="quick-actions-row">
-              <button className="action-btn" onClick={() => setIsAddServiceOpen(true)}>
-                <Plus size={16} />
-                <span>Add Shelter Service</span>
-              </button>
-              <button className="action-btn" onClick={() => setActiveMenu('services')}>
-                <ClipboardList size={16} />
-                <span>Manage Services</span>
-              </button>
-              <button className="action-btn" onClick={() => setActiveMenu('bookings')}>
-                <Calendar size={16} />
-                <span>View Booking Requests</span>
-              </button>
-              <button className="action-btn" onClick={() => setActiveMenu('messages')}>
-                <MessageSquare size={16} />
-                <span>Open Messages</span>
-              </button>
-            </div>
+          {/* Shelter Services Menu View */}
+          {activeMenu === 'services' && (
+            <div className="dash-tab-pane">
+              <div className="dash-pane-header">
+                <div>
+                  <h3 className="section-title" style={{ margin: 0 }}>My Shelter Services</h3>
+                  <p className="dash-pane-sub">Manage service offerings listed on PetLink discovery boards.</p>
+                </div>
+                <button className="dash-btn-primary" onClick={() => setIsAddServiceOpen(true)}>
+                  <Plus size={16} />
+                  <span>Create Service</span>
+                </button>
+              </div>
 
-            {/* Stay details: Hosted pets currently staying */}
-            <h3 className="section-title" style={{ marginTop: '24px' }}>Pets Currently in Shelter</h3>
-            <Card>
-              <CardContent className="stay-list-wrapper">
-                {bookings.filter(b => b.status === 'Active').length === 0 ? (
-                  <div className="empty-stay-box">
-                    <PawPrint size={32} color="#94A3B8" />
-                    <p>No pets currently staying at your shelter.</p>
+              <div className="services-grid">
+                {services.length === 0 ? (
+                  <div className="dash-empty-state">
+                    <ClipboardList size={36} color="var(--color-muted)" />
+                    <h4>No services registered yet.</h4>
+                    <p>Create a service to make your shelter discoverable for pet owners.</p>
                   </div>
                 ) : (
-                  <table className="stay-table">
-                    <thead>
-                      <tr>
-                        <th>Pet</th>
-                        <th>Owner</th>
-                        <th>Service</th>
-                        <th>Stay Period</th>
-                        <th>Care Notes</th>
-                        <th>Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {bookings.filter(b => b.status === 'Active').map(b => (
-                        <tr key={b.id}>
-                          <td>
-                            <div className="pet-cell">
-                              <img src={b.pet?.image || 'https://images.unsplash.com/photo-1587300003388-59208cc962cb?auto=format&fit=crop&q=80&w=150'} alt="Pet" />
-                              <div>
-                                <span>{b.pet?.name}</span>
-                                <small>{b.pet?.breed}</small>
-                              </div>
-                            </div>
-                          </td>
-                          <td>
-                            <div className="owner-cell">
-                              <span>{b.owner?.name}</span>
-                              <small>{b.owner?.phone}</small>
-                            </div>
-                          </td>
-                          <td>{b.service?.name}</td>
-                          <td>
-                            <small>{new Date(b.checkInDate).toLocaleDateString()} - {new Date(b.checkOutDate).toLocaleDateString()}</small>
-                          </td>
-                          <td>{b.specialInstructions || 'None'}</td>
-                          <td>
-                            <button className="btn-tbl-complete" onClick={() => handleUpdateBooking(b.id, 'Completed')}>
-                              Complete Stay
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-        )}
-
-        {/* Services Menu View */}
-        {activeMenu === 'services' && (
-          <div className="menu-view">
-            <div className="menu-header">
-              <h3 className="section-title">My Shelter Services</h3>
-              <button className="btn-add-service" onClick={() => setIsAddServiceOpen(true)}>
-                <Plus size={16} />
-                <span>Create Service</span>
-              </button>
-            </div>
-
-            <div className="services-grid">
-              {services.length === 0 ? (
-                <div className="empty-state-card">
-                  <ClipboardList size={32} color="#94A3B8" />
-                  <p>No services registered yet. Create one to list on pet discovery boards.</p>
-                </div>
-              ) : (
-                services.map(s => (
-                  <Card key={s.id} className="service-card">
-                    <CardHeader>
-                      <div className="service-title-row">
-                        <CardTitle>{s.name}</CardTitle>
-                        <Badge variant={s.status === 'Active' ? 'success' : 'secondary'}>{s.status}</Badge>
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      <p className="service-desc">{s.description || 'No description provided.'}</p>
-                      <Separator style={{ margin: '12px 0' }} />
-                      <div className="service-meta">
-                        <span><strong>Rate:</strong> {s.dailyRate} PKR/day</span>
-                        <span><strong>Capacity:</strong> {s.maxCapacity} pets</span>
-                      </div>
-                      <div className="service-card-actions">
-                        <button className="btn-card-deactivate" onClick={() => handleUpdateServiceStatus(s.id, 'Inactive')}>
-                          Deactivate
-                        </button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Bookings requests Board */}
-        {activeMenu === 'bookings' && (
-          <div className="menu-view">
-            <h3 className="section-title">Booking Requests</h3>
-
-            <div className="bookings-list">
-              {bookings.length === 0 ? (
-                <div className="empty-state-card">
-                  <Calendar size={32} color="#94A3B8" />
-                  <p>No booking requests found.</p>
-                </div>
-              ) : (
-                bookings.map(b => (
-                  <Card key={b.id} className="booking-req-card">
-                    <CardContent className="booking-card-inner">
-                      <div className="booking-pet-profile">
-                        <img src={b.pet?.image || 'https://images.unsplash.com/photo-1587300003388-59208cc962cb?auto=format&fit=crop&q=80&w=150'} alt="Pet" />
-                        <div>
-                          <h4>{b.pet?.name}</h4>
-                          <span className="breed-badge">{b.pet?.breed}</span>
-                          <p className="owner-desc">Owner: {b.owner?.name} | {b.owner?.phone}</p>
+                  services.map(s => (
+                    <Card key={s.id} className="dash-card service-card">
+                      <CardHeader style={{ paddingBottom: '8px' }}>
+                        <div className="service-title-row">
+                          <CardTitle style={{ fontSize: '16px', fontWeight: 700 }}>{s.name}</CardTitle>
+                          <Badge variant={s.status === 'Active' ? 'success' : 'secondary'}>{s.status}</Badge>
                         </div>
-                      </div>
-
-                      <div className="booking-stay-details">
-                        <p><strong>Service:</strong> {b.service?.name}</p>
-                        <p><strong>Dates:</strong> {new Date(b.checkInDate).toLocaleDateString()} - {new Date(b.checkOutDate).toLocaleDateString()}</p>
-                        <p><strong>Duration:</strong> {b.duration} Days</p>
-                        {b.pickupOption !== 'No Pickup' && (
-                          <p className="pickup-tag">
-                            <Truck size={14} />
-                            <span>Pickup: {b.pickupOption} | {b.pickupAddress}</span>
-                          </p>
-                        )}
-                        {b.specialInstructions && (
-                          <p className="care-notes-warn">
-                            <AlertTriangle size={14} />
-                            <span>Care notes: {b.specialInstructions}</span>
-                          </p>
-                        )}
-                      </div>
-
-                      <div className="booking-total-price">
-                        <span className="price-label">Total Amount</span>
-                        <span className="price-val">{b.totalAmount} PKR</span>
-                        <Badge variant="warning">{b.status}</Badge>
-                      </div>
-
-                      <div className="booking-req-actions">
-                        {b.status === 'Pending' && (
-                          <>
-                            <button className="btn-accept" onClick={() => handleUpdateBooking(b.id, 'Accepted')}>
-                              Accept
-                            </button>
-                            <button className="btn-reject" onClick={() => {
-                              setSelectedBookingId(b.id);
-                              setIsRejectOpen(true);
-                            }}>
-                              Reject
-                            </button>
-                          </>
-                        )}
-                        {b.status === 'Accepted' && (
-                          <button className="btn-checkin" onClick={() => handleUpdateBooking(b.id, 'Active')}>
-                            Check-In Pet
+                      </CardHeader>
+                      <CardContent>
+                        <p className="service-desc">{s.description || 'No description provided.'}</p>
+                        <Separator style={{ margin: '12px 0' }} />
+                        <div className="service-meta">
+                          <span><strong>Rate:</strong> {s.dailyRate} PKR/day</span>
+                          <span><strong>Capacity:</strong> {s.maxCapacity} pets</span>
+                        </div>
+                        <div className="service-card-actions" style={{ marginTop: '14px' }}>
+                          <button 
+                            className="dash-btn-outline danger"
+                            onClick={() => handleUpdateServiceStatus(s.id, s.status === 'Active' ? 'Inactive' : 'Active')}
+                          >
+                            {s.status === 'Active' ? 'Deactivate' : 'Activate'}
                           </button>
-                        )}
-                        {b.status === 'Active' && (
-                          <button className="btn-tbl-complete" onClick={() => handleUpdateBooking(b.id, 'Completed')}>
-                            Complete Stay
-                          </button>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Messaging client */}
-        {activeMenu === 'messages' && (
-          <div className="menu-view message-client-wrapper">
-            <div className="conversation-sidebar">
-              <h4>Active Bookings</h4>
-              <Separator />
-              <div className="conv-list">
-                {bookings.map(b => (
-                  <div 
-                    key={b.id} 
-                    className={`conv-item ${activeChatBooking?.id === b.id ? 'active' : ''}`}
-                    onClick={() => loadChat(b)}
-                  >
-                    <span>{b.pet?.name} ({b.owner?.name})</span>
-                    <small>{b.service?.name}</small>
-                  </div>
-                ))}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))
+                )}
               </div>
             </div>
+          )}
 
-            <div className="chat-window">
-              {activeChatBooking ? (
-                <>
-                  <div className="chat-header">
-                    <h4>Chat with {activeChatBooking.owner?.name} regarding {activeChatBooking.pet?.name}</h4>
+          {/* Booking Requests Board */}
+          {activeMenu === 'bookings' && (
+            <div className="dash-tab-pane">
+              <div className="dash-pane-header">
+                <div>
+                  <h3 className="section-title" style={{ margin: 0 }}>Booking Requests</h3>
+                  <p className="dash-pane-sub">Review, accept, or reject incoming pet boarding reservations.</p>
+                </div>
+              </div>
+
+              <div className="bookings-list">
+                {bookings.length === 0 ? (
+                  <div className="dash-empty-state">
+                    <Calendar size={36} color="var(--color-muted)" />
+                    <h4>No booking requests found.</h4>
+                    <p>Pending requests from pet owners will appear here.</p>
                   </div>
-                  <div className="chat-messages-area">
-                    {chatMessages.length === 0 ? (
-                      <p className="no-msgs">No messages sent yet. Say hello to the pet owner!</p>
+                ) : (
+                  bookings.map(b => (
+                    <Card key={b.id} className="dash-card booking-req-card">
+                      <CardContent className="booking-card-inner">
+                        <div className="booking-pet-profile">
+                          <img src={b.pet?.image || 'https://images.unsplash.com/photo-1587300003388-59208cc962cb?auto=format&fit=crop&q=80&w=150'} alt="Pet" className="booking-pet-avatar" />
+                          <div>
+                            <h4 className="booking-pet-name">{b.pet?.name}</h4>
+                            <span className="breed-badge">{b.pet?.breed}</span>
+                            <p className="owner-desc">Owner: {b.owner?.name} | {b.owner?.phone}</p>
+                          </div>
+                        </div>
+
+                        <div className="booking-stay-details">
+                          <p><strong>Service:</strong> {b.service?.name}</p>
+                          <p><strong>Dates:</strong> {new Date(b.checkInDate).toLocaleDateString()} - {new Date(b.checkOutDate).toLocaleDateString()}</p>
+                          <p><strong>Duration:</strong> {b.duration} Days</p>
+                          {b.pickupOption !== 'No Pickup' && (
+                            <p className="pickup-tag">
+                              <Truck size={14} />
+                              <span>Pickup: {b.pickupOption} | {b.pickupAddress}</span>
+                            </p>
+                          )}
+                          {b.specialInstructions && (
+                            <p className="care-notes-warn">
+                              <AlertTriangle size={14} />
+                              <span>Care notes: {b.specialInstructions}</span>
+                            </p>
+                          )}
+                        </div>
+
+                        <div className="booking-total-price">
+                          <span className="price-label">Total Amount</span>
+                          <span className="price-val">{b.totalAmount} PKR</span>
+                          <Badge variant={b.status === 'Accepted' ? 'success' : b.status === 'Pending' ? 'warning' : 'secondary'}>
+                            {b.status}
+                          </Badge>
+                        </div>
+
+                        <div className="booking-req-actions">
+                          {b.status === 'Pending' && (
+                            <>
+                              <button className="dash-btn-primary" onClick={() => handleUpdateBooking(b.id, 'Accepted')}>
+                                Accept
+                              </button>
+                              <button className="dash-btn-outline danger" onClick={() => {
+                                setSelectedBookingId(b.id);
+                                setIsRejectOpen(true);
+                              }}>
+                                Reject
+                              </button>
+                            </>
+                          )}
+                          {b.status === 'Accepted' && (
+                            <button className="dash-btn-primary" onClick={() => handleUpdateBooking(b.id, 'Active')}>
+                              Check-In Pet
+                            </button>
+                          )}
+                          {b.status === 'Active' && (
+                            <button className="dash-btn-primary" onClick={() => handleUpdateBooking(b.id, 'Completed')}>
+                              Complete Stay
+                            </button>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Client Messages Page */}
+          {activeMenu === 'messages' && (
+            <div className="dash-tab-pane">
+              <div className="dash-pane-header">
+                <div>
+                  <h3 className="section-title" style={{ margin: 0 }}>Client Messages</h3>
+                  <p className="dash-pane-sub">Chat directly with owners who have active booking reservations.</p>
+                </div>
+              </div>
+
+              <div className="message-client-wrapper">
+                <div className="conversation-sidebar">
+                  <h4>Active Bookings</h4>
+                  <Separator style={{ margin: '8px 0' }} />
+                  <div className="conv-list">
+                    {bookings.length === 0 ? (
+                      <p className="no-msgs" style={{ padding: '12px' }}>No booking conversations available.</p>
                     ) : (
-                      chatMessages.map(m => (
-                        <div key={m.id} className={`message-bubble ${m.senderId === user._id ? 'sender' : 'receiver'}`}>
-                          <p>{m.message}</p>
-                          <small>{new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</small>
+                      bookings.map(b => (
+                        <div 
+                          key={b.id} 
+                          className={`conv-item ${activeChatBooking?.id === b.id ? 'active' : ''}`}
+                          onClick={() => loadChat(b)}
+                        >
+                          <span className="conv-title">{b.pet?.name} ({b.owner?.name})</span>
+                          <small className="conv-sub">{b.service?.name}</small>
                         </div>
                       ))
                     )}
                   </div>
-                  <div className="chat-input-row">
-                    <input 
-                      type="text" 
-                      value={newMessage} 
-                      onChange={(e) => setNewMessage(e.target.value)} 
-                      placeholder="Type a message..." 
-                    />
-                    <button onClick={handleSendMessage}>Send</button>
-                  </div>
-                </>
-              ) : (
-                <div className="chat-empty-state">
-                  <MessageSquare size={32} color="#94A3B8" />
-                  <p>Select an active booking conversation from the sidebar to message owners.</p>
                 </div>
-              )}
-            </div>
-          </div>
-        )}
 
-        {/* Reviews View */}
-        {activeMenu === 'reviews' && (
-          <div className="menu-view">
-            <h3 className="section-title">Client Reviews</h3>
-            <div className="reviews-list">
-              {reviews.length === 0 ? (
-                <div className="empty-state-card">
-                  <Star size={32} color="#94A3B8" />
-                  <p>No reviews received yet.</p>
-                </div>
-              ) : (
-                reviews.map(r => (
-                  <Card key={r.id} className="review-card-box">
-                    <CardContent>
-                      <div className="review-header-row">
-                        <div className="reviewer-info">
-                          <span>{r.user?.name}</span>
-                          <div className="stars-row">
-                            {[...Array(5)].map((_, i) => (
-                              <Star key={i} size={14} fill={i < r.rating ? '#F59E0B' : 'none'} color="#F59E0B" />
-                            ))}
-                          </div>
-                        </div>
-                        <span className="review-date">{new Date(r.createdAt).toLocaleDateString()}</span>
+                <div className="chat-window">
+                  {activeChatBooking ? (
+                    <>
+                      <div className="chat-header">
+                        <h4>Chat with {activeChatBooking.owner?.name} regarding {activeChatBooking.pet?.name}</h4>
                       </div>
-                      <p className="review-comment">{r.comment}</p>
-                      
-                      {r.response ? (
-                        <div className="provider-response-box">
-                          <strong>Your response:</strong>
-                          <p>{r.response}</p>
-                        </div>
-                      ) : (
-                        <div className="reply-input-box">
-                          <input 
-                            type="text" 
-                            placeholder="Write a response..." 
-                            id={`reply-input-${r.id}`}
-                          />
-                          <button onClick={() => {
-                            const val = document.getElementById(`reply-input-${r.id}`).value;
-                            if (val.trim()) {
-                              handleRespondToReview(r.id, val.trim());
-                            }
-                          }}>Reply</button>
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                ))
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Settings profile view */}
-        {activeMenu === 'settings' && (
-          <div className="menu-view">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-              <div>
-                <h3 className="section-title" style={{ margin: 0 }}>Shelter Profile Management</h3>
-                <p style={{ fontSize: '13px', color: '#64748B', marginTop: '4px' }}>View and modify your public shelter profile details.</p>
+                      <div className="chat-messages-area">
+                        {chatMessages.length === 0 ? (
+                          <div className="dash-empty-state" style={{ padding: '24px' }}>
+                            <MessageSquare size={28} color="var(--color-muted)" />
+                            <p>No messages sent yet. Say hello to the pet owner!</p>
+                          </div>
+                        ) : (
+                          chatMessages.map(m => (
+                            <div key={m.id} className={`message-bubble ${m.senderId === getUserId() ? 'sender' : 'receiver'}`}>
+                              <p>{m.message}</p>
+                              <small>{new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</small>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                      <div className="chat-input-row">
+                        <input 
+                          type="text" 
+                          value={newMessage} 
+                          onChange={(e) => setNewMessage(e.target.value)} 
+                          onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
+                          placeholder="Type a message..." 
+                        />
+                        <button className="dash-btn-primary" onClick={handleSendMessage}>Send</button>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="dash-empty-state">
+                      <MessageSquare size={36} color="var(--color-muted)" />
+                      <h4>Select a Conversation</h4>
+                      <p>Select an active booking reservation from the list to message pet owners.</p>
+                    </div>
+                  )}
+                </div>
               </div>
-              <button 
-                onClick={() => {
-                  if (profile) {
-                    setShelterName(profile.name || '');
-                    setLogo(profile.logo || '');
-                    setCoverImage(profile.logo || '');
-                    setDescription(profile.description || '');
-                    setPhone(profile.phone || '');
-                    setEmail(profile.email || '');
-                    setAddress(profile.address || '');
-                    setCity(profile.city || '');
-                    setProvince(profile.province || '');
-                    setArea(profile.area || '');
-                    setShelterTypes(profile.shelterTypes || []);
-                    setAcceptedSpecies(profile.acceptedSpecies || []);
-                    setAcceptedBreeds(profile.acceptedBreeds || []);
-                    setCapacity(profile.capacity || 10);
-                    setFacilities(profile.facilities || []);
-                    setProvidesPickup(profile.providesPickup || false);
-                    setPickupServiceType(profile.pickupServiceType || 'None');
-                    setPickupRadius(profile.pickupRadius || 15);
-                    setPickupFee(profile.pickupFee || 0);
-                    setPickupFeeType(profile.pickupFeeType || 'Free');
-                    setPickupFeePerKm(profile.pickupFeePerKm || 0);
-                    setDailyRate(profile.dailyRate || 1000);
-                    setOpeningTime(profile.openingTime || '09:00');
-                    setClosingTime(profile.closingTime || '18:00');
-                    setRules(profile.rules || []);
-                  }
-                  setIsEditingSetup(true);
-                  setStepperStep(1);
-                }}
-                style={{
-                  padding: '10px 18px',
-                  backgroundColor: 'var(--color-primary)',
-                  color: '#FFFFFF',
-                  border: 'none',
-                  borderRadius: '8px',
-                  fontWeight: '600',
-                  fontSize: '14px',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px'
-                }}
-              >
-                <ClipboardList size={16} />
-                <span>Edit Shelter (12 Steps)</span>
-              </button>
             </div>
+          )}
 
-            <Card style={{ padding: '24px' }}>
-              <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
-                <img 
-                  src={profile.logo || 'https://images.unsplash.com/photo-1587300003388-59208cc962cb?auto=format&fit=crop&q=80&w=150'} 
-                  alt="Logo" 
-                  style={{ width: '80px', height: '80px', borderRadius: '12px', objectFit: 'cover', border: '1px solid #E2E8F0' }} 
-                />
+          {/* Client Reviews Page */}
+          {activeMenu === 'reviews' && (
+            <div className="dash-tab-pane">
+              <div className="dash-pane-header">
                 <div>
-                  <h2 style={{ fontSize: '22px', fontWeight: '700', color: '#0F172A', margin: 0 }}>{profile.name}</h2>
-                  <p style={{ fontSize: '14px', color: '#64748B', margin: '4px 0' }}>{profile.address}, {profile.city}, {profile.province}</p>
-                  <div style={{ display: 'flex', gap: '8px', marginTop: '6px' }}>
-                    <Badge variant="success">{profile.status}</Badge>
-                    <Badge>{profile.providesPickup ? 'Pickup Available' : 'No Pickup'}</Badge>
+                  <h3 className="section-title" style={{ margin: 0 }}>Client Reviews</h3>
+                  <p className="dash-pane-sub">Read feedback from pet owners and respond to reviews.</p>
+                </div>
+              </div>
+
+              <div className="reviews-list">
+                {reviews.length === 0 ? (
+                  <div className="dash-empty-state">
+                    <Star size={36} color="var(--color-muted)" />
+                    <h4>No reviews received yet.</h4>
+                    <p>Reviews submitted by pet owners after stays will appear here.</p>
+                  </div>
+                ) : (
+                  reviews.map(r => (
+                    <Card key={r.id} className="dash-card review-card-box">
+                      <CardContent style={{ padding: '18px' }}>
+                        <div className="review-header-row">
+                          <div className="reviewer-info">
+                            <span className="reviewer-name">{r.user?.name}</span>
+                            <div className="stars-row">
+                              {[...Array(5)].map((_, i) => (
+                                <Star key={i} size={14} fill={i < r.rating ? '#F59E0B' : 'none'} color="#F59E0B" />
+                              ))}
+                            </div>
+                          </div>
+                          <span className="review-date">{new Date(r.createdAt).toLocaleDateString()}</span>
+                        </div>
+                        <p className="review-comment">{r.comment}</p>
+                        
+                        {r.response ? (
+                          <div className="provider-response-box">
+                            <strong>Your response:</strong>
+                            <p>{r.response}</p>
+                          </div>
+                        ) : (
+                          <div className="reply-input-box">
+                            <input 
+                              type="text" 
+                              placeholder="Write a response..." 
+                              id={`reply-input-${r.id}`}
+                            />
+                            <button 
+                              className="dash-btn-primary"
+                              onClick={() => {
+                                const val = document.getElementById(`reply-input-${r.id}`).value;
+                                if (val.trim()) {
+                                  handleRespondToReview(r.id, val.trim());
+                                }
+                              }}
+                            >
+                              Reply
+                            </button>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  ))
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Shelter Profile Management Page */}
+          {activeMenu === 'settings' && (
+            <div className="dash-tab-pane">
+              <div className="dash-pane-header">
+                <div>
+                  <h3 className="section-title" style={{ margin: 0 }}>Shelter Profile Management</h3>
+                  <p className="dash-pane-sub">View and modify your public shelter profile details.</p>
+                </div>
+                <button 
+                  className="dash-btn-primary"
+                  onClick={() => {
+                    if (profile) {
+                      setShelterName(profile.name || '');
+                      setLogo(profile.logo || '');
+                      setCoverImage(profile.logo || '');
+                      setDescription(profile.description || '');
+                      setPhone(profile.phone || '');
+                      setEmail(profile.email || '');
+                      setAddress(profile.address || '');
+                      setCity(profile.city || '');
+                      setProvince(profile.province || '');
+                      setArea(profile.area || '');
+                      setShelterTypes(profile.shelterTypes || []);
+                      setAcceptedSpecies(profile.acceptedSpecies || []);
+                      setAcceptedBreeds(profile.acceptedBreeds || []);
+                      setCapacity(profile.capacity || 10);
+                      setFacilities(profile.facilities || []);
+                      setProvidesPickup(profile.providesPickup || false);
+                      setPickupServiceType(profile.pickupServiceType || 'None');
+                      setPickupRadius(profile.pickupRadius || 15);
+                      setPickupFee(profile.pickupFee || 0);
+                      setPickupFeeType(profile.pickupFeeType || 'Free');
+                      setPickupFeePerKm(profile.pickupFeePerKm || 0);
+                      setDailyRate(profile.dailyRate || 1000);
+                      setOpeningTime(profile.openingTime || '09:00');
+                      setClosingTime(profile.closingTime || '18:00');
+                      setRules(profile.rules || []);
+                    }
+                    setIsEditingSetup(true);
+                    setStepperStep(1);
+                  }}
+                >
+                  <ClipboardList size={16} />
+                  <span>Edit Shelter (12 Steps)</span>
+                </button>
+              </div>
+
+              <Card className="dash-card" style={{ padding: '24px' }}>
+                <div className="profile-hero-row">
+                  <img 
+                    src={profile.logo || 'https://images.unsplash.com/photo-1587300003388-59208cc962cb?auto=format&fit=crop&q=80&w=150'} 
+                    alt="Logo" 
+                    className="profile-logo-img" 
+                  />
+                  <div>
+                    <h2 className="profile-title">{profile.name}</h2>
+                    <p className="profile-subtitle">{profile.address}, {profile.city}, {profile.province}</p>
+                    <div className="profile-badges-row">
+                      <Badge variant="success">{profile.status}</Badge>
+                      <Badge>{profile.providesPickup ? 'Pickup Available' : 'No Pickup'}</Badge>
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              <Separator style={{ margin: '20px 0' }} />
+                <Separator style={{ margin: '20px 0' }} />
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
+                <div className="profile-info-grid">
+                  <div>
+                    <span className="info-label">Contact Phone</span>
+                    <p className="info-val">{profile.phone || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <span className="info-label">Contact Email</span>
+                    <p className="info-val">{profile.email || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <span className="info-label">Total Capacity</span>
+                    <p className="info-val">{profile.capacity} Spaces</p>
+                  </div>
+                  <div>
+                    <span className="info-label">Daily Boarding Rate</span>
+                    <p className="info-val">{profile.dailyRate} PKR</p>
+                  </div>
+                </div>
+
+                <Separator style={{ margin: '20px 0' }} />
+
                 <div>
-                  <span style={{ fontSize: '12px', color: '#64748B', textTransform: 'uppercase' }}>Contact Phone</span>
-                  <p style={{ fontSize: '15px', fontWeight: '600', color: '#0F172A', margin: '4px 0' }}>{profile.phone || 'N/A'}</p>
+                  <span className="info-label">Accepted Species</span>
+                  <div className="chips-row">
+                    {(profile.acceptedSpecies || []).map(sp => (
+                      <Badge key={sp} variant="secondary">{sp}</Badge>
+                    ))}
+                  </div>
                 </div>
-                <div>
-                  <span style={{ fontSize: '12px', color: '#64748B', textTransform: 'uppercase' }}>Contact Email</span>
-                  <p style={{ fontSize: '15px', fontWeight: '600', color: '#0F172A', margin: '4px 0' }}>{profile.email || 'N/A'}</p>
-                </div>
-                <div>
-                  <span style={{ fontSize: '12px', color: '#64748B', textTransform: 'uppercase' }}>Total Capacity</span>
-                  <p style={{ fontSize: '15px', fontWeight: '600', color: '#0F172A', margin: '4px 0' }}>{profile.capacity} Spaces</p>
-                </div>
-                <div>
-                  <span style={{ fontSize: '12px', color: '#64748B', textTransform: 'uppercase' }}>Daily Rate</span>
-                  <p style={{ fontSize: '15px', fontWeight: '600', color: '#0F172A', margin: '4px 0' }}>{profile.dailyRate} PKR</p>
-                </div>
-              </div>
 
-              <Separator style={{ margin: '20px 0' }} />
-
-              <div>
-                <span style={{ fontSize: '12px', color: '#64748B', textTransform: 'uppercase' }}>Accepted Species</span>
-                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '6px' }}>
-                  {(profile.acceptedSpecies || []).map(sp => (
-                    <Badge key={sp} style={{ backgroundColor: '#F1F5F9', color: '#334155' }}>{sp}</Badge>
-                  ))}
+                <div style={{ marginTop: '16px' }}>
+                  <span className="info-label">Facilities</span>
+                  <div className="chips-row">
+                    {(profile.facilities || []).map(f => (
+                      <Badge key={f} variant="outline" style={{ borderColor: 'var(--color-primary)', color: 'var(--color-primary)' }}>{f}</Badge>
+                    ))}
+                  </div>
                 </div>
-              </div>
-
-              <div style={{ marginTop: '16px' }}>
-                <span style={{ fontSize: '12px', color: '#64748B', textTransform: 'uppercase' }}>Facilities</span>
-                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '6px' }}>
-                  {(profile.facilities || []).map(f => (
-                    <Badge key={f} style={{ backgroundColor: '#EFF6FF', color: '#1D4ED8' }}>{f}</Badge>
-                  ))}
-                </div>
-              </div>
-            </Card>
-          </div>
-        )}
-      </main>
+              </Card>
+            </div>
+          )}
+        </main>
+      </div>
 
       {/* Dialog for Add Service */}
       {isAddServiceOpen && (
@@ -1292,8 +1681,8 @@ export default function ShelterProviderDashboard({ user, onLogout }) {
               <input type="number" value={serviceCapacity} onChange={(e) => setServiceCapacity(e.target.value)} />
             </div>
             <div className="dialog-footer">
-              <button className="btn-cancel" onClick={() => setIsAddServiceOpen(false)}>Cancel</button>
-              <button className="btn-save" onClick={handleAddService}>Add Service</button>
+              <button className="dash-btn-outline" onClick={() => setIsAddServiceOpen(false)}>Cancel</button>
+              <button className="dash-btn-primary" onClick={handleAddService}>Add Service</button>
             </div>
           </div>
         </div>
@@ -1317,57 +1706,36 @@ export default function ShelterProviderDashboard({ user, onLogout }) {
               </select>
             </div>
             <div className="dialog-footer">
-              <button className="btn-cancel" onClick={() => setIsRejectOpen(false)}>Cancel</button>
-              <button className="btn-save-reject" onClick={() => handleUpdateBooking(selectedBookingId, 'Rejected', rejectionReason)}>
+              <button className="dash-btn-outline" onClick={() => setIsRejectOpen(false)}>Cancel</button>
+              <button className="dash-btn-primary danger" onClick={() => handleUpdateBooking(selectedBookingId, 'Rejected', rejectionReason)}>
                 Confirm Rejection
               </button>
             </div>
           </div>
         </div>
       )}
+
+      {/* Sign Out Confirmation Modal */}
+      <AlertDialog open={isSignoutOpen} onOpenChange={setIsSignoutOpen}>
+        <AlertDialogContent style={{ borderRadius: '16px', maxWidth: '400px' }}>
+          <AlertDialogHeader>
+            <AlertDialogTitle style={{ fontSize: '18px', fontWeight: '800' }}>Confirm Sign Out</AlertDialogTitle>
+            <AlertDialogDescription style={{ fontSize: '14px', color: 'var(--color-muted)' }}>
+              Are you sure you want to log out of your Shelter Provider session?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter style={{ marginTop: '16px' }}>
+            <AlertDialogCancel className="dash-btn-outline" style={{ borderRadius: '8px' }}>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={onLogout}
+              className="dash-btn-primary danger"
+              style={{ borderRadius: '8px', backgroundColor: '#EF4444', color: '#FFFFFF' }}
+            >
+              Sign Out
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
-
-  // Review reply logic
-  async function handleRespondToReview(id, replyText) {
-    try {
-      const res = await fetch(`${API_URL}/api/shelter/reviews/${id}/response`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-requester-id': user._id
-        },
-        body: JSON.stringify({ response: replyText })
-      });
-      if (res.ok) {
-        fetchReviews();
-      }
-    } catch (err) {
-      console.error(err);
-    }
-  }
-
-  // Deactivate service helper
-  async function handleUpdateServiceStatus(id, status) {
-    try {
-      const res = await fetch(`${API_URL}/api/shelter/services/${id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-requester-id': user._id
-        },
-        body: JSON.stringify({ status })
-      });
-      if (res.ok) {
-        fetchServices();
-      }
-    } catch (err) {
-      console.error(err);
-    }
-  }
-}
-
-// Simple React Native fallback loader wrapper
-function ActivityIndicator({ size, color }) {
-  return <div className="spinner-loader" style={{ borderColor: color }}></div>;
 }

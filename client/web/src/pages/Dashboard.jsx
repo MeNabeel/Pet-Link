@@ -430,7 +430,11 @@ export default function Dashboard({ onLogout }) {
   }
 
   if (user && user.role === 'shelter_provider') {
-    return <ShelterProviderDashboard user={user} onLogout={onLogout} />;
+    return (
+      <ShelterErrorBoundary>
+        <ShelterProviderDashboard user={user} onLogout={onLogout} />
+      </ShelterErrorBoundary>
+    );
   }
 
   return (

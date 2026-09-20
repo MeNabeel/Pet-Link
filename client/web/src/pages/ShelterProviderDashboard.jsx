@@ -17,6 +17,40 @@ import {
   AlertDialogCancel, AlertDialogAction 
 } from '@/components/ui/alert-dialog';
 
+// Internal Error Boundary to prevent any blank white screens
+class DashboardErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+  componentDidCatch(error, errorInfo) {
+    console.error("Shelter Provider Dashboard Error:", error, errorInfo);
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{ padding: '48px 24px', textAlign: 'center', backgroundColor: '#FFFFFF', borderRadius: '16px', margin: '24px auto', maxWidth: '600px', border: '1px solid #E5E7EB', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
+          <div style={{ width: '56px', height: '56px', borderRadius: '50%', backgroundColor: '#FEF2F2', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px auto' }}>
+            <AlertTriangle size={28} color="#EF4444" />
+          </div>
+          <h3 style={{ fontSize: '18px', fontWeight: '800', color: '#111827', margin: 0 }}>Shelter Dashboard Error</h3>
+          <p style={{ fontSize: '14px', color: '#64748B', marginTop: '6px' }}>{this.state.error?.message || 'An unexpected rendering error occurred.'}</p>
+          <button 
+            onClick={() => this.setState({ hasError: false, error: null })} 
+            style={{ marginTop: '20px', padding: '10px 20px', backgroundColor: '#0066CC', color: '#FFFFFF', border: 'none', borderRadius: '10px', fontWeight: '700', cursor: 'pointer' }}
+          >
+            Reload Dashboard
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 // Reusable SVG Background Pet Pattern (Matching User Dashboard)
 function PetPattern() {
   return (
@@ -54,7 +88,7 @@ function PetPattern() {
   );
 }
 
-export default function ShelterProviderDashboard({ user, onLogout }) {
+function ShelterProviderContent({ user, onLogout }) {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeMenu, setActiveMenu] = useState('overview');
@@ -73,7 +107,7 @@ export default function ShelterProviderDashboard({ user, onLogout }) {
   // Stepper state for profile creation / editing
   const [stepperStep, setStepperStep] = useState(1);
   const [shelterName, setShelterName] = useState('');
-  const [nameAvailable, setNameAvailable] = useState(null); // null, true, false
+  const [nameAvailable, setNameAvailable] = useState(null);
   const [checkingName, setCheckingName] = useState(false);
   const [logo, setLogo] = useState('');
   const [coverImage, setCoverImage] = useState('');
@@ -123,6 +157,27 @@ export default function ShelterProviderDashboard({ user, onLogout }) {
   const [selectedBookingId, setSelectedBookingId] = useState(null);
   const [rejectionReason, setRejectionReason] = useState('Availability issue');
 
+  // Helper date/time formatters
+  const formatDate = (dateStr) => {
+    if (!dateStr) return 'N/A';
+    try {
+      const d = new Date(dateStr);
+      return isNaN(d.getTime()) ? 'N/A' : d.toLocaleDateString();
+    } catch (e) {
+      return 'N/A';
+    }
+  };
+
+  const formatTime = (dateStr) => {
+    if (!dateStr) return 'N/A';
+    try {
+      const d = new Date(dateStr);
+      return isNaN(d.getTime()) ? 'N/A' : d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    } catch (e) {
+      return 'N/A';
+    }
+  };
+
   // Dismiss dropdown popovers when clicking outside
   useEffect(() => {
     function handleClickOutside(event) {
@@ -156,15 +211,17 @@ export default function ShelterProviderDashboard({ user, onLogout }) {
     try {
       setLoading(true);
       const userId = getUserId();
-      if (!userId) return;
+      if (!userId) {
+        setLoading(false);
+        return;
+      }
       const res = await fetch(`${API_URL}/api/shelter/profile`, {
         headers: getAuthHeaders()
       });
       if (res.ok) {
         const data = await res.json();
         setProfile(data);
-        if (data) {
-          // Pre-populate fields
+        if (data && typeof data === 'object') {
           setShelterName(data.name || '');
           setLogo(data.logo || '');
           setCoverImage(data.logo || '');
@@ -174,11 +231,11 @@ export default function ShelterProviderDashboard({ user, onLogout }) {
           setAddress(data.address || '');
           setCity(data.city || '');
           setProvince(data.province || '');
-          setShelterTypes(data.shelterTypes || []);
-          setAcceptedSpecies(data.acceptedSpecies || []);
-          setAcceptedBreeds(data.acceptedBreeds || []);
+          setShelterTypes(Array.isArray(data.shelterTypes) ? data.shelterTypes : []);
+          setAcceptedSpecies(Array.isArray(data.acceptedSpecies) ? data.acceptedSpecies : []);
+          setAcceptedBreeds(Array.isArray(data.acceptedBreeds) ? data.acceptedBreeds : []);
           setCapacity(data.capacity || 10);
-          setFacilities(data.facilities || []);
+          setFacilities(Array.isArray(data.facilities) ? data.facilities : []);
           setProvidesPickup(data.providesPickup || false);
           setPickupServiceType(data.pickupServiceType || 'None');
           setPickupRadius(data.pickupRadius || 15);
@@ -188,7 +245,7 @@ export default function ShelterProviderDashboard({ user, onLogout }) {
           setDailyRate(data.dailyRate || 1000);
           setOpeningTime(data.openingTime || '09:00');
           setClosingTime(data.closingTime || '18:00');
-          setRules(data.rules || []);
+          setRules(Array.isArray(data.rules) ? data.rules : []);
         }
       }
     } catch (err) {
@@ -201,6 +258,8 @@ export default function ShelterProviderDashboard({ user, onLogout }) {
   useEffect(() => {
     if (user && (user._id || user.id)) {
       fetchProfile();
+    } else {
+      setLoading(false);
     }
   }, [user]);
 
@@ -220,10 +279,13 @@ export default function ShelterProviderDashboard({ user, onLogout }) {
       });
       if (res.ok) {
         const data = await res.json();
-        setServices(data);
+        setServices(Array.isArray(data) ? data : []);
+      } else {
+        setServices([]);
       }
     } catch (err) {
-      console.error(err);
+      console.error('Error fetching services:', err);
+      setServices([]);
     }
   };
 
@@ -234,22 +296,30 @@ export default function ShelterProviderDashboard({ user, onLogout }) {
       });
       if (res.ok) {
         const data = await res.json();
-        setBookings(data);
+        setBookings(Array.isArray(data) ? data : []);
+      } else {
+        setBookings([]);
       }
     } catch (err) {
-      console.error(err);
+      console.error('Error fetching bookings:', err);
+      setBookings([]);
     }
   };
 
   const fetchReviews = async () => {
     try {
-      const res = await fetch(`${API_URL}/api/shelter/reviews?shelterId=${profile.id}`);
+      const shelterId = profile?.id || profile?._id;
+      if (!shelterId) return;
+      const res = await fetch(`${API_URL}/api/shelter/reviews?shelterId=${shelterId}`);
       if (res.ok) {
         const data = await res.json();
-        setReviews(data);
+        setReviews(Array.isArray(data) ? data : []);
+      } else {
+        setReviews([]);
       }
     } catch (err) {
-      console.error(err);
+      console.error('Error fetching reviews:', err);
+      setReviews([]);
     }
   };
 
@@ -293,26 +363,26 @@ export default function ShelterProviderDashboard({ user, onLogout }) {
         city,
         province,
         area,
-        shelterTypes,
-        acceptedSpecies,
-        acceptedBreeds,
-        capacity: parseInt(capacity),
-        facilities,
+        shelterTypes: Array.isArray(shelterTypes) ? shelterTypes : [],
+        acceptedSpecies: Array.isArray(acceptedSpecies) ? acceptedSpecies : [],
+        acceptedBreeds: Array.isArray(acceptedBreeds) ? acceptedBreeds : [],
+        capacity: parseInt(capacity) || 10,
+        facilities: Array.isArray(facilities) ? facilities : [],
         providesPickup,
         pickupServiceType,
-        pickupRadius: parseFloat(pickupRadius),
-        pickupFee: parseFloat(pickupFee),
+        pickupRadius: parseFloat(pickupRadius) || 15,
+        pickupFee: parseFloat(pickupFee) || 0,
         pickupFeeType,
-        pickupFeePerKm: parseFloat(pickupFeePerKm),
-        dailyRate: parseFloat(dailyRate),
-        weeklyRate: parseFloat(weeklyRate),
-        monthlyRate: parseFloat(monthlyRate),
-        dayCareRate: parseFloat(dayCareRate),
-        overnightRate: parseFloat(overnightRate),
+        pickupFeePerKm: parseFloat(pickupFeePerKm) || 0,
+        dailyRate: parseFloat(dailyRate) || 1000,
+        weeklyRate: parseFloat(weeklyRate) || 6000,
+        monthlyRate: parseFloat(monthlyRate) || 22000,
+        dayCareRate: parseFloat(dayCareRate) || 600,
+        overnightRate: parseFloat(overnightRate) || 1200,
         openingTime,
         closingTime,
-        daysOpen,
-        rules,
+        daysOpen: Array.isArray(daysOpen) ? daysOpen : [],
+        rules: Array.isArray(rules) ? rules : [],
         status: statusOverride
       };
 
@@ -354,7 +424,7 @@ export default function ShelterProviderDashboard({ user, onLogout }) {
           description: serviceDesc,
           dailyRate: parseFloat(serviceRate),
           maxCapacity: parseInt(serviceCapacity),
-          acceptedPetTypes: acceptedSpecies,
+          acceptedPetTypes: Array.isArray(acceptedSpecies) ? acceptedSpecies : [],
           status: 'Active'
         })
       });
@@ -382,7 +452,7 @@ export default function ShelterProviderDashboard({ user, onLogout }) {
       });
       if (res.ok) {
         fetchBookings();
-        fetchProfile(); // Sync occupied spaces
+        fetchProfile();
         setIsRejectOpen(false);
       }
     } catch (err) {
@@ -392,15 +462,19 @@ export default function ShelterProviderDashboard({ user, onLogout }) {
 
   // Messages chat implementation
   const loadChat = async (booking) => {
+    if (!booking || !booking.id) return;
     setActiveChatBooking(booking);
     try {
       const res = await fetch(`${API_URL}/api/shelter/messages/${booking.id}`);
       if (res.ok) {
         const data = await res.json();
-        setChatMessages(data);
+        setChatMessages(Array.isArray(data) ? data : []);
+      } else {
+        setChatMessages([]);
       }
     } catch (err) {
       console.error(err);
+      setChatMessages([]);
     }
   };
 
@@ -421,7 +495,7 @@ export default function ShelterProviderDashboard({ user, onLogout }) {
       });
       if (res.ok) {
         const msg = await res.json();
-        setChatMessages([...chatMessages, msg]);
+        setChatMessages(prev => [...(Array.isArray(prev) ? prev : []), msg]);
         setNewMessage('');
       }
     } catch (err) {
@@ -467,11 +541,16 @@ export default function ShelterProviderDashboard({ user, onLogout }) {
     }
   }
 
-  // Calculate quick metrics
-  const pendingCount = bookings.filter(b => b.status === 'Pending').length;
-  const activeCount = bookings.filter(b => b.status === 'Active').length;
-  const completedCount = bookings.filter(b => b.status === 'Completed').length;
-  const upcomingCount = bookings.filter(b => b.status === 'Accepted').length;
+  // Safe arrays for calculation and mapping
+  const safeBookings = Array.isArray(bookings) ? bookings : [];
+  const safeServices = Array.isArray(services) ? services : [];
+  const safeReviews = Array.isArray(reviews) ? reviews : [];
+  const safeChatMessages = Array.isArray(chatMessages) ? chatMessages : [];
+
+  const pendingCount = safeBookings.filter(b => b && b.status === 'Pending').length;
+  const activeCount = safeBookings.filter(b => b && b.status === 'Active').length;
+  const completedCount = safeBookings.filter(b => b && b.status === 'Completed').length;
+  const upcomingCount = safeBookings.filter(b => b && b.status === 'Accepted').length;
 
   // Stepper rendering helper
   const renderSetupStepper = () => {
@@ -577,10 +656,11 @@ export default function ShelterProviderDashboard({ user, onLogout }) {
                 <label key={t} className="checkbox-row">
                   <input 
                     type="checkbox" 
-                    checked={shelterTypes.includes(t)}
+                    checked={(Array.isArray(shelterTypes) ? shelterTypes : []).includes(t)}
                     onChange={(e) => {
-                      if (e.target.checked) setShelterTypes([...shelterTypes, t]);
-                      else setShelterTypes(shelterTypes.filter(x => x !== t));
+                      const cur = Array.isArray(shelterTypes) ? shelterTypes : [];
+                      if (e.target.checked) setShelterTypes([...cur, t]);
+                      else setShelterTypes(cur.filter(x => x !== t));
                     }}
                   />
                   <span>{t}</span>
@@ -597,10 +677,11 @@ export default function ShelterProviderDashboard({ user, onLogout }) {
                 <label key={s} className="checkbox-row">
                   <input 
                     type="checkbox" 
-                    checked={acceptedSpecies.includes(s)}
+                    checked={(Array.isArray(acceptedSpecies) ? acceptedSpecies : []).includes(s)}
                     onChange={(e) => {
-                      if (e.target.checked) setAcceptedSpecies([...acceptedSpecies, s]);
-                      else setAcceptedSpecies(acceptedSpecies.filter(x => x !== s));
+                      const cur = Array.isArray(acceptedSpecies) ? acceptedSpecies : [];
+                      if (e.target.checked) setAcceptedSpecies([...cur, s]);
+                      else setAcceptedSpecies(cur.filter(x => x !== s));
                     }}
                   />
                   <span>{s}</span>
@@ -629,10 +710,11 @@ export default function ShelterProviderDashboard({ user, onLogout }) {
                 <label key={f} className="checkbox-row">
                   <input 
                     type="checkbox" 
-                    checked={facilities.includes(f)}
+                    checked={(Array.isArray(facilities) ? facilities : []).includes(f)}
                     onChange={(e) => {
-                      if (e.target.checked) setFacilities([...facilities, f]);
-                      else setFacilities(facilities.filter(x => x !== f));
+                      const cur = Array.isArray(facilities) ? facilities : [];
+                      if (e.target.checked) setFacilities([...cur, f]);
+                      else setFacilities(cur.filter(x => x !== f));
                     }}
                   />
                   <span>{f}</span>
@@ -731,10 +813,11 @@ export default function ShelterProviderDashboard({ user, onLogout }) {
                 <label key={r} className="checkbox-row">
                   <input 
                     type="checkbox" 
-                    checked={rules.includes(r)}
+                    checked={(Array.isArray(rules) ? rules : []).includes(r)}
                     onChange={(e) => {
-                      if (e.target.checked) setRules([...rules, r]);
-                      else setRules(rules.filter(x => x !== r));
+                      const cur = Array.isArray(rules) ? rules : [];
+                      if (e.target.checked) setRules([...cur, r]);
+                      else setRules(cur.filter(x => x !== r));
                     }}
                   />
                   <span>{r}</span>
@@ -751,7 +834,7 @@ export default function ShelterProviderDashboard({ user, onLogout }) {
                 <p>{address}, {city}</p>
                 <Separator style={{ margin: '8px 0' }} />
                 <p><strong>Capacity:</strong> {capacity} spaces</p>
-                <p><strong>Accepted Species:</strong> {acceptedSpecies.join(', ') || 'None'}</p>
+                <p><strong>Accepted Species:</strong> {(Array.isArray(acceptedSpecies) ? acceptedSpecies : []).join(', ') || 'None'}</p>
                 <p><strong>Pickup Service:</strong> {providesPickup ? `Yes (${pickupServiceType})` : 'No'}</p>
                 <p><strong>Daily Rate:</strong> {dailyRate} PKR</p>
               </div>
@@ -829,9 +912,7 @@ export default function ShelterProviderDashboard({ user, onLogout }) {
   // Unified PetLink Dashboard Presentation
   return (
     <div className="dash-container">
-      {/* ----------------------------------------------------
-         HEADER BAR (UNIFIED WITH USER DASHBOARD)
-      ---------------------------------------------------- */}
+      {/* HEADER BAR */}
       <header className="dash-header">
         <div className="dash-header-left">
           <button 
@@ -899,9 +980,9 @@ export default function ShelterProviderDashboard({ user, onLogout }) {
                       <p className="dash-notif-empty-sub">No pending booking requests.</p>
                     </div>
                   ) : (
-                    bookings.filter(b => b.status === 'Pending').map((b) => (
+                    safeBookings.filter(b => b && b.status === 'Pending').map((b) => (
                       <div 
-                        key={b.id} 
+                        key={b.id || b._id} 
                         className="dash-notif-item unread"
                         onClick={() => {
                           setActiveMenu('bookings');
@@ -911,8 +992,8 @@ export default function ShelterProviderDashboard({ user, onLogout }) {
                         <span className="dash-notif-dot" />
                         <div className="dash-notif-content">
                           <h5 className="dash-notif-item-title">New Booking Request</h5>
-                          <p className="dash-notif-item-msg">{b.owner?.name} requested {b.service?.name || 'Boarding'} for {b.pet?.name}.</p>
-                          <span className="dash-notif-item-time">{new Date(b.createdAt || Date.now()).toLocaleDateString()}</span>
+                          <p className="dash-notif-item-msg">{b.owner?.name || 'Client'} requested {b.service?.name || 'Boarding'} for {b.pet?.name || 'Pet'}.</p>
+                          <span className="dash-notif-item-time">{formatDate(b.createdAt)}</span>
                         </div>
                       </div>
                     ))
@@ -949,7 +1030,7 @@ export default function ShelterProviderDashboard({ user, onLogout }) {
                 className="dash-user-avatar"
               />
               <div className="dash-user-meta">
-                <span className="dash-user-name">{user?.name || profile?.name}</span>
+                <span className="dash-user-name">{user?.name || profile?.name || 'Shelter Owner'}</span>
                 <span className="dash-user-role">SHELTER PROVIDER</span>
               </div>
               <ChevronDown size={14} className={`dash-profile-chevron ${isProfileDropdownOpen ? 'open' : ''}`} />
@@ -998,9 +1079,7 @@ export default function ShelterProviderDashboard({ user, onLogout }) {
         </div>
       </header>
 
-      {/* ----------------------------------------------------
-         BODY & SIDEBAR NAVIGATION
-      ---------------------------------------------------- */}
+      {/* BODY & SIDEBAR NAVIGATION */}
       <div className="dash-body">
         {isMobileOpen && (
           <div 
@@ -1080,15 +1159,13 @@ export default function ShelterProviderDashboard({ user, onLogout }) {
           </span>
         </aside>
 
-        {/* ----------------------------------------------------
-           MAIN CONTENT AREA
-        ---------------------------------------------------- */}
+        {/* MAIN CONTENT AREA */}
         <main className="dash-content">
           {/* Welcome Hero Card */}
           <div className="dash-welcome-card">
             <PetPattern />
             <div className="dash-welcome-content">
-              <h2 className="dash-welcome-title">Welcome back, {profile?.name || 'Shelter Provider'}!</h2>
+              <h2 className="dash-welcome-title">Welcome back, {profile?.name || user?.name || 'Shelter Provider'}!</h2>
               <p className="dash-welcome-text">
                 Manage your shelter services, bookings, availability and hosted pets.
               </p>
@@ -1206,7 +1283,7 @@ export default function ShelterProviderDashboard({ user, onLogout }) {
               <h3 className="section-title" style={{ marginTop: '28px' }}>Pets Currently in Shelter</h3>
               <Card className="dash-card">
                 <CardContent className="stay-list-wrapper">
-                  {bookings.filter(b => b.status === 'Active').length === 0 ? (
+                  {safeBookings.filter(b => b && b.status === 'Active').length === 0 ? (
                     <div className="dash-empty-state">
                       <PawPrint size={36} color="var(--color-muted)" />
                       <h4>No pets currently staying at your shelter.</h4>
@@ -1226,30 +1303,30 @@ export default function ShelterProviderDashboard({ user, onLogout }) {
                           </tr>
                         </thead>
                         <tbody>
-                          {bookings.filter(b => b.status === 'Active').map(b => (
-                            <tr key={b.id}>
+                          {safeBookings.filter(b => b && b.status === 'Active').map(b => (
+                            <tr key={b.id || b._id}>
                               <td>
                                 <div className="pet-cell">
                                   <img src={b.pet?.image || 'https://images.unsplash.com/photo-1587300003388-59208cc962cb?auto=format&fit=crop&q=80&w=150'} alt="Pet" className="pet-avatar" />
                                   <div>
-                                    <span className="pet-name">{b.pet?.name}</span>
-                                    <span className="pet-breed">{b.pet?.breed}</span>
+                                    <span className="pet-name">{b.pet?.name || 'Pet'}</span>
+                                    <span className="pet-breed">{b.pet?.breed || 'Unknown breed'}</span>
                                   </div>
                                 </div>
                               </td>
                               <td>
                                 <div className="owner-cell">
-                                  <span className="owner-name">{b.owner?.name}</span>
-                                  <span className="owner-phone">{b.owner?.phone}</span>
+                                  <span className="owner-name">{b.owner?.name || 'Owner'}</span>
+                                  <span className="owner-phone">{b.owner?.phone || 'N/A'}</span>
                                 </div>
                               </td>
-                              <td>{b.service?.name}</td>
+                              <td>{b.service?.name || 'Boarding'}</td>
                               <td>
-                                <span className="stay-dates">{new Date(b.checkInDate).toLocaleDateString()} - {new Date(b.checkOutDate).toLocaleDateString()}</span>
+                                <span className="stay-dates">{formatDate(b.checkInDate)} - {formatDate(b.checkOutDate)}</span>
                               </td>
                               <td>{b.specialInstructions || 'None'}</td>
                               <td>
-                                <button className="dash-btn-primary" onClick={() => handleUpdateBooking(b.id, 'Completed')}>
+                                <button className="dash-btn-primary" onClick={() => handleUpdateBooking(b.id || b._id, 'Completed')}>
                                   Complete Stay
                                 </button>
                               </td>
@@ -1279,19 +1356,19 @@ export default function ShelterProviderDashboard({ user, onLogout }) {
               </div>
 
               <div className="services-grid">
-                {services.length === 0 ? (
+                {safeServices.length === 0 ? (
                   <div className="dash-empty-state">
                     <ClipboardList size={36} color="var(--color-muted)" />
                     <h4>No services registered yet.</h4>
                     <p>Create a service to make your shelter discoverable for pet owners.</p>
                   </div>
                 ) : (
-                  services.map(s => (
-                    <Card key={s.id} className="dash-card service-card">
+                  safeServices.map(s => (
+                    <Card key={s.id || s._id} className="dash-card service-card">
                       <CardHeader style={{ paddingBottom: '8px' }}>
                         <div className="service-title-row">
                           <CardTitle style={{ fontSize: '16px', fontWeight: 700 }}>{s.name}</CardTitle>
-                          <Badge variant={s.status === 'Active' ? 'success' : 'secondary'}>{s.status}</Badge>
+                          <Badge variant={s.status === 'Active' ? 'success' : 'secondary'}>{s.status || 'Active'}</Badge>
                         </div>
                       </CardHeader>
                       <CardContent>
@@ -1304,7 +1381,7 @@ export default function ShelterProviderDashboard({ user, onLogout }) {
                         <div className="service-card-actions" style={{ marginTop: '14px' }}>
                           <button 
                             className="dash-btn-outline danger"
-                            onClick={() => handleUpdateServiceStatus(s.id, s.status === 'Active' ? 'Inactive' : 'Active')}
+                            onClick={() => handleUpdateServiceStatus(s.id || s._id, s.status === 'Active' ? 'Inactive' : 'Active')}
                           >
                             {s.status === 'Active' ? 'Deactivate' : 'Activate'}
                           </button>
@@ -1328,33 +1405,33 @@ export default function ShelterProviderDashboard({ user, onLogout }) {
               </div>
 
               <div className="bookings-list">
-                {bookings.length === 0 ? (
+                {safeBookings.length === 0 ? (
                   <div className="dash-empty-state">
                     <Calendar size={36} color="var(--color-muted)" />
                     <h4>No booking requests found.</h4>
                     <p>Pending requests from pet owners will appear here.</p>
                   </div>
                 ) : (
-                  bookings.map(b => (
-                    <Card key={b.id} className="dash-card booking-req-card">
+                  safeBookings.map(b => (
+                    <Card key={b.id || b._id} className="dash-card booking-req-card">
                       <CardContent className="booking-card-inner">
                         <div className="booking-pet-profile">
                           <img src={b.pet?.image || 'https://images.unsplash.com/photo-1587300003388-59208cc962cb?auto=format&fit=crop&q=80&w=150'} alt="Pet" className="booking-pet-avatar" />
                           <div>
-                            <h4 className="booking-pet-name">{b.pet?.name}</h4>
-                            <span className="breed-badge">{b.pet?.breed}</span>
-                            <p className="owner-desc">Owner: {b.owner?.name} | {b.owner?.phone}</p>
+                            <h4 className="booking-pet-name">{b.pet?.name || 'Pet'}</h4>
+                            <span className="breed-badge">{b.pet?.breed || 'Pet'}</span>
+                            <p className="owner-desc">Owner: {b.owner?.name || 'Owner'} | {b.owner?.phone || 'N/A'}</p>
                           </div>
                         </div>
 
                         <div className="booking-stay-details">
-                          <p><strong>Service:</strong> {b.service?.name}</p>
-                          <p><strong>Dates:</strong> {new Date(b.checkInDate).toLocaleDateString()} - {new Date(b.checkOutDate).toLocaleDateString()}</p>
-                          <p><strong>Duration:</strong> {b.duration} Days</p>
-                          {b.pickupOption !== 'No Pickup' && (
+                          <p><strong>Service:</strong> {b.service?.name || 'Boarding'}</p>
+                          <p><strong>Dates:</strong> {formatDate(b.checkInDate)} - {formatDate(b.checkOutDate)}</p>
+                          <p><strong>Duration:</strong> {b.duration || 1} Days</p>
+                          {b.pickupOption && b.pickupOption !== 'No Pickup' && (
                             <p className="pickup-tag">
                               <Truck size={14} />
-                              <span>Pickup: {b.pickupOption} | {b.pickupAddress}</span>
+                              <span>Pickup: {b.pickupOption} | {b.pickupAddress || 'Address specified'}</span>
                             </p>
                           )}
                           {b.specialInstructions && (
@@ -1367,20 +1444,20 @@ export default function ShelterProviderDashboard({ user, onLogout }) {
 
                         <div className="booking-total-price">
                           <span className="price-label">Total Amount</span>
-                          <span className="price-val">{b.totalAmount} PKR</span>
+                          <span className="price-val">{b.totalAmount || 0} PKR</span>
                           <Badge variant={b.status === 'Accepted' ? 'success' : b.status === 'Pending' ? 'warning' : 'secondary'}>
-                            {b.status}
+                            {b.status || 'Pending'}
                           </Badge>
                         </div>
 
                         <div className="booking-req-actions">
                           {b.status === 'Pending' && (
                             <>
-                              <button className="dash-btn-primary" onClick={() => handleUpdateBooking(b.id, 'Accepted')}>
+                              <button className="dash-btn-primary" onClick={() => handleUpdateBooking(b.id || b._id, 'Accepted')}>
                                 Accept
                               </button>
                               <button className="dash-btn-outline danger" onClick={() => {
-                                setSelectedBookingId(b.id);
+                                setSelectedBookingId(b.id || b._id);
                                 setIsRejectOpen(true);
                               }}>
                                 Reject
@@ -1388,12 +1465,12 @@ export default function ShelterProviderDashboard({ user, onLogout }) {
                             </>
                           )}
                           {b.status === 'Accepted' && (
-                            <button className="dash-btn-primary" onClick={() => handleUpdateBooking(b.id, 'Active')}>
+                            <button className="dash-btn-primary" onClick={() => handleUpdateBooking(b.id || b._id, 'Active')}>
                               Check-In Pet
                             </button>
                           )}
                           {b.status === 'Active' && (
-                            <button className="dash-btn-primary" onClick={() => handleUpdateBooking(b.id, 'Completed')}>
+                            <button className="dash-btn-primary" onClick={() => handleUpdateBooking(b.id || b._id, 'Completed')}>
                               Complete Stay
                             </button>
                           )}
@@ -1421,17 +1498,17 @@ export default function ShelterProviderDashboard({ user, onLogout }) {
                   <h4>Active Bookings</h4>
                   <Separator style={{ margin: '8px 0' }} />
                   <div className="conv-list">
-                    {bookings.length === 0 ? (
+                    {safeBookings.length === 0 ? (
                       <p className="no-msgs" style={{ padding: '12px' }}>No booking conversations available.</p>
                     ) : (
-                      bookings.map(b => (
+                      safeBookings.map(b => (
                         <div 
-                          key={b.id} 
-                          className={`conv-item ${activeChatBooking?.id === b.id ? 'active' : ''}`}
+                          key={b.id || b._id} 
+                          className={`conv-item ${activeChatBooking?.id === b.id || activeChatBooking?._id === b._id ? 'active' : ''}`}
                           onClick={() => loadChat(b)}
                         >
-                          <span className="conv-title">{b.pet?.name} ({b.owner?.name})</span>
-                          <small className="conv-sub">{b.service?.name}</small>
+                          <span className="conv-title">{b.pet?.name || 'Pet'} ({b.owner?.name || 'Owner'})</span>
+                          <small className="conv-sub">{b.service?.name || 'Boarding'}</small>
                         </div>
                       ))
                     )}
@@ -1442,19 +1519,19 @@ export default function ShelterProviderDashboard({ user, onLogout }) {
                   {activeChatBooking ? (
                     <>
                       <div className="chat-header">
-                        <h4>Chat with {activeChatBooking.owner?.name} regarding {activeChatBooking.pet?.name}</h4>
+                        <h4>Chat with {activeChatBooking.owner?.name || 'Owner'} regarding {activeChatBooking.pet?.name || 'Pet'}</h4>
                       </div>
                       <div className="chat-messages-area">
-                        {chatMessages.length === 0 ? (
+                        {safeChatMessages.length === 0 ? (
                           <div className="dash-empty-state" style={{ padding: '24px' }}>
                             <MessageSquare size={28} color="var(--color-muted)" />
                             <p>No messages sent yet. Say hello to the pet owner!</p>
                           </div>
                         ) : (
-                          chatMessages.map(m => (
-                            <div key={m.id} className={`message-bubble ${m.senderId === getUserId() ? 'sender' : 'receiver'}`}>
+                          safeChatMessages.map(m => (
+                            <div key={m.id || m._id} className={`message-bubble ${m.senderId === getUserId() ? 'sender' : 'receiver'}`}>
                               <p>{m.message}</p>
-                              <small>{new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</small>
+                              <small>{formatTime(m.createdAt)}</small>
                             </div>
                           ))
                         )}
@@ -1493,26 +1570,26 @@ export default function ShelterProviderDashboard({ user, onLogout }) {
               </div>
 
               <div className="reviews-list">
-                {reviews.length === 0 ? (
+                {safeReviews.length === 0 ? (
                   <div className="dash-empty-state">
                     <Star size={36} color="var(--color-muted)" />
                     <h4>No reviews received yet.</h4>
                     <p>Reviews submitted by pet owners after stays will appear here.</p>
                   </div>
                 ) : (
-                  reviews.map(r => (
-                    <Card key={r.id} className="dash-card review-card-box">
+                  safeReviews.map(r => (
+                    <Card key={r.id || r._id} className="dash-card review-card-box">
                       <CardContent style={{ padding: '18px' }}>
                         <div className="review-header-row">
                           <div className="reviewer-info">
-                            <span className="reviewer-name">{r.user?.name}</span>
+                            <span className="reviewer-name">{r.user?.name || 'Reviewer'}</span>
                             <div className="stars-row">
                               {[...Array(5)].map((_, i) => (
-                                <Star key={i} size={14} fill={i < r.rating ? '#F59E0B' : 'none'} color="#F59E0B" />
+                                <Star key={i} size={14} fill={i < (r.rating || 5) ? '#F59E0B' : 'none'} color="#F59E0B" />
                               ))}
                             </div>
                           </div>
-                          <span className="review-date">{new Date(r.createdAt).toLocaleDateString()}</span>
+                          <span className="review-date">{formatDate(r.createdAt)}</span>
                         </div>
                         <p className="review-comment">{r.comment}</p>
                         
@@ -1526,14 +1603,15 @@ export default function ShelterProviderDashboard({ user, onLogout }) {
                             <input 
                               type="text" 
                               placeholder="Write a response..." 
-                              id={`reply-input-${r.id}`}
+                              id={`reply-input-${r.id || r._id}`}
                             />
                             <button 
                               className="dash-btn-primary"
                               onClick={() => {
-                                const val = document.getElementById(`reply-input-${r.id}`).value;
+                                const inputEl = document.getElementById(`reply-input-${r.id || r._id}`);
+                                const val = inputEl ? inputEl.value : '';
                                 if (val.trim()) {
-                                  handleRespondToReview(r.id, val.trim());
+                                  handleRespondToReview(r.id || r._id, val.trim());
                                 }
                               }}
                             >
@@ -1571,11 +1649,11 @@ export default function ShelterProviderDashboard({ user, onLogout }) {
                       setCity(profile.city || '');
                       setProvince(profile.province || '');
                       setArea(profile.area || '');
-                      setShelterTypes(profile.shelterTypes || []);
-                      setAcceptedSpecies(profile.acceptedSpecies || []);
-                      setAcceptedBreeds(profile.acceptedBreeds || []);
+                      setShelterTypes(Array.isArray(profile.shelterTypes) ? profile.shelterTypes : []);
+                      setAcceptedSpecies(Array.isArray(profile.acceptedSpecies) ? profile.acceptedSpecies : []);
+                      setAcceptedBreeds(Array.isArray(profile.acceptedBreeds) ? profile.acceptedBreeds : []);
                       setCapacity(profile.capacity || 10);
-                      setFacilities(profile.facilities || []);
+                      setFacilities(Array.isArray(profile.facilities) ? profile.facilities : []);
                       setProvidesPickup(profile.providesPickup || false);
                       setPickupServiceType(profile.pickupServiceType || 'None');
                       setPickupRadius(profile.pickupRadius || 15);
@@ -1585,7 +1663,7 @@ export default function ShelterProviderDashboard({ user, onLogout }) {
                       setDailyRate(profile.dailyRate || 1000);
                       setOpeningTime(profile.openingTime || '09:00');
                       setClosingTime(profile.closingTime || '18:00');
-                      setRules(profile.rules || []);
+                      setRules(Array.isArray(profile.rules) ? profile.rules : []);
                     }
                     setIsEditingSetup(true);
                     setStepperStep(1);
@@ -1599,16 +1677,16 @@ export default function ShelterProviderDashboard({ user, onLogout }) {
               <Card className="dash-card" style={{ padding: '24px' }}>
                 <div className="profile-hero-row">
                   <img 
-                    src={profile.logo || 'https://images.unsplash.com/photo-1587300003388-59208cc962cb?auto=format&fit=crop&q=80&w=150'} 
+                    src={profile?.logo || 'https://images.unsplash.com/photo-1587300003388-59208cc962cb?auto=format&fit=crop&q=80&w=150'} 
                     alt="Logo" 
                     className="profile-logo-img" 
                   />
                   <div>
-                    <h2 className="profile-title">{profile.name}</h2>
-                    <p className="profile-subtitle">{profile.address}, {profile.city}, {profile.province}</p>
+                    <h2 className="profile-title">{profile?.name || 'Shelter'}</h2>
+                    <p className="profile-subtitle">{profile?.address || ''}, {profile?.city || ''}, {profile?.province || ''}</p>
                     <div className="profile-badges-row">
-                      <Badge variant="success">{profile.status}</Badge>
-                      <Badge>{profile.providesPickup ? 'Pickup Available' : 'No Pickup'}</Badge>
+                      <Badge variant="success">{profile?.status || 'Published'}</Badge>
+                      <Badge>{profile?.providesPickup ? 'Pickup Available' : 'No Pickup'}</Badge>
                     </div>
                   </div>
                 </div>
@@ -1618,19 +1696,19 @@ export default function ShelterProviderDashboard({ user, onLogout }) {
                 <div className="profile-info-grid">
                   <div>
                     <span className="info-label">Contact Phone</span>
-                    <p className="info-val">{profile.phone || 'N/A'}</p>
+                    <p className="info-val">{profile?.phone || 'N/A'}</p>
                   </div>
                   <div>
                     <span className="info-label">Contact Email</span>
-                    <p className="info-val">{profile.email || 'N/A'}</p>
+                    <p className="info-val">{profile?.email || 'N/A'}</p>
                   </div>
                   <div>
                     <span className="info-label">Total Capacity</span>
-                    <p className="info-val">{profile.capacity} Spaces</p>
+                    <p className="info-val">{profile?.capacity || 0} Spaces</p>
                   </div>
                   <div>
                     <span className="info-label">Daily Boarding Rate</span>
-                    <p className="info-val">{profile.dailyRate} PKR</p>
+                    <p className="info-val">{profile?.dailyRate || 0} PKR</p>
                   </div>
                 </div>
 
@@ -1639,7 +1717,7 @@ export default function ShelterProviderDashboard({ user, onLogout }) {
                 <div>
                   <span className="info-label">Accepted Species</span>
                   <div className="chips-row">
-                    {(profile.acceptedSpecies || []).map(sp => (
+                    {(Array.isArray(profile?.acceptedSpecies) ? profile.acceptedSpecies : []).map(sp => (
                       <Badge key={sp} variant="secondary">{sp}</Badge>
                     ))}
                   </div>
@@ -1648,7 +1726,7 @@ export default function ShelterProviderDashboard({ user, onLogout }) {
                 <div style={{ marginTop: '16px' }}>
                   <span className="info-label">Facilities</span>
                   <div className="chips-row">
-                    {(profile.facilities || []).map(f => (
+                    {(Array.isArray(profile?.facilities) ? profile.facilities : []).map(f => (
                       <Badge key={f} variant="outline" style={{ borderColor: 'var(--color-primary)', color: 'var(--color-primary)' }}>{f}</Badge>
                     ))}
                   </div>
@@ -1737,5 +1815,13 @@ export default function ShelterProviderDashboard({ user, onLogout }) {
         </AlertDialogContent>
       </AlertDialog>
     </div>
+  );
+}
+
+export default function ShelterProviderDashboard({ user, onLogout }) {
+  return (
+    <DashboardErrorBoundary>
+      <ShelterProviderContent user={user} onLogout={onLogout} />
+    </DashboardErrorBoundary>
   );
 }

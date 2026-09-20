@@ -1,7 +1,7 @@
 import API_URL from '@/config';
 import React, { useState, useEffect, useRef } from 'react';
 import { 
-  Building2, Home, MapPin, ClipboardList, Calendar, 
+  Building, Building2, Home, MapPin, ClipboardList, Calendar, 
   MessageSquare, Star, Settings, Plus, Sparkles, Check, 
   AlertCircle, X, ChevronRight, ChevronDown, User, PawPrint, Truck, 
   DollarSign, Clock, ShieldCheck, Heart, AlertTriangle, LayoutDashboard,

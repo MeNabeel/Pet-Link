@@ -1,15 +1,18 @@
 import API_URL from '@/config';
 import React, { useState, useEffect } from 'react';
 import { 
-  Search, Heart, ShoppingBag, Eye, Star, Filter, SlidersHorizontal, Tag, 
+  Search, Heart, ShoppingCart, Eye, Star, Filter, SlidersHorizontal, Tag, 
   Layers, Package, Check, XCircle
 } from 'lucide-react';
 import ProductDetails from './ProductDetails';
+import AddToCartPopup from '../components/AddToCartPopup';
+import { addToCart, getCart, getCartCount, subscribeToCart } from '../utils/cartManager';
 import './StorePage.css';
 
 export default function StorePage({ 
   user, 
   onViewProductDetails,
+  onViewCart,
   cart: propCart, 
   setCart: propSetCart, 
   wishlist: propWishlist, 
@@ -33,25 +36,25 @@ export default function StorePage({
     }
   });
 
-  const [localCart, setLocalCart] = useState(() => {
-    try {
-      const stored = localStorage.getItem('petlink_cart');
-      return stored ? JSON.parse(stored) : [];
-    } catch {
-      return [];
-    }
-  });
-
-  const wishlist = propWishlist !== undefined ? propWishlist : localWishlist;
-  const setWishlist = propSetWishlist || setLocalWishlist;
-
+  const [localCart, setLocalCart] = useState(() => getCart());
   const cart = propCart !== undefined ? propCart : localCart;
   const setCart = propSetCart || setLocalCart;
 
+  // Real-time cart units count (sum of quantities)
+  const totalCartUnits = getCartCount(cart);
+
   const [quickViewProduct, setQuickViewProduct] = useState(null);
-  const [showCartPopup, setShowCartPopup] = useState(false);
-  const [recentAddedItem, setRecentAddedItem] = useState('');
+  const [isPopupOpen, setIsPopupOpen] = useState(false);
+  const [lastAddedItem, setLastAddedItem] = useState(null);
   const [selectedProductId, setSelectedProductId] = useState(null);
+
+  // Subscribe to live cart updates across the application
+  useEffect(() => {
+    const unsub = subscribeToCart((updated) => {
+      setLocalCart(updated);
+    });
+    return () => unsub();
+  }, []);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -98,23 +101,13 @@ export default function StorePage({
   };
 
   const handleAddToCart = (product) => {
-    const itemToAdd = {
-      ...product,
-      selectedQuantity: 1,
-      cartItemId: `${product._id || product.id}-${Date.now()}`
-    };
-
-    setCart(prev => {
-      const updated = [...prev, itemToAdd];
-      localStorage.setItem('petlink_cart', JSON.stringify(updated));
-      return updated;
+    const { addedItem, quantityAdded } = addToCart(product, 1, null);
+    setLastAddedItem({
+      product: addedItem || product,
+      quantity: quantityAdded || 1,
+      variant: null
     });
-
-    setRecentAddedItem(product.name);
-    setShowCartPopup(true);
-    setTimeout(() => {
-      setShowCartPopup(false);
-    }, 3000);
+    setIsPopupOpen(true);
   };
 
   const handleOpenProduct = (id) => {
@@ -155,16 +148,16 @@ export default function StorePage({
   return (
     <div className="store-catalog-wrapper fade-in">
       
-      {/* Toast Alert Popup for Add-To-Cart */}
-      {showCartPopup && (
-        <div className="cart-toast-alert">
-          <div className="toast-content">
-            <Check size={16} color="#FFF" style={{ backgroundColor: '#10B981', borderRadius: '50%', padding: '2px' }} />
-            <span>Added <strong>{recentAddedItem}</strong> to basket!</span>
-          </div>
-          <span className="cart-count-bubble">{cart.length} items in cart</span>
-        </div>
-      )}
+      {/* Add-to-Cart Confirmation Popup */}
+      <AddToCartPopup 
+        isOpen={isPopupOpen}
+        onClose={() => setIsPopupOpen(false)}
+        onViewCart={() => {
+          setIsPopupOpen(false);
+          if (onViewCart) onViewCart();
+        }}
+        itemInfo={lastAddedItem}
+      />
 
       {/* Quick View Modal Dialog */}
       {quickViewProduct && (
@@ -223,7 +216,7 @@ export default function StorePage({
 
                 <div className="qv-actions-row">
                   <button className="pet-btn-primary" onClick={() => { handleAddToCart(quickViewProduct); setQuickViewProduct(null); }}>
-                    <ShoppingBag size={16} style={{ marginRight: '8px' }} /> Add to Cart
+                    <ShoppingCart size={16} style={{ marginRight: '8px' }} /> Add to Cart
                   </button>
                   <button 
                     className={`qv-wishlist-btn ${wishlist.includes(quickViewProduct._id) ? 'active' : ''}`}
@@ -244,11 +237,25 @@ export default function StorePage({
           <h1>PetLink E-Commerce Store</h1>
           <p>Find the healthiest foods, safest toys, and verified accessories for your beloved pets. Read directly from our real database catalog.</p>
         </div>
-        <div className="cart-preview-summary">
-          <ShoppingBag size={24} color="var(--color-primary)" />
+        <div 
+          className="cart-preview-summary clickable"
+          onClick={() => onViewCart && onViewCart()}
+          role="button"
+          tabIndex={0}
+          title="View Shopping Cart"
+          style={{ position: 'relative' }}
+        >
+          <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+            <ShoppingCart size={24} color="var(--color-primary)" />
+            {totalCartUnits > 0 && (
+              <span className="cart-banner-badge" aria-label={`Shopping cart, ${totalCartUnits} items`}>
+                {totalCartUnits > 99 ? '99+' : totalCartUnits}
+              </span>
+            )}
+          </div>
           <div>
             <span className="cart-total-label">My Shopping Cart</span>
-            <span className="cart-total-value">{cart.length} items</span>
+            <span className="cart-total-value">{totalCartUnits} {totalCartUnits === 1 ? 'item' : 'items'}</span>
           </div>
         </div>
       </div>
@@ -409,7 +416,7 @@ export default function StorePage({
                         className="card-add-to-cart-btn" 
                         onClick={(e) => { e.stopPropagation(); handleAddToCart(prod); }}
                       >
-                        <ShoppingBag size={12} style={{ marginRight: '6px' }} />
+                        <ShoppingCart size={12} style={{ marginRight: '6px' }} />
                         Add to Cart
                       </button>
                     </div>

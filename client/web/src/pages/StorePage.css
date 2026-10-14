@@ -265,6 +265,37 @@
   background-color: var(--color-bg-light);
   border-radius: 16px;
   padding: 10px 20px;
+  transition: all 0.2s ease;
+}
+
+.cart-preview-summary.clickable {
+  cursor: pointer;
+}
+
+.cart-preview-summary.clickable:hover {
+  border-color: var(--color-primary);
+  background-color: rgba(0, 102, 204, 0.05);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(0, 102, 204, 0.08);
+}
+
+.cart-banner-badge {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  background-color: #EF4444;
+  color: #FFFFFF;
+  font-size: 9px;
+  font-weight: 800;
+  min-width: 17px;
+  height: 17px;
+  padding: 0 4px;
+  border-radius: 99px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--color-white);
+  box-shadow: 0 2px 4px rgba(239, 68, 68, 0.2);
 }
 
 .cart-total-label {

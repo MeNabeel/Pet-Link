@@ -5,15 +5,17 @@ import {
   MessageSquareCode, MapPin, LogOut, ChevronRight, ChevronDown, Phone,
   HeartHandshake, Activity, Users, Menu, X, Bell, BellOff,
   Stethoscope, Syringe, Headphones, Sparkles, Plus,
-  Star, Calendar, Clock, User, AlertTriangle
+  Star, Calendar, Clock, User, AlertTriangle, ShoppingCart
 } from 'lucide-react';
 import { safeSetUserStorage } from '../utils/storage';
+import { getCartCount, subscribeToCart } from '../utils/cartManager';
 import './Dashboard.css';
 import Profile from './Profile';
 import AccountSettings from './AccountSettings';
 import UserAddresses from './UserAddresses';
 import StorePage from './StorePage';
 import ProductDetails from './ProductDetails';
+import CartPage from './CartPage';
 import MyPets from './MyPets';
 import PetForm from './PetForm';
 import PetDetails from './PetDetails';
@@ -194,6 +196,9 @@ export default function Dashboard({ onLogout }) {
   const [selectedChatOwner, setSelectedChatOwner] = useState(null);
   const [isSignoutOpen, setIsSignoutOpen] = useState(false);
 
+  // Synchronized Cart Items Unit Count (sum of item quantities)
+  const [cartCount, setCartCount] = useState(() => getCartCount());
+
   // Sidebar & Pet/Vet main tab switcher
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
@@ -251,7 +256,7 @@ export default function Dashboard({ onLogout }) {
     }
   }, [activeTab]);
 
-  // Deep linking and URL hash synchronization for Product Details (e.g. #/shop/:productId)
+  // Deep linking and URL hash synchronization for Shop, Product Details, and Cart
   useEffect(() => {
     const syncRouteFromHash = () => {
       const hash = window.location.hash || '';
@@ -259,6 +264,8 @@ export default function Dashboard({ onLogout }) {
       if (productMatch && productMatch[1]) {
         setSelectedProductId(productMatch[1]);
         setActiveTab('product-details');
+      } else if (hash === '#/cart') {
+        setActiveTab('cart');
       } else if (hash === '#/shop') {
         setActiveTab('shop');
       }
@@ -267,6 +274,14 @@ export default function Dashboard({ onLogout }) {
     syncRouteFromHash();
     window.addEventListener('hashchange', syncRouteFromHash);
     return () => window.removeEventListener('hashchange', syncRouteFromHash);
+  }, []);
+
+  // Real-time listener for cart updates to keep red badge count synchronized
+  useEffect(() => {
+    const unsub = subscribeToCart((updated) => {
+      setCartCount(getCartCount(updated));
+    });
+    return () => unsub();
   }, []);
 
   // Click Outside & Escape Key Listener for Dropdowns
@@ -409,6 +424,7 @@ export default function Dashboard({ onLogout }) {
       case 'pets': return petSubView === 'form' ? 'Add New Pet' : petSubView === 'details' ? 'Pet Medical & Profile Details' : 'My Registered Pets';
       case 'shop': return 'Pet Products Store';
       case 'product-details': return 'Product Details';
+      case 'cart': return 'Shopping Cart';
       case 'marketplace': return 'Pet Marketplace';
       case 'clinics': return 'Find Clinics & Services';
       case 'shelters': return 'Find Animal Shelters';
@@ -540,6 +556,25 @@ export default function Dashboard({ onLogout }) {
         </div>
         
         <div className="dash-header-right">
+          {/* SHOPPING CART BUTTON WITH RED NOTIFICATION BADGE */}
+          <button 
+            type="button" 
+            className={`dash-cart-header-btn ${activeTab === 'cart' ? 'active' : ''}`}
+            onClick={() => {
+              window.location.hash = '#/cart';
+              setActiveTab('cart');
+            }}
+            aria-label={`Shopping cart, ${cartCount} items`}
+            title="Shopping Cart"
+          >
+            <ShoppingCart size={18} />
+            {cartCount > 0 && (
+              <span className="dash-cart-badge" aria-label={`Shopping cart, ${cartCount} items`}>
+                {cartCount > 99 ? '99+' : cartCount}
+              </span>
+            )}
+          </button>
+
           {/* DYNAMIC NOTIFICATION BELL & POPOVER PANEL */}
           <div className="dash-notif-wrapper" ref={notifRef}>
             <button 
@@ -790,7 +825,7 @@ export default function Dashboard({ onLogout }) {
           </span>
 
           <span 
-            className={`dash-side-link ${['shop', 'product-details'].includes(activeTab) ? 'active' : ''}`}
+            className={`dash-side-link ${['shop', 'product-details', 'cart'].includes(activeTab) ? 'active' : ''}`}
             onClick={() => { 
               window.location.hash = '#/shop';
               setActiveTab('shop'); 
@@ -1327,6 +1362,10 @@ export default function Dashboard({ onLogout }) {
                   window.location.hash = `#/shop/${id}`;
                   setActiveTab('product-details');
                 }}
+                onViewCart={() => {
+                  window.location.hash = '#/cart';
+                  setActiveTab('cart');
+                }}
               />
             </PageErrorBoundary>
           )}
@@ -1345,10 +1384,31 @@ export default function Dashboard({ onLogout }) {
                   window.location.hash = `#/shop/${id}`;
                   window.scrollTo({ top: 0, behavior: 'smooth' });
                 }}
+                onViewCart={() => {
+                  window.location.hash = '#/cart';
+                  setActiveTab('cart');
+                }}
                 onOpenChat={({ pet, owner }) => {
                   setSelectedChatPet(pet);
                   setSelectedChatOwner(owner);
                   setActiveTab('chat');
+                }}
+              />
+            </PageErrorBoundary>
+          )}
+
+          {activeTab === 'cart' && (
+            <PageErrorBoundary onReset={() => { window.location.hash = '#/shop'; setActiveTab('shop'); }}>
+              <CartPage 
+                user={user}
+                onContinueShopping={() => {
+                  window.location.hash = '#/shop';
+                  setActiveTab('shop');
+                }}
+                onViewProductDetails={(id) => {
+                  setSelectedProductId(id);
+                  window.location.hash = `#/shop/${id}`;
+                  setActiveTab('product-details');
                 }}
               />
             </PageErrorBoundary>

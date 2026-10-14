@@ -1,13 +1,15 @@
 import API_URL from '@/config';
 import React, { useState, useEffect } from 'react';
 import { 
-  ArrowLeft, ChevronRight, Star, ShoppingBag, Heart, Check, 
+  ArrowLeft, ChevronRight, Star, ShoppingCart, Heart, Check, 
   Truck, ShieldCheck, Clock, Package, AlertTriangle, Eye, 
   Share2, PawPrint, Info, Layers, Tag, X
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
+import AddToCartPopup from '../components/AddToCartPopup';
+import { addToCart } from '../utils/cartManager';
 import './ProductDetails.css';
 
 export default function ProductDetails({ 
@@ -15,6 +17,7 @@ export default function ProductDetails({
   productId, 
   onBack, 
   onNavigateToProduct,
+  onViewCart,
   cart = [],
   setCart,
   wishlist = [],
@@ -29,6 +32,10 @@ export default function ProductDetails({
   const [selectedVariant, setSelectedVariant] = useState(null);
   const [activeTab, setActiveTab] = useState('description');
   const [relatedProducts, setRelatedProducts] = useState([]);
+  
+  // Add to Cart confirmation popup state
+  const [isPopupOpen, setIsPopupOpen] = useState(false);
+  const [lastAddedItem, setLastAddedItem] = useState(null);
   
   // Local cart & wishlist state synchronization fallback
   const [localCart, setLocalCart] = useState(() => {
@@ -177,24 +184,16 @@ export default function ProductDetails({
     const p = targetProd || product;
     if (!p) return;
 
-    const itemToAdd = {
-      ...p,
-      selectedQuantity: targetQty,
-      selectedVariant: targetVariant || selectedVariant,
-      cartItemId: `${p._id || p.id}-${Date.now()}`
-    };
+    const qtyToAdd = targetProd ? targetQty : quantity;
+    const variantToAdd = targetVariant !== null ? targetVariant : selectedVariant;
 
-    if (setCart) {
-      setCart(prev => [...prev, itemToAdd]);
-    } else {
-      setLocalCart(prev => {
-        const updated = [...prev, itemToAdd];
-        localStorage.setItem('petlink_cart', JSON.stringify(updated));
-        return updated;
-      });
-    }
-
-    showToast(`Added ${targetQty}x "${p.name}" to cart!`);
+    const { addedItem, quantityAdded } = addToCart(p, qtyToAdd, variantToAdd);
+    setLastAddedItem({
+      product: addedItem || p,
+      quantity: quantityAdded || qtyToAdd,
+      variant: variantToAdd
+    });
+    setIsPopupOpen(true);
   };
 
   // Loading State
@@ -509,7 +508,7 @@ export default function ProductDetails({
               onClick={() => handleAddToCart(product, quantity, selectedVariant)}
               disabled={isOutOfStock}
             >
-              <ShoppingBag size={18} />
+              <ShoppingCart size={18} />
               <span>{isOutOfStock ? 'Currently Out of Stock' : 'Add to Cart'}</span>
             </button>
 
@@ -834,7 +833,7 @@ export default function ProductDetails({
                       handleAddToCart(rel, 1);
                     }}
                   >
-                    <ShoppingBag size={12} style={{ marginRight: '6px' }} />
+                    <ShoppingCart size={12} style={{ marginRight: '6px' }} />
                     Add to Cart
                   </button>
                 </div>
@@ -843,6 +842,17 @@ export default function ProductDetails({
           </div>
         </section>
       )}
+
+      {/* Add-to-Cart Confirmation Popup */}
+      <AddToCartPopup 
+        isOpen={isPopupOpen}
+        onClose={() => setIsPopupOpen(false)}
+        onViewCart={() => {
+          setIsPopupOpen(false);
+          if (onViewCart) onViewCart();
+        }}
+        itemInfo={lastAddedItem}
+      />
 
     </div>
   );

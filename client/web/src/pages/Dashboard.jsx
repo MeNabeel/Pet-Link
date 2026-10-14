@@ -13,6 +13,7 @@ import Profile from './Profile';
 import AccountSettings from './AccountSettings';
 import UserAddresses from './UserAddresses';
 import StorePage from './StorePage';
+import ProductDetails from './ProductDetails';
 import MyPets from './MyPets';
 import PetForm from './PetForm';
 import PetDetails from './PetDetails';
@@ -137,6 +138,7 @@ export default function Dashboard({ onLogout }) {
   const [selectedPetId, setSelectedPetId] = useState(null);
   const [selectedShelterId, setSelectedShelterId] = useState(null);
   const [selectedClinicId, setSelectedClinicId] = useState(null);
+  const [selectedProductId, setSelectedProductId] = useState(null);
   const [selectedChatPet, setSelectedChatPet] = useState(null);
   const [selectedChatOwner, setSelectedChatOwner] = useState(null);
   const [isSignoutOpen, setIsSignoutOpen] = useState(false);
@@ -197,6 +199,24 @@ export default function Dashboard({ onLogout }) {
       setPetSubView('list');
     }
   }, [activeTab]);
+
+  // Deep linking and URL hash synchronization for Product Details (e.g. #/shop/:productId)
+  useEffect(() => {
+    const syncRouteFromHash = () => {
+      const hash = window.location.hash || '';
+      const productMatch = hash.match(/^#\/shop\/(.+)$/);
+      if (productMatch && productMatch[1]) {
+        setSelectedProductId(productMatch[1]);
+        setActiveTab('product-details');
+      } else if (hash === '#/shop') {
+        setActiveTab('shop');
+      }
+    };
+
+    syncRouteFromHash();
+    window.addEventListener('hashchange', syncRouteFromHash);
+    return () => window.removeEventListener('hashchange', syncRouteFromHash);
+  }, []);
 
   // Click Outside & Escape Key Listener for Dropdowns
   useEffect(() => {
@@ -337,6 +357,7 @@ export default function Dashboard({ onLogout }) {
       case 'addresses': return 'Addresses';
       case 'pets': return petSubView === 'form' ? 'Add New Pet' : petSubView === 'details' ? 'Pet Medical & Profile Details' : 'My Registered Pets';
       case 'shop': return 'Pet Products Store';
+      case 'product-details': return 'Product Details';
       case 'marketplace': return 'Pet Marketplace';
       case 'clinics': return 'Find Clinics & Services';
       case 'shelters': return 'Find Animal Shelters';
@@ -718,8 +739,12 @@ export default function Dashboard({ onLogout }) {
           </span>
 
           <span 
-            className={`dash-side-link ${activeTab === 'shop' ? 'active' : ''}`}
-            onClick={() => { setActiveTab('shop'); setIsMobileOpen(false); }}
+            className={`dash-side-link ${['shop', 'product-details'].includes(activeTab) ? 'active' : ''}`}
+            onClick={() => { 
+              window.location.hash = '#/shop';
+              setActiveTab('shop'); 
+              setIsMobileOpen(false); 
+            }}
             title="Shop Products"
           >
             <Store size={18} />
@@ -1243,7 +1268,35 @@ export default function Dashboard({ onLogout }) {
           )}
 
           {activeTab === 'shop' && (
-            <StorePage user={user} />
+            <StorePage 
+              user={user} 
+              onViewProductDetails={(id) => {
+                setSelectedProductId(id);
+                window.location.hash = `#/shop/${id}`;
+                setActiveTab('product-details');
+              }}
+            />
+          )}
+
+          {activeTab === 'product-details' && (
+            <ProductDetails 
+              user={user}
+              productId={selectedProductId}
+              onBack={() => {
+                window.location.hash = '#/shop';
+                setActiveTab('shop');
+              }}
+              onNavigateToProduct={(id) => {
+                setSelectedProductId(id);
+                window.location.hash = `#/shop/${id}`;
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+              onOpenChat={({ pet, owner }) => {
+                setSelectedChatPet(pet);
+                setSelectedChatOwner(owner);
+                setActiveTab('chat');
+              }}
+            />
           )}
 
           {activeTab === 'marketplace' && (

@@ -4,9 +4,17 @@ import {
   Search, Heart, ShoppingBag, Eye, Star, Filter, SlidersHorizontal, Tag, 
   Layers, Package, Check, XCircle
 } from 'lucide-react';
+import ProductDetails from './ProductDetails';
 import './StorePage.css';
 
-export default function StorePage({ user }) {
+export default function StorePage({ 
+  user, 
+  onViewProductDetails,
+  cart: propCart, 
+  setCart: propSetCart, 
+  wishlist: propWishlist, 
+  setWishlist: propSetWishlist 
+}) {
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -15,13 +23,35 @@ export default function StorePage({ user }) {
   const [selectedPetType, setSelectedPetType] = useState('all');
   const [priceRange, setPriceRange] = useState('all');
   
-  // Interaction states
-  const [wishlist, setWishlist] = useState([]);
-  const [cart, setCart] = useState([]);
+  // Interaction states with local storage synchronization
+  const [localWishlist, setLocalWishlist] = useState(() => {
+    try {
+      const stored = localStorage.getItem('petlink_store_wishlist');
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  const [localCart, setLocalCart] = useState(() => {
+    try {
+      const stored = localStorage.getItem('petlink_cart');
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  const wishlist = propWishlist !== undefined ? propWishlist : localWishlist;
+  const setWishlist = propSetWishlist || setLocalWishlist;
+
+  const cart = propCart !== undefined ? propCart : localCart;
+  const setCart = propSetCart || setLocalCart;
+
   const [quickViewProduct, setQuickViewProduct] = useState(null);
   const [showCartPopup, setShowCartPopup] = useState(false);
   const [recentAddedItem, setRecentAddedItem] = useState('');
-  const [placeholderRoute, setPlaceholderRoute] = useState(null);
+  const [selectedProductId, setSelectedProductId] = useState(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -50,15 +80,36 @@ export default function StorePage({ user }) {
   }, []);
 
   const toggleWishlist = (id) => {
-    if (wishlist.includes(id)) {
-      setWishlist(prev => prev.filter(item => item !== id));
-    } else {
-      setWishlist(prev => [...prev, id]);
+    if (setWishlist) {
+      if (wishlist.includes(id)) {
+        setWishlist(prev => {
+          const updated = prev.filter(item => item !== id);
+          localStorage.setItem('petlink_store_wishlist', JSON.stringify(updated));
+          return updated;
+        });
+      } else {
+        setWishlist(prev => {
+          const updated = [...prev, id];
+          localStorage.setItem('petlink_store_wishlist', JSON.stringify(updated));
+          return updated;
+        });
+      }
     }
   };
 
   const handleAddToCart = (product) => {
-    setCart(prev => [...prev, product]);
+    const itemToAdd = {
+      ...product,
+      selectedQuantity: 1,
+      cartItemId: `${product._id || product.id}-${Date.now()}`
+    };
+
+    setCart(prev => {
+      const updated = [...prev, itemToAdd];
+      localStorage.setItem('petlink_cart', JSON.stringify(updated));
+      return updated;
+    });
+
     setRecentAddedItem(product.name);
     setShowCartPopup(true);
     setTimeout(() => {
@@ -66,48 +117,27 @@ export default function StorePage({ user }) {
     }, 3000);
   };
 
-  // Filter products based on search inputs
-  const filteredProducts = products.filter(p => {
-    const matchesSearch = p.name.toLowerCase().includes(search.toLowerCase()) ||
-                          p.brand.toLowerCase().includes(search.toLowerCase()) ||
-                          p.description.toLowerCase().includes(search.toLowerCase());
-    
-    const matchesCategory = selectedCategory === 'all' || (p.category && p.category._id === selectedCategory);
-    const matchesPetType = selectedPetType === 'all' || p.petType === selectedPetType;
-    
-    let matchesPrice = true;
-    if (priceRange === 'under-1000') {
-      const price = p.salePrice || p.regularPrice;
-      matchesPrice = price < 1000;
-    } else if (priceRange === '1000-5000') {
-      const price = p.salePrice || p.regularPrice;
-      matchesPrice = price >= 1000 && price <= 5000;
-    } else if (priceRange === 'above-5000') {
-      const price = p.salePrice || p.regularPrice;
-      matchesPrice = price > 5000;
+  const handleOpenProduct = (id) => {
+    if (onViewProductDetails) {
+      onViewProductDetails(id);
+    } else {
+      setSelectedProductId(id);
     }
+  };
 
-    return matchesSearch && matchesCategory && matchesPetType && matchesPrice;
-  });
-
-  if (placeholderRoute) {
+  // If viewing details standalone (fallback when onViewProductDetails is not used by parent)
+  if (selectedProductId) {
     return (
-      <div className="placeholder-route-view fade-in" style={{ backgroundColor: '#FFF', padding: '48px', borderRadius: '24px', border: '1px solid var(--color-border)', textAlign: 'center' }}>
-        <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '64px', height: '64px', borderRadius: '50%', backgroundColor: 'rgba(0,102,204,0.06)', color: 'var(--color-primary)', marginBottom: '20px' }}>
-          <Package size={32} />
-        </div>
-        <h2 style={{ fontSize: '20px', fontWeight: '800', color: 'var(--color-dark)', marginBottom: '8px' }}>Routing Placeholder Interface</h2>
-        <p style={{ color: 'var(--color-muted)', fontSize: '13px', maxWidth: '440px', margin: '0 auto 12px auto' }}>
-          You have navigated to slug endpoint: <strong style={{ color: 'var(--color-dark)', fontFamily: 'monospace' }}>/product/{placeholderRoute}</strong>
-        </p>
-        <div style={{ backgroundColor: 'var(--color-bg-light)', padding: '16px', borderRadius: '12px', display: 'inline-block', fontSize: '12px', fontWeight: '700', color: 'var(--color-muted)', marginBottom: '24px' }}>
-          INFO: Product details view is mapped in current workspace for next sprint.
-        </div>
-        <br />
-        <button className="pet-btn-primary" onClick={() => setPlaceholderRoute(null)} style={{ margin: '0 auto' }}>
-          Return to E-Commerce Store
-        </button>
-      </div>
+      <ProductDetails 
+        user={user}
+        productId={selectedProductId}
+        onBack={() => setSelectedProductId(null)}
+        onNavigateToProduct={(id) => setSelectedProductId(id)}
+        cart={cart}
+        setCart={setCart}
+        wishlist={wishlist}
+        setWishlist={setWishlist}
+      />
     );
   }
 
@@ -285,7 +315,11 @@ export default function StorePage({ user }) {
                   <div key={prod._id} className="store-product-card hover-lift">
                     
                     {/* Image & Badges wrapper */}
-                    <div className="card-media-wrapper">
+                    <div 
+                      className="card-media-wrapper"
+                      onClick={() => handleOpenProduct(prod._id)}
+                      style={{ cursor: 'pointer' }}
+                    >
                       {prod.images && prod.images.length > 0 ? (
                         <img src={prod.images[0]} alt={prod.name} className="card-main-image" />
                       ) : (
@@ -301,13 +335,17 @@ export default function StorePage({ user }) {
                       )}
 
                       {/* Floating actions */}
-                      <div className="card-floating-actions">
-                        <button className="floating-btn view" onClick={() => setQuickViewProduct(prod)} title="Quick View Product">
+                      <div className="card-floating-actions" onClick={(e) => e.stopPropagation()}>
+                        <button 
+                          className="floating-btn view" 
+                          onClick={(e) => { e.stopPropagation(); setQuickViewProduct(prod); }} 
+                          title="Quick View Product"
+                        >
                           <Eye size={14} />
                         </button>
                         <button 
                           className={`floating-btn wishlist ${wishlist.includes(prod._id) ? 'active' : ''}`} 
-                          onClick={() => toggleWishlist(prod._id)}
+                          onClick={(e) => { e.stopPropagation(); toggleWishlist(prod._id); }}
                           title="Save to Wishlist"
                         >
                           <Heart size={14} fill={wishlist.includes(prod._id) ? '#EF4444' : 'none'} color={wishlist.includes(prod._id) ? '#EF4444' : 'currentColor'} />
@@ -318,7 +356,11 @@ export default function StorePage({ user }) {
                     {/* Metadata body */}
                     <div className="card-meta-body">
                       {prod.brand && <span className="card-brand-label">{prod.brand}</span>}
-                      <h4 className="card-prod-title" onClick={() => setPlaceholderRoute(prod._id)}>
+                      <h4 
+                        className="card-prod-title" 
+                        onClick={() => handleOpenProduct(prod._id)}
+                        style={{ cursor: 'pointer' }}
+                      >
                         {prod.name}
                       </h4>
                       
@@ -352,7 +394,10 @@ export default function StorePage({ user }) {
                         </span>
                       </div>
 
-                      <button className="card-add-to-cart-btn" onClick={() => handleAddToCart(prod)}>
+                      <button 
+                        className="card-add-to-cart-btn" 
+                        onClick={(e) => { e.stopPropagation(); handleAddToCart(prod); }}
+                      >
                         <ShoppingBag size={12} style={{ marginRight: '6px' }} />
                         Add to Cart
                       </button>

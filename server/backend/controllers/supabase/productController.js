@@ -93,6 +93,34 @@ exports.getProducts = async (req, res) => {
   }
 };
 
+// @desc    Get single product by ID
+// @route   GET /api/products/:id
+// @access  Public
+exports.getProductById = async (req, res) => {
+  try {
+    const product = await prisma.product.findUnique({
+      where: { id: req.params.id },
+      include: {
+        category: {
+          select: {
+            id: true,
+            name: true,
+            slug: true
+          }
+        }
+      }
+    });
+
+    if (!product) {
+      return res.status(404).json({ message: 'Product not found' });
+    }
+
+    res.status(200).json(mapProduct(product));
+  } catch (error) {
+    res.status(500).json({ message: 'Error retrieving product details', error: error.message });
+  }
+};
+
 // @desc    Create new product listing
 // @route   POST /api/products
 // @access  Private (Admin)

@@ -77,6 +77,57 @@ class ShelterErrorBoundary extends React.Component {
     return this.props.children;
   }
 }
+
+class PageErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error, errorInfo) {
+    console.error("Page Section Render Error:", error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{ padding: '48px', display: 'flex', flexDirection: 'column', alignItems: 'center', backgroundColor: '#FFFFFF', borderRadius: '12px', border: '1px solid #E2E8F0', margin: '24px 0', textAlign: 'center' }}>
+          <div style={{ width: '56px', height: '56px', borderRadius: '50%', backgroundColor: '#FEF2F2', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '16px' }}>
+            <AlertTriangle size={28} color="#EF4444" />
+          </div>
+          <h3 style={{ fontSize: '18px', fontWeight: '700', color: '#1E293B', margin: 0 }}>Section Unavailable</h3>
+          <p style={{ marginTop: '6px', fontSize: '14px', color: '#64748B', maxWidth: '480px' }}>
+            {this.state.error?.message || 'An unexpected rendering error occurred.'}
+          </p>
+          <div style={{ display: 'flex', gap: '12px', marginTop: '20px' }}>
+            <button 
+              onClick={() => this.setState({ hasError: false, error: null })}
+              style={{ padding: '10px 20px', backgroundColor: '#0066CC', color: '#FFFFFF', border: 'none', borderRadius: '8px', fontWeight: '600', cursor: 'pointer' }}
+            >
+              Reload View
+            </button>
+            {this.props.onReset && (
+              <button 
+                onClick={() => {
+                  this.setState({ hasError: false, error: null });
+                  this.props.onReset();
+                }}
+                style={{ padding: '10px 20px', backgroundColor: '#F1F5F9', color: '#334155', border: '1px solid #CBD5E1', borderRadius: '8px', fontWeight: '600', cursor: 'pointer' }}
+              >
+                Back to Shop
+              </button>
+            )}
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 import { 
   AlertDialog, AlertDialogContent, AlertDialogHeader, 
   AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, 
@@ -1268,35 +1319,39 @@ export default function Dashboard({ onLogout }) {
           )}
 
           {activeTab === 'shop' && (
-            <StorePage 
-              user={user} 
-              onViewProductDetails={(id) => {
-                setSelectedProductId(id);
-                window.location.hash = `#/shop/${id}`;
-                setActiveTab('product-details');
-              }}
-            />
+            <PageErrorBoundary onReset={() => setActiveTab('shop')}>
+              <StorePage 
+                user={user} 
+                onViewProductDetails={(id) => {
+                  setSelectedProductId(id);
+                  window.location.hash = `#/shop/${id}`;
+                  setActiveTab('product-details');
+                }}
+              />
+            </PageErrorBoundary>
           )}
 
           {activeTab === 'product-details' && (
-            <ProductDetails 
-              user={user}
-              productId={selectedProductId}
-              onBack={() => {
-                window.location.hash = '#/shop';
-                setActiveTab('shop');
-              }}
-              onNavigateToProduct={(id) => {
-                setSelectedProductId(id);
-                window.location.hash = `#/shop/${id}`;
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-              }}
-              onOpenChat={({ pet, owner }) => {
-                setSelectedChatPet(pet);
-                setSelectedChatOwner(owner);
-                setActiveTab('chat');
-              }}
-            />
+            <PageErrorBoundary onReset={() => { window.location.hash = '#/shop'; setActiveTab('shop'); }}>
+              <ProductDetails 
+                user={user}
+                productId={selectedProductId}
+                onBack={() => {
+                  window.location.hash = '#/shop';
+                  setActiveTab('shop');
+                }}
+                onNavigateToProduct={(id) => {
+                  setSelectedProductId(id);
+                  window.location.hash = `#/shop/${id}`;
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+                onOpenChat={({ pet, owner }) => {
+                  setSelectedChatPet(pet);
+                  setSelectedChatOwner(owner);
+                  setActiveTab('chat');
+                }}
+              />
+            </PageErrorBoundary>
           )}
 
           {activeTab === 'marketplace' && (

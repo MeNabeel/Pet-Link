@@ -125,21 +125,32 @@ export default function StorePage({
     }
   };
 
-  // If viewing details standalone (fallback when onViewProductDetails is not used by parent)
-  if (selectedProductId) {
-    return (
-      <ProductDetails 
-        user={user}
-        productId={selectedProductId}
-        onBack={() => setSelectedProductId(null)}
-        onNavigateToProduct={(id) => setSelectedProductId(id)}
-        cart={cart}
-        setCart={setCart}
-        wishlist={wishlist}
-        setWishlist={setWishlist}
-      />
-    );
-  }
+  // Filter products based on search inputs
+  const filteredProducts = (products || []).filter(p => {
+    if (!p) return false;
+    const name = (p.name || '').toLowerCase();
+    const brand = (p.brand || '').toLowerCase();
+    const desc = (p.description || p.shortDescription || '').toLowerCase();
+    const q = (search || '').toLowerCase();
+    const matchesSearch = !q || name.includes(q) || brand.includes(q) || desc.includes(q);
+    
+    const catId = p.category?._id || p.category?.id || (typeof p.category === 'string' ? p.category : p.category_id);
+    const matchesCategory = selectedCategory === 'all' || catId === selectedCategory;
+    const petType = p.petType || p.pet_type;
+    const matchesPetType = selectedPetType === 'all' || petType === selectedPetType;
+    
+    let matchesPrice = true;
+    const price = Number(p.salePrice || p.regularPrice || p.price || 0);
+    if (priceRange === 'under-1000') {
+      matchesPrice = price < 1000;
+    } else if (priceRange === '1000-5000') {
+      matchesPrice = price >= 1000 && price <= 5000;
+    } else if (priceRange === 'above-5000') {
+      matchesPrice = price > 5000;
+    }
+
+    return matchesSearch && matchesCategory && matchesPetType && matchesPrice;
+  });
 
   return (
     <div className="store-catalog-wrapper fade-in">
@@ -165,7 +176,7 @@ export default function StorePage({
                 {quickViewProduct.images && quickViewProduct.images.length > 0 ? (
                   <img src={quickViewProduct.images[0]} alt={quickViewProduct.name} className="qv-main-img" />
                 ) : (
-                  <div className="qv-no-img"><ImageIcon size={48} /></div>
+                  <div className="qv-no-img"><Package size={48} /></div>
                 )}
                 <div className="qv-gallery-thumbs">
                   {quickViewProduct.images && quickViewProduct.images.slice(1, 4).map((img, idx) => (
@@ -205,8 +216,8 @@ export default function StorePage({
 
                 <div className="qv-stock-indicator">
                   <strong>Stock:</strong> 
-                  <span className={`status-badge-pill ${quickViewProduct.stockStatus.replace(' ', '-').toLowerCase()}`}>
-                    {quickViewProduct.stockStatus}
+                  <span className={`status-badge-pill ${(quickViewProduct.stockStatus || 'In Stock').toString().replace(' ', '-').toLowerCase()}`}>
+                    {quickViewProduct.stockStatus || 'In Stock'}
                   </span>
                 </div>
 
@@ -381,16 +392,16 @@ export default function StorePage({
                         <div className="card-prices">
                           {prod.salePrice ? (
                             <>
-                              <span className="card-price-sale">{prod.salePrice.toLocaleString()} PKR</span>
-                              <span className="card-price-reg-crossed">{prod.regularPrice.toLocaleString()} PKR</span>
+                              <span className="card-price-sale">{Number(prod.salePrice).toLocaleString()} PKR</span>
+                              <span className="card-price-reg-crossed">{Number(prod.regularPrice || prod.salePrice).toLocaleString()} PKR</span>
                             </>
                           ) : (
-                            <span className="card-price-sale">{prod.regularPrice.toLocaleString()} PKR</span>
+                            <span className="card-price-sale">{Number(prod.regularPrice || prod.price || 0).toLocaleString()} PKR</span>
                           )}
                         </div>
                         
-                        <span className={`card-stock-status-pill ${prod.stockStatus.replace(' ', '-').toLowerCase()}`}>
-                          {prod.stockStatus}
+                        <span className={`card-stock-status-pill ${(prod.stockStatus || 'In Stock').toString().replace(' ', '-').toLowerCase()}`}>
+                          {prod.stockStatus || 'In Stock'}
                         </span>
                       </div>
 

@@ -1283,6 +1283,10 @@ export default function Dashboard({ onLogout }) {
               onNavigateToAddresses={() => setActiveTab('addresses')}
               onLogout={onLogout}
               onUpdateUser={handleUpdateUser}
+              onViewPetDetails={(id) => {
+                setSelectedPetId(id);
+                setActiveTab('marketplace-details');
+              }}
             />
           )}
 

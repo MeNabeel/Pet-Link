@@ -65,18 +65,30 @@ export default function Marketplace({ user, onViewDetails, onOpenChat, onEditPet
 
   const userId = user && (user._id || user.id);
 
-  // Load Saved Pet IDs from localStorage
+  // Load Saved Pet IDs from localStorage & synchronize cross-tab/events
   useEffect(() => {
     if (!userId) return;
-    try {
-      const stored = localStorage.getItem(`petlink_saved_pets_${userId}`);
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        setSavedIds(new Set(parsed));
+    const syncSaved = () => {
+      try {
+        const stored = localStorage.getItem(`petlink_saved_pets_${userId}`);
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          setSavedIds(new Set(parsed));
+        } else {
+          setSavedIds(new Set());
+        }
+      } catch (e) {
+        console.error('Error reading saved pets:', e);
       }
-    } catch (e) {
-      console.error('Error reading saved pets:', e);
-    }
+    };
+
+    syncSaved();
+    window.addEventListener('storage', syncSaved);
+    window.addEventListener('petlink_saved_pets_updated', syncSaved);
+    return () => {
+      window.removeEventListener('storage', syncSaved);
+      window.removeEventListener('petlink_saved_pets_updated', syncSaved);
+    };
   }, [userId]);
 
   // Real-time debounce search effect
@@ -162,9 +174,20 @@ export default function Marketplace({ user, onViewDetails, onOpenChat, onEditPet
     fetchMarketplace();
   }, [fetchMarketplace]);
 
-  // Trigger favorites sync
+  // Trigger favorites sync on mount and cross-component/storage events
   useEffect(() => {
     fetchFavorites();
+
+    const handleFavSync = () => {
+      fetchFavorites();
+    };
+
+    window.addEventListener('storage', handleFavSync);
+    window.addEventListener('petlink_wishlist_updated', handleFavSync);
+    return () => {
+      window.removeEventListener('storage', handleFavSync);
+      window.removeEventListener('petlink_wishlist_updated', handleFavSync);
+    };
   }, [fetchFavorites]);
 
   // Favorites Heart Click Handler
@@ -194,6 +217,7 @@ export default function Marketplace({ user, onViewDetails, onOpenChat, onEditPet
           updated.add(targetPetId);
         }
         setFavoritesIds(updated);
+        window.dispatchEvent(new Event('petlink_wishlist_updated'));
       } else {
         const errData = await response.json();
         alert(errData.message || 'Failed to update favorites.');
@@ -223,6 +247,7 @@ export default function Marketplace({ user, onViewDetails, onOpenChat, onEditPet
 
     try {
       localStorage.setItem(`petlink_saved_pets_${userId}`, JSON.stringify(Array.from(updated)));
+      window.dispatchEvent(new Event('petlink_saved_pets_updated'));
     } catch (err) {
       console.error('Saved pets update error:', err);
     }

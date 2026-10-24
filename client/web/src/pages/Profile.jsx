@@ -466,58 +466,62 @@ export default function Profile({
 
         </div>
 
-        {/* PLATFORM TRUST HIGHLIGHTS BAR */}
-        <div className="profile-trust-highlights-bar">
-          <div className="profile-trust-item">
-            <div className="profile-trust-icon-box">
-              <ShieldCheck size={16} />
+        {/* IN-PAGE PLATFORM TRUST & SUPPORT CARD */}
+        <div className="profile-trust-card">
+          <div className="profile-trust-card-header">
+            <div className="profile-trust-header-info">
+              <h3 className="profile-card-title">PetLink Platform Assurance</h3>
+              <span className="profile-card-sub">PetLink — Better care for every pet</span>
             </div>
-            <div className="profile-trust-text">
-              <span className="profile-trust-title">Secure & Private</span>
-              <span className="profile-trust-desc">Protected account data</span>
-            </div>
-          </div>
-
-          <div className="profile-trust-item">
-            <div className="profile-trust-icon-box">
-              <HeartHandshake size={16} />
-            </div>
-            <div className="profile-trust-text">
-              <span className="profile-trust-title">Trusted Pet Care</span>
-              <span className="profile-trust-desc">Clinics & services unified</span>
+            <div className="profile-trust-links">
+              <span className="profile-trust-link" onClick={() => handleMenuClick('Privacy Policy')}>Privacy</span>
+              <span className="profile-trust-dot">•</span>
+              <span className="profile-trust-link" onClick={() => handleMenuClick('Terms of Service')}>Terms</span>
+              <span className="profile-trust-dot">•</span>
+              <span className="profile-trust-link" onClick={() => handleMenuClick('Helpdesk')}>Support</span>
             </div>
           </div>
 
-          <div className="profile-trust-item">
-            <div className="profile-trust-icon-box">
-              <Sliders size={16} />
+          <div className="profile-trust-grid">
+            <div className="profile-trust-item">
+              <div className="profile-trust-icon-box">
+                <ShieldCheck size={16} />
+              </div>
+              <div className="profile-trust-text">
+                <span className="profile-trust-title">Secure & Private</span>
+                <span className="profile-trust-desc">Protected account data</span>
+              </div>
             </div>
-            <div className="profile-trust-text">
-              <span className="profile-trust-title">Easy to Manage</span>
-              <span className="profile-trust-desc">Organized pet records</span>
-            </div>
-          </div>
 
-          <div className="profile-trust-item">
-            <div className="profile-trust-icon-box">
-              <LifeBuoy size={16} />
+            <div className="profile-trust-item">
+              <div className="profile-trust-icon-box">
+                <HeartHandshake size={16} />
+              </div>
+              <div className="profile-trust-text">
+                <span className="profile-trust-title">Trusted Pet Care</span>
+                <span className="profile-trust-desc">Clinics & services unified</span>
+              </div>
             </div>
-            <div className="profile-trust-text">
-              <span className="profile-trust-title">PetLink Support</span>
-              <span className="profile-trust-desc">Reliable help desk</span>
-            </div>
-          </div>
-        </div>
 
-        {/* SUBTLE FOOTER STRIP */}
-        <div className="profile-footer-strip">
-          <span className="profile-footer-brand">PetLink — Better care for every pet</span>
-          <div className="profile-footer-links">
-            <span className="profile-footer-link" onClick={() => handleMenuClick('Privacy Policy')}>Privacy</span>
-            <span>•</span>
-            <span className="profile-footer-link" onClick={() => handleMenuClick('Terms of Service')}>Terms</span>
-            <span>•</span>
-            <span className="profile-footer-link" onClick={() => handleMenuClick('Helpdesk')}>Support</span>
+            <div className="profile-trust-item">
+              <div className="profile-trust-icon-box">
+                <Sliders size={16} />
+              </div>
+              <div className="profile-trust-text">
+                <span className="profile-trust-title">Easy to Manage</span>
+                <span className="profile-trust-desc">Organized pet records</span>
+              </div>
+            </div>
+
+            <div className="profile-trust-item">
+              <div className="profile-trust-icon-box">
+                <LifeBuoy size={16} />
+              </div>
+              <div className="profile-trust-text">
+                <span className="profile-trust-title">PetLink Support</span>
+                <span className="profile-trust-desc">Reliable help desk</span>
+              </div>
+            </div>
           </div>
         </div>
 

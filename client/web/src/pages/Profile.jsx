@@ -5,6 +5,7 @@ import {
   Calendar, BadgeCheck, PawPrint, Heart, Bookmark, Bell, Shield,
   ShieldCheck, HeartHandshake, Sliders, LifeBuoy, X, Eye, Sparkles, Trash2
 } from 'lucide-react';
+import { Skeleton } from '@/components/ui/Skeleton';
 import PetImage from '../components/PetImage';
 import './Profile.css';
 
@@ -18,54 +19,123 @@ export default function Profile({
 }) {
   const profileInputRef = useRef(null);
 
-  // Favorites & Saved Data State
+  // Favorites, Saved & Registered Data State
   const [favoritesList, setFavoritesList] = useState([]);
   const [savedList, setSavedList] = useState([]);
+  const [registeredPetsList, setRegisteredPetsList] = useState([]);
   const [loadingItems, setLoadingItems] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
 
-  // Active Overlay Modal ('none' | 'favorites' | 'saved')
+  // Active Overlay Modal ('none' | 'favorites' | 'saved' | 'pets')
   const [activeModal, setActiveModal] = useState('none');
   const [quickViewPet, setQuickViewPet] = useState(null);
 
   const userId = user && (user._id || user.id);
 
-  // Fetch User Favorites & Saved Items
+  // Fetch User Favorites, Saved Items & Registered Pets
   const loadUserData = useCallback(async () => {
     if (!userId) return;
     setLoadingItems(true);
     try {
       // 1. Fetch Wishlist / Favorites
-      const favRes = await fetch(`${API_URL}/api/wishlist/owner/${userId}`);
-      if (favRes.ok) {
-        const favData = await favRes.json();
-        setFavoritesList(favData.wishlist || []);
+      try {
+        const favRes = await fetch(`${API_URL}/api/wishlist/owner/${userId}`);
+        if (favRes.ok) {
+          const favData = await favRes.json();
+          setFavoritesList(Array.isArray(favData.wishlist) ? favData.wishlist : []);
+        } else {
+          setFavoritesList([]);
+        }
+      } catch (e) {
+        console.error('Error fetching favorites:', e);
+        setFavoritesList([]);
       }
 
       // 2. Load Saved Pet IDs from localStorage
       const savedStored = localStorage.getItem(`petlink_saved_pets_${userId}`);
-      const savedIds = savedStored ? JSON.parse(savedStored) : [];
+      let savedIds = [];
+      try {
+        savedIds = savedStored ? JSON.parse(savedStored) : [];
+        if (!Array.isArray(savedIds)) savedIds = [];
+      } catch (e) {
+        console.error('Error parsing saved pets:', e);
+      }
 
       if (savedIds.length > 0) {
-        // Fetch marketplace listings to populate saved pet details
-        const mpRes = await fetch(`${API_URL}/api/marketplace?limit=50`);
-        if (mpRes.ok) {
-          const mpData = await mpRes.json();
-          const allPets = mpData.pets || [];
-          const matchedSaved = allPets.filter(p => savedIds.includes(p._id || p.id));
+        try {
+          // Fetch marketplace listings to populate saved pet details
+          const mpRes = await fetch(`${API_URL}/api/marketplace?limit=100`);
+          let allPets = [];
+          if (mpRes.ok) {
+            const mpData = await mpRes.json();
+            allPets = mpData.pets || [];
+          }
+          let matchedSaved = allPets.filter(p => savedIds.includes(p._id || p.id));
+          const foundIds = new Set(matchedSaved.map(p => p._id || p.id));
+          const missingIds = savedIds.filter(id => !foundIds.has(id));
+
+          if (missingIds.length > 0) {
+            const fetchedMissing = await Promise.all(
+              missingIds.map(async (id) => {
+                try {
+                  const r = await fetch(`${API_URL}/api/pets/${id}`);
+                  if (r.ok) return await r.json();
+                } catch (err) {
+                  console.error(`Error fetching individual pet ${id}:`, err);
+                }
+                return null;
+              })
+            );
+            matchedSaved = [...matchedSaved, ...fetchedMissing.filter(Boolean)];
+          }
           setSavedList(matchedSaved);
+        } catch (err) {
+          console.error('Error populating saved pets:', err);
+          setSavedList([]);
         }
       } else {
         setSavedList([]);
+      }
+
+      // 3. Fetch Registered Pets
+      try {
+        const petsRes = await fetch(`${API_URL}/api/pets/owner/${userId}`);
+        if (petsRes.ok) {
+          const petsData = await petsRes.json();
+          setRegisteredPetsList(Array.isArray(petsData) ? petsData : []);
+        } else {
+          setRegisteredPetsList([]);
+        }
+      } catch (err) {
+        console.error('Error fetching user registered pets:', err);
+        setRegisteredPetsList([]);
       }
     } catch (err) {
       console.error('Error fetching user profile stats data:', err);
     } finally {
       setLoadingItems(false);
+      setInitialLoading(false);
     }
   }, [userId]);
 
   useEffect(() => {
     loadUserData();
+
+    const handleSync = () => {
+      loadUserData();
+    };
+
+    window.addEventListener('storage', handleSync);
+    window.addEventListener('focus', handleSync);
+    window.addEventListener('petlink_saved_pets_updated', handleSync);
+    window.addEventListener('petlink_wishlist_updated', handleSync);
+
+    return () => {
+      window.removeEventListener('storage', handleSync);
+      window.removeEventListener('focus', handleSync);
+      window.removeEventListener('petlink_saved_pets_updated', handleSync);
+      window.removeEventListener('petlink_wishlist_updated', handleSync);
+    };
   }, [loadUserData]);
 
   if (!user) return null;
@@ -97,6 +167,7 @@ export default function Profile({
       });
       if (res.ok) {
         setFavoritesList(prev => prev.filter(p => (p._id || p.id) !== petId));
+        window.dispatchEvent(new Event('petlink_wishlist_updated'));
       }
     } catch (err) {
       console.error('Error removing favorite:', err);
@@ -111,6 +182,23 @@ export default function Profile({
     setSavedList(updated);
     const updatedIds = updated.map(p => p._id || p.id);
     localStorage.setItem(`petlink_saved_pets_${userId}`, JSON.stringify(updatedIds));
+    window.dispatchEvent(new Event('petlink_saved_pets_updated'));
+  };
+
+  // Remove Registered Pet
+  const handleRemoveRegisteredPet = async (e, petId) => {
+    e.stopPropagation();
+    if (!window.confirm('Are you sure you want to remove this pet profile?')) return;
+    try {
+      const res = await fetch(`${API_URL}/api/pets/${petId}`, {
+        method: 'DELETE'
+      });
+      if (res.ok) {
+        setRegisteredPetsList(prev => prev.filter(p => (p._id || p.id) !== petId));
+      }
+    } catch (err) {
+      console.error('Error deleting registered pet:', err);
+    }
   };
 
   const formattedDate = user.createdAt ? new Date(user.createdAt).toLocaleDateString('en-US', {
@@ -205,13 +293,13 @@ export default function Profile({
 
         {/* TOP 4 STATS ROW */}
         <div className="profile-stats-grid">
-          <div className="profile-stat-card">
+          <div className="profile-stat-card clickable" onClick={() => setActiveModal('pets')}>
             <div className="profile-stat-icon-box" style={{ backgroundColor: 'rgba(0, 102, 204, 0.08)', color: 'var(--color-primary)' }}>
               <PawPrint size={18} />
             </div>
             <div className="profile-stat-info">
               <span className="profile-stat-label">REGISTERED PETS</span>
-              <span className="profile-stat-value">1</span>
+              <span className="profile-stat-value">{initialLoading ? '...' : registeredPetsList.length}</span>
             </div>
           </div>
 
@@ -232,7 +320,7 @@ export default function Profile({
             </div>
             <div className="profile-stat-info">
               <span className="profile-stat-label">FAVORITES</span>
-              <span className="profile-stat-value">{favoritesList.length}</span>
+              <span className="profile-stat-value">{initialLoading ? '...' : favoritesList.length}</span>
             </div>
           </div>
 
@@ -243,7 +331,7 @@ export default function Profile({
             </div>
             <div className="profile-stat-info">
               <span className="profile-stat-label">SAVED ITEMS</span>
-              <span className="profile-stat-value">{savedList.length}</span>
+              <span className="profile-stat-value">{initialLoading ? '...' : savedList.length}</span>
             </div>
           </div>
         </div>
@@ -331,13 +419,13 @@ export default function Profile({
                 </div>
               </div>
 
-              <div className="profile-quick-action-card" onClick={() => handleMenuClick('My Pets')}>
+              <div className="profile-quick-action-card" onClick={() => setActiveModal('pets')}>
                 <div className="profile-quick-icon-box" style={{ backgroundColor: 'rgba(0, 102, 204, 0.08)', color: 'var(--color-primary)' }}>
                   <PawPrint size={17} />
                 </div>
                 <div className="profile-quick-text-group">
                   <span className="profile-quick-title">My Pets</span>
-                  <span className="profile-quick-desc">Manage your pets</span>
+                  <span className="profile-quick-desc">Manage your pets ({registeredPetsList.length})</span>
                 </div>
               </div>
 
@@ -378,64 +466,68 @@ export default function Profile({
 
         </div>
 
-        {/* PLATFORM TRUST HIGHLIGHTS BAR */}
-        <div className="profile-trust-highlights-bar">
-          <div className="profile-trust-item">
-            <div className="profile-trust-icon-box">
-              <ShieldCheck size={16} />
+        {/* IN-PAGE PLATFORM TRUST & SUPPORT CARD */}
+        <div className="profile-trust-card">
+          <div className="profile-trust-card-header">
+            <div className="profile-trust-header-info">
+              <h3 className="profile-card-title">PetLink Platform Assurance</h3>
+              <span className="profile-card-sub">PetLink — Better care for every pet</span>
             </div>
-            <div className="profile-trust-text">
-              <span className="profile-trust-title">Secure & Private</span>
-              <span className="profile-trust-desc">Protected account data</span>
-            </div>
-          </div>
-
-          <div className="profile-trust-item">
-            <div className="profile-trust-icon-box">
-              <HeartHandshake size={16} />
-            </div>
-            <div className="profile-trust-text">
-              <span className="profile-trust-title">Trusted Pet Care</span>
-              <span className="profile-trust-desc">Clinics & services unified</span>
+            <div className="profile-trust-links">
+              <span className="profile-trust-link" onClick={() => handleMenuClick('Privacy Policy')}>Privacy</span>
+              <span className="profile-trust-dot">•</span>
+              <span className="profile-trust-link" onClick={() => handleMenuClick('Terms of Service')}>Terms</span>
+              <span className="profile-trust-dot">•</span>
+              <span className="profile-trust-link" onClick={() => handleMenuClick('Helpdesk')}>Support</span>
             </div>
           </div>
 
-          <div className="profile-trust-item">
-            <div className="profile-trust-icon-box">
-              <Sliders size={16} />
+          <div className="profile-trust-grid">
+            <div className="profile-trust-item">
+              <div className="profile-trust-icon-box">
+                <ShieldCheck size={16} />
+              </div>
+              <div className="profile-trust-text">
+                <span className="profile-trust-title">Secure & Private</span>
+                <span className="profile-trust-desc">Protected account data</span>
+              </div>
             </div>
-            <div className="profile-trust-text">
-              <span className="profile-trust-title">Easy to Manage</span>
-              <span className="profile-trust-desc">Organized pet records</span>
-            </div>
-          </div>
 
-          <div className="profile-trust-item">
-            <div className="profile-trust-icon-box">
-              <LifeBuoy size={16} />
+            <div className="profile-trust-item">
+              <div className="profile-trust-icon-box">
+                <HeartHandshake size={16} />
+              </div>
+              <div className="profile-trust-text">
+                <span className="profile-trust-title">Trusted Pet Care</span>
+                <span className="profile-trust-desc">Clinics & services unified</span>
+              </div>
             </div>
-            <div className="profile-trust-text">
-              <span className="profile-trust-title">PetLink Support</span>
-              <span className="profile-trust-desc">Reliable help desk</span>
-            </div>
-          </div>
-        </div>
 
-        {/* SUBTLE FOOTER STRIP */}
-        <div className="profile-footer-strip">
-          <span className="profile-footer-brand">PetLink — Better care for every pet</span>
-          <div className="profile-footer-links">
-            <span className="profile-footer-link" onClick={() => handleMenuClick('Privacy Policy')}>Privacy</span>
-            <span>•</span>
-            <span className="profile-footer-link" onClick={() => handleMenuClick('Terms of Service')}>Terms</span>
-            <span>•</span>
-            <span className="profile-footer-link" onClick={() => handleMenuClick('Helpdesk')}>Support</span>
+            <div className="profile-trust-item">
+              <div className="profile-trust-icon-box">
+                <Sliders size={16} />
+              </div>
+              <div className="profile-trust-text">
+                <span className="profile-trust-title">Easy to Manage</span>
+                <span className="profile-trust-desc">Organized pet records</span>
+              </div>
+            </div>
+
+            <div className="profile-trust-item">
+              <div className="profile-trust-icon-box">
+                <LifeBuoy size={16} />
+              </div>
+              <div className="profile-trust-text">
+                <span className="profile-trust-title">PetLink Support</span>
+                <span className="profile-trust-desc">Reliable help desk</span>
+              </div>
+            </div>
           </div>
         </div>
 
       </div>
 
-      {/* FAVORITES OR SAVED OVERLAY MODAL */}
+      {/* FAVORITES, SAVED OR REGISTERED PETS OVERLAY MODAL */}
       {activeModal !== 'none' && (
         <div className="pet-details-drawer-overlay" onClick={() => setActiveModal('none')}>
           <div className="pet-details-drawer" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '780px', maxHeight: '85vh' }}>
@@ -446,10 +538,15 @@ export default function Profile({
                     <Heart size={20} color="#EF4444" fill="#EF4444" />
                     <span>My Favorite Companions ({favoritesList.length})</span>
                   </>
-                ) : (
+                ) : activeModal === 'saved' ? (
                   <>
                     <Bookmark size={20} color="#8B5CF6" fill="#8B5CF6" />
                     <span>My Saved Items ({savedList.length})</span>
+                  </>
+                ) : (
+                  <>
+                    <PawPrint size={20} color="#0066CC" fill="#0066CC" />
+                    <span>My Registered Pets ({registeredPetsList.length})</span>
                   </>
                 )}
               </h3>
@@ -459,22 +556,39 @@ export default function Profile({
             </div>
 
             <div className="profile-items-scroll-grid">
-              {(activeModal === 'favorites' ? favoritesList : savedList).length === 0 ? (
+              {loadingItems ? (
+                <div className="profile-pets-grid">
+                  {Array.from({ length: 4 }).map((_, idx) => (
+                    <div key={idx} className="profile-mini-pet-card" style={{ padding: '0 0 10px 0' }}>
+                      <Skeleton width="100%" height="140px" style={{ borderRadius: '12px 12px 0 0' }} />
+                      <div style={{ padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                        <Skeleton width="60%" height="16px" style={{ borderRadius: '4px' }} />
+                        <Skeleton width="40%" height="12px" style={{ borderRadius: '4px' }} />
+                        <Skeleton width="50%" height="14px" style={{ borderRadius: '4px', marginTop: '4px' }} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (activeModal === 'favorites' ? favoritesList : activeModal === 'saved' ? savedList : registeredPetsList).length === 0 ? (
                 <div style={{ textAlign: 'center', padding: '40px 20px', color: '#64748B' }}>
                   <p style={{ fontSize: '14px', fontWeight: '600' }}>
                     {activeModal === 'favorites' 
                       ? 'No favorite companions saved yet.' 
-                      : 'No saved items found.'}
+                      : activeModal === 'saved'
+                      ? 'No pets saved yet.'
+                      : 'No pets registered yet.'}
                   </p>
                   <span style={{ fontSize: '12px' }}>
                     {activeModal === 'favorites'
                       ? 'Click the heart icon on any marketplace pet listing to add it to your favorites.'
-                      : 'Click the bookmark icon on any marketplace pet listing to save it for later.'}
+                      : activeModal === 'saved'
+                      ? 'Click the bookmark icon on any marketplace pet listing to save it for later.'
+                      : 'You have not registered any pet profiles yet.'}
                   </span>
                 </div>
               ) : (
                 <div className="profile-pets-grid">
-                  {(activeModal === 'favorites' ? favoritesList : savedList).map((pet) => {
+                  {(activeModal === 'favorites' ? favoritesList : activeModal === 'saved' ? savedList : registeredPetsList).map((pet) => {
                     const petId = pet._id || pet.id;
                     return (
                       <div key={petId} className="profile-mini-pet-card">
@@ -483,8 +597,12 @@ export default function Profile({
                           <button 
                             type="button" 
                             className="profile-mini-remove-btn"
-                            onClick={(e) => activeModal === 'favorites' ? handleRemoveFavorite(e, petId) : handleRemoveSaved(e, petId)}
-                            title="Remove item"
+                            onClick={(e) => {
+                              if (activeModal === 'favorites') handleRemoveFavorite(e, petId);
+                              else if (activeModal === 'saved') handleRemoveSaved(e, petId);
+                              else handleRemoveRegisteredPet(e, petId);
+                            }}
+                            title={activeModal === 'pets' ? "Delete pet profile" : "Remove item"}
                           >
                             <Trash2 size={13} />
                           </button>
@@ -497,11 +615,13 @@ export default function Profile({
                             <span className="profile-mini-price">
                               {pet.activeStatus === 'FOR_SALE'
                                 ? (pet.price ? `${pet.price.toLocaleString()} PKR` : 'Call for Price')
-                                : 'Free Adoption'}
+                                : pet.activeStatus === 'FOR_ADOPTION'
+                                ? 'Free Adoption'
+                                : (pet.gender || 'Registered')}
                             </span>
                             <div className="profile-mini-actions">
                               <button 
-                                type="button"
+                                type="button" 
                                 className="profile-mini-action-icon"
                                 onClick={() => setQuickViewPet(pet)}
                                 title="Quick View"
@@ -550,15 +670,19 @@ export default function Profile({
                     <span style={{ fontSize: '16px', fontWeight: '800', color: '#10B981' }}>
                       {quickViewPet.price ? `${quickViewPet.price.toLocaleString()} PKR` : 'Call for Price'}
                     </span>
-                  ) : (
+                  ) : quickViewPet.activeStatus === 'FOR_ADOPTION' ? (
                     <span style={{ fontSize: '12px', fontWeight: '800', color: '#EA580C', backgroundColor: '#FFEDD5', padding: '3px 8px', borderRadius: '6px' }}>
                       Free Adoption
+                    </span>
+                  ) : (
+                    <span style={{ fontSize: '12px', fontWeight: '800', color: '#0066CC', backgroundColor: 'rgba(0, 102, 204, 0.08)', padding: '3px 8px', borderRadius: '6px' }}>
+                      Registered Pet
                     </span>
                   )}
                 </div>
                 <p style={{ fontSize: '12px', color: '#334155', margin: '4px 0 0 0' }}>
                   <MapPin size={12} style={{ display: 'inline', marginRight: '4px' }} />
-                  {quickViewPet.city}, {quickViewPet.province}
+                  {quickViewPet.city || 'Lahore'}, {quickViewPet.province || 'Punjab'}
                 </p>
               </div>
             </div>
@@ -566,11 +690,11 @@ export default function Profile({
             <div className="pet-card-rows-list" style={{ marginBottom: '20px' }}>
               <div className="pet-row-item">
                 <span className="pet-row-label">Age</span>
-                <span className="pet-row-val">{quickViewPet.age}</span>
+                <span className="pet-row-val">{quickViewPet.age || 'Unknown'}</span>
               </div>
               <div className="pet-row-item">
                 <span className="pet-row-label">Gender</span>
-                <span className="pet-row-val">{quickViewPet.gender}</span>
+                <span className="pet-row-val">{quickViewPet.gender || 'Unknown'}</span>
               </div>
               <div className="pet-row-item">
                 <span className="pet-row-label">Vaccination</span>
@@ -582,6 +706,21 @@ export default function Profile({
               <button type="button" className="pet-modal-btn-cancel" onClick={() => setQuickViewPet(null)}>
                 Close
               </button>
+              {onViewPetDetails && (
+                <button 
+                  type="button" 
+                  className="pet-modal-btn-save" 
+                  style={{ backgroundColor: '#0066CC', color: '#FFFFFF', border: 'none', padding: '8px 16px', borderRadius: '8px', fontWeight: '700', fontSize: '13px', cursor: 'pointer' }}
+                  onClick={() => {
+                    const targetId = quickViewPet._id || quickViewPet.id;
+                    setQuickViewPet(null);
+                    setActiveModal('none');
+                    onViewPetDetails(targetId);
+                  }}
+                >
+                  View Details
+                </button>
+              )}
             </div>
           </div>
         </div>

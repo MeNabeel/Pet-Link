@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import AddToCartPopup from '../components/AddToCartPopup';
-import { addToCart } from '../utils/cartManager';
+import { addToCart, openCartDrawer } from '../utils/cartManager';
 import './ProductDetails.css';
 
 export default function ProductDetails({ 
@@ -193,7 +193,8 @@ export default function ProductDetails({
       quantity: quantityAdded || qtyToAdd,
       variant: variantToAdd
     });
-    setIsPopupOpen(true);
+    // Open the slide-in shopping cart drawer immediately
+    openCartDrawer();
   };
 
   // Loading State
@@ -750,12 +751,13 @@ export default function ProductDetails({
 
           <div className="products-responsive-grid">
             {relatedProducts.map(rel => (
-              <div key={rel._id || rel.id} className="store-product-card hover-lift">
-                <div 
-                  className="card-media-wrapper"
-                  onClick={() => onNavigateToProduct ? onNavigateToProduct(rel._id || rel.id) : null}
-                  style={{ cursor: 'pointer' }}
-                >
+              <div 
+                key={rel._id || rel.id} 
+                className="store-product-card hover-lift"
+                onClick={() => onNavigateToProduct ? onNavigateToProduct(rel._id || rel.id) : null}
+                style={{ cursor: 'pointer' }}
+              >
+                <div className="card-media-wrapper">
                   {rel.images && rel.images.length > 0 ? (
                     <img src={rel.images[0]} alt={rel.name} className="card-main-image" />
                   ) : (
@@ -791,10 +793,7 @@ export default function ProductDetails({
 
                 <div className="card-meta-body">
                   {rel.brand && <span className="card-brand-label">{rel.brand}</span>}
-                  <h4 
-                    className="card-prod-title" 
-                    onClick={() => onNavigateToProduct ? onNavigateToProduct(rel._id || rel.id) : null}
-                  >
+                  <h4 className="card-prod-title">
                     {rel.name}
                   </h4>
                   
@@ -825,17 +824,6 @@ export default function ProductDetails({
                       {rel.stockStatus || 'In Stock'}
                     </span>
                   </div>
-
-                  <button 
-                    className="card-add-to-cart-btn" 
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleAddToCart(rel, 1);
-                    }}
-                  >
-                    <ShoppingCart size={12} style={{ marginRight: '6px' }} />
-                    Add to Cart
-                  </button>
                 </div>
               </div>
             ))}

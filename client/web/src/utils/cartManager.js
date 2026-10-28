@@ -176,3 +176,42 @@ export function subscribeToCart(callback) {
     window.removeEventListener('storage', handleStorageEvent);
   };
 }
+
+export const CART_DRAWER_EVENT = 'petlink_cart_drawer_toggle';
+
+/**
+ * Triggers the right-side shopping cart drawer to open.
+ */
+export function openCartDrawer() {
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent(CART_DRAWER_EVENT, { detail: { open: true } }));
+  }
+}
+
+/**
+ * Triggers the right-side shopping cart drawer to close.
+ */
+export function closeCartDrawer() {
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent(CART_DRAWER_EVENT, { detail: { open: false } }));
+  }
+}
+
+/**
+ * Subscribes to open/close cart drawer requests across components.
+ */
+export function subscribeToCartDrawer(callback) {
+  if (typeof window === 'undefined') return () => {};
+
+  const handleDrawerEvent = (e) => {
+    if (callback) {
+      callback(e.detail ? Boolean(e.detail.open) : true);
+    }
+  };
+
+  window.addEventListener(CART_DRAWER_EVENT, handleDrawerEvent);
+  return () => {
+    window.removeEventListener(CART_DRAWER_EVENT, handleDrawerEvent);
+  };
+}
+

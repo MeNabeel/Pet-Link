@@ -22,9 +22,10 @@
     "express": "^4.19.2",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.3.1",
-    "nodemailer": "^9.0.3",
     "node-fetch": "^2.7.0",
-    "pg": "^8.23.0"
+    "nodemailer": "^9.0.3",
+    "pg": "^8.23.0",
+    "stripe": "^23.0.1"
   },
   "devDependencies": {
     "eslint": "^8.57.0",

@@ -42,7 +42,12 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.options('*', cors(corsOptions));
 
-app.use(express.json({ limit: '50mb' }));
+app.use(express.json({
+  limit: '50mb',
+  verify: (req, res, buf) => {
+    req.rawBody = buf;
+  }
+}));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // Main API Routes
@@ -50,6 +55,7 @@ app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/pets', require('./routes/petRoutes'));
 app.use('/api/categories', require('./routes/categoryRoutes'));
 app.use('/api/products', require('./routes/productRoutes'));
+app.use('/api/checkout', require('./routes/checkoutRoutes'));
 app.use('/api/marketplace', require('./routes/marketplaceRoutes'));
 app.use('/api/wishlist', require('./routes/wishlistRoutes'));
 app.use('/api/admin/marketplace', require('./routes/adminMarketplaceRoutes'));

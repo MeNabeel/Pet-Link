@@ -5,10 +5,10 @@ import {
   MessageSquareCode, MapPin, LogOut, ChevronRight, ChevronDown, Phone,
   HeartHandshake, Activity, Users, Menu, X, Bell, BellOff,
   Stethoscope, Syringe, Headphones, Sparkles, Plus,
-  Star, Calendar, Clock, User, AlertTriangle, ShoppingCart
+  Star, Calendar, Clock, User, AlertTriangle, ShoppingCart, CheckCircle2
 } from 'lucide-react';
 import { safeSetUserStorage } from '../utils/storage';
-import { getCartCount, subscribeToCart } from '../utils/cartManager';
+import { getCartCount, subscribeToCart, subscribeToCartDrawer, openCartDrawer, closeCartDrawer, clearCart } from '../utils/cartManager';
 import './Dashboard.css';
 import Profile from './Profile';
 import AccountSettings from './AccountSettings';
@@ -16,6 +16,7 @@ import UserAddresses from './UserAddresses';
 import StorePage from './StorePage';
 import ProductDetails from './ProductDetails';
 import CartPage from './CartPage';
+import CartDrawer from '../components/CartDrawer';
 import MyPets from './MyPets';
 import PetForm from './PetForm';
 import PetDetails from './PetDetails';
@@ -199,6 +200,10 @@ export default function Dashboard({ onLogout }) {
   // Synchronized Cart Items Unit Count (sum of item quantities)
   const [cartCount, setCartCount] = useState(() => getCartCount());
 
+  // Slide-in Shopping Cart Drawer State
+  const [isCartDrawerOpen, setIsCartDrawerOpen] = useState(false);
+  const [checkoutNotification, setCheckoutNotification] = useState(null);
+
   // Sidebar & Pet/Vet main tab switcher
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
@@ -282,6 +287,68 @@ export default function Dashboard({ onLogout }) {
       setCartCount(getCartCount(updated));
     });
     return () => unsub();
+  }, []);
+
+  // Subscribe to slide-in shopping cart drawer requests
+  useEffect(() => {
+    const unsub = subscribeToCartDrawer((isOpen) => {
+      setIsCartDrawerOpen(isOpen);
+    });
+    return () => unsub();
+  }, []);
+
+  // Inspect URL for Stripe Checkout Return Parameters (?checkout=success&session_id=... or ?checkout=cancel)
+  useEffect(() => {
+    const handleCheckoutReturn = () => {
+      const url = new URL(window.location.href);
+      const hash = window.location.hash || '';
+      
+      let searchParams = url.searchParams;
+      if (hash.includes('?')) {
+        const hashQuery = hash.split('?')[1];
+        searchParams = new URLSearchParams(hashQuery);
+      }
+
+      const checkoutStatus = searchParams.get('checkout');
+      const sessionId = searchParams.get('session_id');
+
+      if (checkoutStatus === 'success') {
+        try {
+          const pendingRaw = sessionStorage.getItem('petlink_pending_checkout_items');
+          if (pendingRaw) {
+            const pendingKeys = JSON.parse(pendingRaw);
+            if (Array.isArray(pendingKeys) && pendingKeys.length > 0) {
+              clearCart(pendingKeys);
+            }
+            sessionStorage.removeItem('petlink_pending_checkout_items');
+          }
+        } catch (e) {
+          console.error('Error clearing checked out items:', e);
+        }
+
+        setCheckoutNotification({
+          type: 'success',
+          title: 'Payment Successful!',
+          message: 'Thank you for your order! Your payment was securely verified through Stripe.',
+          sessionId: sessionId || ''
+        });
+
+        // Clean up URL query parameters without full reload
+        window.history.replaceState({}, document.title, window.location.pathname + '#/shop');
+        setActiveTab('shop');
+      } else if (checkoutStatus === 'cancel') {
+        setCheckoutNotification({
+          type: 'cancel',
+          title: 'Checkout Cancelled',
+          message: 'Your checkout was cancelled. All selected items remain safely in your cart.'
+        });
+
+        window.history.replaceState({}, document.title, window.location.pathname + '#/shop');
+        setActiveTab('shop');
+      }
+    };
+
+    handleCheckoutReturn();
   }, []);
 
   // Click Outside & Escape Key Listener for Dropdowns
@@ -559,10 +626,9 @@ export default function Dashboard({ onLogout }) {
           {/* SHOPPING CART BUTTON WITH RED NOTIFICATION BADGE */}
           <button 
             type="button" 
-            className={`dash-cart-header-btn ${activeTab === 'cart' ? 'active' : ''}`}
+            className={`dash-cart-header-btn ${isCartDrawerOpen ? 'active' : ''}`}
             onClick={() => {
-              window.location.hash = '#/cart';
-              setActiveTab('cart');
+              setIsCartDrawerOpen(prev => !prev);
             }}
             aria-label={`Shopping cart, ${cartCount} items`}
             title="Shopping Cart"
@@ -1363,8 +1429,7 @@ export default function Dashboard({ onLogout }) {
                   setActiveTab('product-details');
                 }}
                 onViewCart={() => {
-                  window.location.hash = '#/cart';
-                  setActiveTab('cart');
+                  setIsCartDrawerOpen(true);
                 }}
               />
             </PageErrorBoundary>
@@ -1385,8 +1450,7 @@ export default function Dashboard({ onLogout }) {
                   window.scrollTo({ top: 0, behavior: 'smooth' });
                 }}
                 onViewCart={() => {
-                  window.location.hash = '#/cart';
-                  setActiveTab('cart');
+                  setIsCartDrawerOpen(true);
                 }}
                 onOpenChat={({ pet, owner }) => {
                   setSelectedChatPet(pet);
@@ -1531,6 +1595,111 @@ export default function Dashboard({ onLogout }) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Slide-In Shopping Cart Drawer */}
+      <CartDrawer 
+        isOpen={isCartDrawerOpen} 
+        onClose={() => setIsCartDrawerOpen(false)} 
+        user={user} 
+        onViewProductDetails={(id) => {
+          setSelectedProductId(id);
+          window.location.hash = `#/shop/${id}`;
+          setActiveTab('product-details');
+        }} 
+      />
+
+      {/* Stripe Checkout Status Modal */}
+      {checkoutNotification && (
+        <div 
+          className="dash-modal-overlay"
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 10001,
+            backgroundColor: 'rgba(15, 23, 42, 0.45)',
+            backdropFilter: 'blur(3px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '16px'
+          }}
+          role="dialog"
+          aria-modal="true"
+        >
+          <div 
+            style={{
+              width: '100%',
+              maxWidth: '440px',
+              backgroundColor: '#FFFFFF',
+              borderRadius: '16px',
+              padding: '28px 24px',
+              boxShadow: '0 20px 40px rgba(0, 0, 0, 0.15)',
+              border: '1px solid #E2E8F0',
+              textAlign: 'center'
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px' }}>
+              {checkoutNotification.type === 'success' ? (
+                <div style={{
+                  width: '56px',
+                  height: '56px',
+                  borderRadius: '50%',
+                  backgroundColor: '#ECFDF5',
+                  border: '1px solid #A7F3D0',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#059669'
+                }}>
+                  <CheckCircle2 size={32} />
+                </div>
+              ) : (
+                <div style={{
+                  width: '56px',
+                  height: '56px',
+                  borderRadius: '50%',
+                  backgroundColor: '#FFFBEB',
+                  border: '1px solid #FDE68A',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#D97706'
+                }}>
+                  <AlertTriangle size={32} />
+                </div>
+              )}
+            </div>
+
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#1E293B', marginBottom: '8px' }}>
+              {checkoutNotification.title}
+            </h3>
+            <p style={{ fontSize: '0.88rem', color: '#64748B', lineHeight: 1.5, marginBottom: '24px' }}>
+              {checkoutNotification.message}
+            </p>
+
+            <button 
+              type="button"
+              style={{
+                width: '100%',
+                padding: '12px 18px',
+                backgroundColor: '#0066CC',
+                color: '#FFFFFF',
+                fontWeight: 600,
+                fontSize: '0.9rem',
+                borderRadius: '8px',
+                border: 'none',
+                cursor: 'pointer',
+                transition: 'background-color 0.15s ease'
+              }}
+              onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#0052A3'}
+              onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#0066CC'}
+              onClick={() => setCheckoutNotification(null)}
+            >
+              {checkoutNotification.type === 'success' ? 'Explore More Products' : 'Return to Shop'}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

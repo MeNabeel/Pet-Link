@@ -6,7 +6,7 @@ import {
 } from 'lucide-react';
 import ProductDetails from './ProductDetails';
 import AddToCartPopup from '../components/AddToCartPopup';
-import { addToCart, getCart, getCartCount, subscribeToCart } from '../utils/cartManager';
+import { addToCart, getCart, getCartCount, subscribeToCart, openCartDrawer } from '../utils/cartManager';
 import './StorePage.css';
 
 export default function StorePage({ 
@@ -106,14 +106,15 @@ export default function StorePage({
     }
   };
 
-  const handleAddToCart = (product) => {
-    const { addedItem, quantityAdded } = addToCart(product, 1, null);
+  const handleAddToCart = (product, qty = 1, variant = null) => {
+    const { addedItem, quantityAdded } = addToCart(product, qty, variant);
     setLastAddedItem({
       product: addedItem || product,
-      quantity: quantityAdded || 1,
-      variant: null
+      quantity: quantityAdded || qty,
+      variant: variant
     });
-    setIsPopupOpen(true);
+    // Open the slide-in cart drawer immediately
+    openCartDrawer();
   };
 
   const handleOpenProduct = (id) => {
@@ -245,7 +246,10 @@ export default function StorePage({
         </div>
         <div 
           className="cart-preview-summary clickable"
-          onClick={() => onViewCart && onViewCart()}
+          onClick={() => {
+            openCartDrawer();
+            if (onViewCart) onViewCart();
+          }}
           role="button"
           tabIndex={0}
           title="View Shopping Cart"
@@ -336,14 +340,15 @@ export default function StorePage({
               
               <div className="products-responsive-grid">
                 {filteredProducts.map(prod => (
-                  <div key={prod._id} className="store-product-card hover-lift">
+                  <div 
+                    key={prod._id} 
+                    className="store-product-card hover-lift"
+                    onClick={() => handleOpenProduct(prod._id)}
+                    style={{ cursor: 'pointer' }}
+                  >
                     
                     {/* Image & Badges wrapper */}
-                    <div 
-                      className="card-media-wrapper"
-                      onClick={() => handleOpenProduct(prod._id)}
-                      style={{ cursor: 'pointer' }}
-                    >
+                    <div className="card-media-wrapper">
                       {prod.images && prod.images.length > 0 ? (
                         <img src={prod.images[0]} alt={prod.name} className="card-main-image" />
                       ) : (
@@ -380,11 +385,7 @@ export default function StorePage({
                     {/* Metadata body */}
                     <div className="card-meta-body">
                       {prod.brand && <span className="card-brand-label">{prod.brand}</span>}
-                      <h4 
-                        className="card-prod-title" 
-                        onClick={() => handleOpenProduct(prod._id)}
-                        style={{ cursor: 'pointer' }}
-                      >
+                      <h4 className="card-prod-title">
                         {prod.name}
                       </h4>
                       
@@ -417,14 +418,6 @@ export default function StorePage({
                           {prod.stockStatus || 'In Stock'}
                         </span>
                       </div>
-
-                      <button 
-                        className="card-add-to-cart-btn" 
-                        onClick={(e) => { e.stopPropagation(); handleAddToCart(prod); }}
-                      >
-                        <ShoppingCart size={12} style={{ marginRight: '6px' }} />
-                        Add to Cart
-                      </button>
                     </div>
 
                   </div>

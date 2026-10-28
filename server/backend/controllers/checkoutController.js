@@ -4,12 +4,61 @@ const jwt = require('jsonwebtoken');
 
 dotenv.config();
 
-const connectionString = process.env.DIRECT_URL || process.env.DATABASE_URL;
-const isSupabaseOrProd = process.env.NODE_ENV === 'production' || (connectionString && (connectionString.includes('supabase') || connectionString.includes('pooler.supabase.com')));
-const pool = new Pool({
-  connectionString,
-  ssl: isSupabaseOrProd ? { rejectUnauthorized: false } : false
-});
+// Reuse database pool from init.js to avoid connection leaks
+let pool;
+try {
+  const initModule = require('../database/supabase/init');
+  pool = initModule.pool;
+} catch {
+  // Fallback if initModule not available
+}
+
+if (!pool) {
+  const connectionString = process.env.DIRECT_URL || process.env.DATABASE_URL;
+  const isSupabaseOrProd = process.env.NODE_ENV === 'production' || (connectionString && (connectionString.includes('supabase') || connectionString.includes('pooler.supabase.com')));
+  pool = new Pool({
+    connectionString,
+    ssl: isSupabaseOrProd ? { rejectUnauthorized: false } : false
+  });
+}
+
+// Track whether orders table has been verified in current process
+let isOrdersTableEnsured = false;
+
+/**
+ * Ensures the orders table and its indexes exist in PostgreSQL/Supabase.
+ * Self-healing and idempotent.
+ */
+const ensureOrdersTable = async () => {
+  if (isOrdersTableEnsured) return;
+  try {
+    if (!pool) return;
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS orders (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        "userId" TEXT,
+        items JSONB NOT NULL DEFAULT '[]',
+        amount NUMERIC(10, 2) NOT NULL DEFAULT 0,
+        currency VARCHAR(10) DEFAULT 'PKR',
+        status VARCHAR(50) DEFAULT 'pending',
+        "paymentMethod" VARCHAR(50) DEFAULT 'stripe',
+        "stripeSessionId" TEXT UNIQUE,
+        "stripePaymentIntentId" TEXT,
+        "shippingAddress" JSONB DEFAULT '{}',
+        "customerEmail" VARCHAR(255) DEFAULT '',
+        "customerName" VARCHAR(255) DEFAULT '',
+        "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+        "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+      );
+    `);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_orders_user ON orders("userId");`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_orders_stripe_session ON orders("stripeSessionId");`);
+    isOrdersTableEnsured = true;
+    console.log('[checkoutController] Orders table verified/created in database.');
+  } catch (err) {
+    console.warn('[checkoutController] ensureOrdersTable warning:', err.message);
+  }
+};
 
 // Helper to extract authenticated user ID from headers or token safely
 const extractUserId = (req) => {
@@ -32,9 +81,9 @@ const extractUserId = (req) => {
 // Initialize Stripe instance lazily
 const getStripe = () => {
   const secretKey = process.env.STRIPE_SECRET_KEY;
-  if (!secretKey) return null;
+  if (!secretKey || secretKey.trim() === '') return null;
   const Stripe = require('stripe');
-  return new Stripe(secretKey);
+  return new Stripe(secretKey.trim());
 };
 
 /**
@@ -44,6 +93,9 @@ const getStripe = () => {
  */
 exports.createCheckoutSession = async (req, res) => {
   try {
+    // 1. Ensure table exists in database
+    await ensureOrdersTable();
+
     const userId = extractUserId(req);
     const { items, customerEmail, customerName, shippingAddress, successUrl, cancelUrl } = req.body;
 
@@ -57,9 +109,11 @@ exports.createCheckoutSession = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Invalid product identifiers in items.' });
     }
 
-    // Fetch authoritative product records from the database
-    // Handle both Prisma and raw pg Pool
+    // 2. Fetch authoritative product records from the database
+    // Resilient lookup: Prisma (Postgres) -> raw pg pool -> MongoDB model
     let dbProducts = [];
+
+    // Attempt Prisma
     try {
       const { prisma } = require('../database/supabase/client');
       if (prisma && prisma.product) {
@@ -69,28 +123,59 @@ exports.createCheckoutSession = async (req, res) => {
           }
         });
       }
-    } catch {
-      // Fallback to direct pg pool query
-      const placeholders = productIds.map((_, i) => `$${i + 1}`).join(',');
-      const queryResult = await pool.query(
-        `SELECT id, name, brand, "regularPrice", "salePrice", price, "stockQuantity", status, images 
-         FROM products WHERE id IN (${placeholders})`,
-        productIds
-      );
-      dbProducts = queryResult.rows;
+    } catch (prismaErr) {
+      console.warn('[checkoutController] Prisma lookup warning:', prismaErr.message);
+    }
+
+    // Attempt direct pg pool if Prisma returned no records
+    if (dbProducts.length === 0 && pool) {
+      try {
+        const placeholders = productIds.map((_, i) => `$${i + 1}`).join(',');
+        const queryResult = await pool.query(
+          `SELECT id, name, brand, "regularPrice", "salePrice", price, "stockQuantity", status, images 
+           FROM products WHERE id IN (${placeholders})`,
+          productIds
+        );
+        dbProducts = queryResult.rows;
+      } catch (pgErr) {
+        console.warn('[checkoutController] Raw PG lookup warning:', pgErr.message);
+      }
+    }
+
+    // Attempt MongoDB if still empty (for hybrid environments)
+    if (dbProducts.length === 0) {
+      try {
+        const ProductMongo = require('../models/Product');
+        if (ProductMongo) {
+          const mongoProds = await ProductMongo.find({ _id: { $in: productIds } });
+          dbProducts = mongoProds.map(p => ({
+            id: p._id.toString(),
+            name: p.name,
+            brand: p.brand || '',
+            regularPrice: p.regularPrice,
+            salePrice: p.salePrice,
+            price: p.price,
+            stockQuantity: p.stockQuantity,
+            status: p.status,
+            images: p.images || []
+          }));
+        }
+      } catch (mongoErr) {
+        console.warn('[checkoutController] MongoDB lookup warning:', mongoErr.message);
+      }
     }
 
     const productMap = new Map();
     dbProducts.forEach(p => {
-      productMap.set(p.id, p);
+      productMap.set(p.id?.toString(), p);
     });
 
-    // Authoritative calculation and validation
+    // 3. Authoritative calculation and validation
     const validatedItems = [];
     let totalAmount = 0;
 
     for (const item of items) {
-      const pid = item.productId || item._id || item.id;
+      const pid = (item.productId || item._id || item.id)?.toString();
       const dbProd = productMap.get(pid);
 
       if (!dbProd) {
@@ -138,10 +223,11 @@ exports.createCheckoutSession = async (req, res) => {
       const itemTotal = unitPrice * qty;
       totalAmount += itemTotal;
 
+      // Only pass public HTTP/HTTPS images to Stripe; never base64 data URLs
       let imageUrl = null;
       if (Array.isArray(dbProd.images) && dbProd.images.length > 0) {
         const first = dbProd.images[0];
-        if (typeof first === 'string' && first.startsWith('http')) {
+        if (typeof first === 'string' && /^https?:\/\//i.test(first) && first.length < 2000) {
           imageUrl = first;
         }
       }
@@ -159,36 +245,44 @@ exports.createCheckoutSession = async (req, res) => {
       });
     }
 
+    // 4. Verify Stripe Configuration
     const stripe = getStripe();
     if (!stripe) {
-      // Save pending order in database for record keeping
-      const orderInsert = await pool.query(
-        `INSERT INTO orders ("userId", items, amount, currency, status, "paymentMethod", "shippingAddress", "customerEmail", "customerName")
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-         RETURNING id, status, amount, "createdAt"`,
-        [
-          userId,
-          JSON.stringify(validatedItems),
-          totalAmount,
-          'PKR',
-          'pending_payment',
-          'stripe',
-          JSON.stringify(shippingAddress || {}),
-          customerEmail || '',
-          customerName || ''
-        ]
-      );
+      let savedOrderId = null;
+      try {
+        if (pool) {
+          const orderInsert = await pool.query(
+            `INSERT INTO orders ("userId", items, amount, currency, status, "paymentMethod", "shippingAddress", "customerEmail", "customerName")
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+             RETURNING id`,
+            [
+              userId,
+              JSON.stringify(validatedItems),
+              totalAmount,
+              'PKR',
+              'pending_payment',
+              'stripe',
+              JSON.stringify(shippingAddress || {}),
+              (customerEmail || '').trim(),
+              (customerName || '').trim()
+            ]
+          );
+          savedOrderId = orderInsert.rows[0]?.id;
+        }
+      } catch (orderErr) {
+        console.warn('[checkoutController] Could not record unconfigured order:', orderErr.message);
+      }
 
       return res.status(503).json({
         success: false,
         configured: false,
-        orderId: orderInsert.rows[0]?.id,
-        message: 'Stripe payment gateway is not yet configured on the server. Please set STRIPE_SECRET_KEY.'
+        orderId: savedOrderId,
+        message: 'Stripe Sandbox secret key is not configured in Render environment variables. Please set STRIPE_SECRET_KEY=sk_test_... in Render dashboard.'
       });
     }
 
-    // Prepare line items for Stripe Checkout Session
-    // Stripe PKR unit_amount is in minor units (paisa: 1 PKR = 100 paisa)
+    // 5. Prepare Line Items for Stripe Checkout
+    // Currency: PKR (Pakistani Rupee). In Stripe, PKR unit_amount is in paisa (1 PKR = 100 paisa)
     const lineItems = validatedItems.map(it => {
       const description = it.selectedVariant ? `Variant: ${it.selectedVariant}` : (it.brand ? `Brand: ${it.brand}` : undefined);
       return {
@@ -209,53 +303,87 @@ exports.createCheckoutSession = async (req, res) => {
     const finalSuccessUrl = successUrl || `${fallbackOrigin}/#/shop?checkout=success&session_id={CHECKOUT_SESSION_ID}`;
     const finalCancelUrl = cancelUrl || `${fallbackOrigin}/#/shop?checkout=cancel`;
 
-    // Create Stripe Checkout Session
-    const session = await stripe.checkout.sessions.create({
-      payment_method_types: ['card'],
-      line_items: lineItems,
-      mode: 'payment',
-      customer_email: customerEmail || undefined,
-      client_reference_id: userId || undefined,
-      metadata: {
-        userId: userId || 'guest',
-        itemCount: validatedItems.length.toString(),
-        totalAmount: totalAmount.toString(),
-        productIds: productIds.slice(0, 10).join(',')
-      },
-      success_url: finalSuccessUrl,
-      cancel_url: finalCancelUrl
-    });
+    // 6. Create Stripe Checkout Session
+    let session;
+    try {
+      const sessionParams = {
+        payment_method_types: ['card'],
+        line_items: lineItems,
+        mode: 'payment',
+        metadata: {
+          userId: userId || 'guest',
+          itemCount: validatedItems.length.toString(),
+          totalAmount: totalAmount.toString(),
+          productIds: productIds.slice(0, 10).join(',')
+        },
+        success_url: finalSuccessUrl,
+        cancel_url: finalCancelUrl
+      };
 
-    // Record order in PostgreSQL
-    const orderInsert = await pool.query(
-      `INSERT INTO orders ("userId", items, amount, currency, status, "paymentMethod", "stripeSessionId", "shippingAddress", "customerEmail", "customerName")
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-       RETURNING id, status, amount, "stripeSessionId", "createdAt"`,
-      [
-        userId,
-        JSON.stringify(validatedItems),
-        totalAmount,
-        'PKR',
-        'pending',
-        'stripe',
-        session.id,
-        JSON.stringify(shippingAddress || {}),
-        customerEmail || '',
-        customerName || ''
-      ]
-    );
+      if (customerEmail && typeof customerEmail === 'string' && customerEmail.includes('@')) {
+        sessionParams.customer_email = customerEmail.trim();
+      }
+      if (userId) {
+        sessionParams.client_reference_id = userId.toString();
+      }
+
+      session = await stripe.checkout.sessions.create(sessionParams);
+    } catch (stripeErr) {
+      console.error('[Stripe Checkout Error]:', stripeErr.type, stripeErr.code, stripeErr.message);
+
+      const isCurrencyError = stripeErr.message && (
+        stripeErr.message.toLowerCase().includes('currency') || 
+        stripeErr.message.toLowerCase().includes('pkr')
+      );
+
+      return res.status(400).json({
+        success: false,
+        stripeError: true,
+        code: stripeErr.code || stripeErr.type || 'stripe_error',
+        message: isCurrencyError 
+          ? `Stripe account error: ${stripeErr.message}. If testing in sandbox with an international test account that restricts PKR, please ensure PKR multi-currency presentment is enabled on your Stripe test dashboard.`
+          : stripeErr.message || 'Failed to create Stripe Checkout session.'
+      });
+    }
+
+    // 7. Record Order in Database (Non-blocking on failure)
+    let orderId = null;
+    try {
+      if (pool) {
+        const orderInsert = await pool.query(
+          `INSERT INTO orders ("userId", items, amount, currency, status, "paymentMethod", "stripeSessionId", "shippingAddress", "customerEmail", "customerName")
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+           RETURNING id`,
+          [
+            userId,
+            JSON.stringify(validatedItems),
+            totalAmount,
+            'PKR',
+            'pending',
+            'stripe',
+            session.id,
+            JSON.stringify(shippingAddress || {}),
+            (customerEmail || '').trim(),
+            (customerName || '').trim()
+          ]
+        );
+        orderId = orderInsert.rows[0]?.id;
+      }
+    } catch (dbOrderErr) {
+      console.warn('[checkoutController] Could not record pending order in DB:', dbOrderErr.message);
+    }
 
     return res.status(200).json({
       success: true,
       url: session.url,
       sessionId: session.id,
-      orderId: orderInsert.rows[0]?.id
+      orderId: orderId
     });
   } catch (error) {
-    console.error('Error creating Stripe checkout session:', error);
+    console.error('[checkoutController] Unexpected error in createCheckoutSession:', error);
     return res.status(500).json({
       success: false,
-      message: error.message || 'Failed to initialize checkout session.'
+      message: error.message || 'Unexpected server error while initializing checkout session.'
     });
   }
 };
@@ -271,7 +399,7 @@ exports.handleWebhook = async (req, res) => {
   const stripe = getStripe();
 
   if (!stripe || !webhookSecret) {
-    console.warn('Stripe webhook received but STRIPE_WEBHOOK_SECRET or STRIPE_SECRET_KEY is missing.');
+    console.warn('[checkoutController] Stripe webhook received but STRIPE_WEBHOOK_SECRET or STRIPE_SECRET_KEY is missing.');
     return res.status(200).json({ received: true, note: 'Webhook secret not configured' });
   }
 
@@ -280,51 +408,55 @@ exports.handleWebhook = async (req, res) => {
     const rawBody = req.rawBody || req.body;
     event = stripe.webhooks.constructEvent(rawBody, sig, webhookSecret);
   } catch (err) {
-    console.error('Webhook signature verification failed:', err.message);
+    console.error('[checkoutController] Webhook signature verification failed:', err.message);
     return res.status(400).send(`Webhook Error: ${err.message}`);
   }
 
   try {
+    await ensureOrdersTable();
+
     if (event.type === 'checkout.session.completed') {
       const session = event.data.object;
       const stripeSessionId = session.id;
       const paymentIntentId = session.payment_intent;
 
-      // Find and update the order
-      const orderQuery = await pool.query(
-        `SELECT id, items, status FROM orders WHERE "stripeSessionId" = $1`,
-        [stripeSessionId]
-      );
+      if (pool) {
+        // Find and update the order
+        const orderQuery = await pool.query(
+          `SELECT id, items, status FROM orders WHERE "stripeSessionId" = $1`,
+          [stripeSessionId]
+        );
 
-      if (orderQuery.rows.length > 0) {
-        const order = orderQuery.rows[0];
+        if (orderQuery.rows.length > 0) {
+          const order = orderQuery.rows[0];
 
-        if (order.status !== 'paid') {
-          await pool.query(
-            `UPDATE orders 
-             SET status = 'paid', "stripePaymentIntentId" = $1, "updatedAt" = NOW()
-             WHERE id = $2`,
-            [paymentIntentId, order.id]
-          );
+          if (order.status !== 'paid') {
+            await pool.query(
+              `UPDATE orders 
+               SET status = 'paid', "stripePaymentIntentId" = $1, "updatedAt" = NOW()
+               WHERE id = $2`,
+              [paymentIntentId, order.id]
+            );
 
-          // Decrement product inventory safely
-          try {
-            const items = typeof order.items === 'string' ? JSON.parse(order.items) : order.items;
-            if (Array.isArray(items)) {
-              for (const it of items) {
-                if (it.productId && it.quantity) {
-                  await pool.query(
-                    `UPDATE products 
-                     SET "stockQuantity" = GREATEST(0, "stockQuantity" - $1),
-                         "updatedAt" = NOW()
-                     WHERE id = $2`,
-                    [it.quantity, it.productId]
-                  );
+            // Decrement product inventory safely
+            try {
+              const items = typeof order.items === 'string' ? JSON.parse(order.items) : order.items;
+              if (Array.isArray(items)) {
+                for (const it of items) {
+                  if (it.productId && it.quantity) {
+                    await pool.query(
+                      `UPDATE products 
+                       SET "stockQuantity" = GREATEST(0, "stockQuantity" - $1),
+                           "updatedAt" = NOW()
+                       WHERE id = $2`,
+                      [it.quantity, it.productId]
+                    );
+                  }
                 }
               }
+            } catch (invErr) {
+              console.error('[checkoutController] Error decrementing inventory post-checkout:', invErr);
             }
-          } catch (invErr) {
-            console.error('Error decrementing inventory post-checkout:', invErr);
           }
         }
       }
@@ -332,7 +464,7 @@ exports.handleWebhook = async (req, res) => {
 
     return res.status(200).json({ received: true });
   } catch (error) {
-    console.error('Error processing Stripe webhook:', error);
+    console.error('[checkoutController] Error processing Stripe webhook:', error);
     return res.status(500).json({ error: error.message });
   }
 };
@@ -347,6 +479,12 @@ exports.getOrderStatus = async (req, res) => {
     const { identifier } = req.params;
     if (!identifier) {
       return res.status(400).json({ success: false, message: 'Identifier is required.' });
+    }
+
+    await ensureOrdersTable();
+
+    if (!pool) {
+      return res.status(503).json({ success: false, message: 'Database connection unavailable.' });
     }
 
     const orderQuery = await pool.query(
@@ -371,8 +509,7 @@ exports.getOrderStatus = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Error getting order status:', error);
+    console.error('[checkoutController] Error getting order status:', error);
     return res.status(500).json({ success: false, message: error.message });
   }
 };
-

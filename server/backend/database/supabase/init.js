@@ -525,26 +525,31 @@ const initDB = async () => {
     // ----------------------------------------------------
     // STORE ORDERS TABLE FOR STRIPE CHECKOUT
     // ----------------------------------------------------
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS orders (
-        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        "userId" TEXT,
-        items JSONB NOT NULL DEFAULT '[]',
-        amount NUMERIC(10, 2) NOT NULL DEFAULT 0,
-        currency VARCHAR(10) DEFAULT 'PKR',
-        status VARCHAR(50) DEFAULT 'pending',
-        "paymentMethod" VARCHAR(50) DEFAULT 'stripe',
-        "stripeSessionId" TEXT UNIQUE,
-        "stripePaymentIntentId" TEXT,
-        "shippingAddress" JSONB DEFAULT '{}',
-        "customerEmail" VARCHAR(255) DEFAULT '',
-        "customerName" VARCHAR(255) DEFAULT '',
-        "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-        "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-      );
-    `);
-    await pool.query(`CREATE INDEX IF NOT EXISTS idx_orders_user ON orders("userId");`);
-    await pool.query(`CREATE INDEX IF NOT EXISTS idx_orders_stripe_session ON orders("stripeSessionId");`);
+    try {
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS orders (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          "userId" TEXT,
+          items JSONB NOT NULL DEFAULT '[]',
+          amount NUMERIC(10, 2) NOT NULL DEFAULT 0,
+          currency VARCHAR(10) DEFAULT 'PKR',
+          status VARCHAR(50) DEFAULT 'pending',
+          "paymentMethod" VARCHAR(50) DEFAULT 'stripe',
+          "stripeSessionId" TEXT UNIQUE,
+          "stripePaymentIntentId" TEXT,
+          "shippingAddress" JSONB DEFAULT '{}',
+          "customerEmail" VARCHAR(255) DEFAULT '',
+          "customerName" VARCHAR(255) DEFAULT '',
+          "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+          "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+        );
+      `);
+      await pool.query(`CREATE INDEX IF NOT EXISTS idx_orders_user ON orders("userId");`);
+      await pool.query(`CREATE INDEX IF NOT EXISTS idx_orders_stripe_session ON orders("stripeSessionId");`);
+      console.log('Orders table verified in initDB.');
+    } catch (orderInitErr) {
+      console.warn('Warning creating orders table in initDB:', orderInitErr.message);
+    }
 
     console.log('All PostgreSQL tables and lookup functions checked.');
   } catch (err) {

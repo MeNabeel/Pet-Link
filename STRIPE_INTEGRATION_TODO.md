@@ -80,3 +80,4 @@ These parameters were configured in Checkout Studio and are already set correctl
   - Support: https://support.stripe.com
   - Documentation: https://docs.stripe.com
   - Stripe MCP: https://docs.stripe.com/mcp
+

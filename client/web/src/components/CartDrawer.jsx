@@ -1,25 +1,25 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { 
-  X, ShoppingCart, Trash2, Plus, Minus, Check, ArrowRight, ArrowLeft, ShieldCheck, 
-  Package, AlertCircle, Loader2, Sparkles, ExternalLink 
+import {
+  X, ShoppingCart, Trash2, Plus, Minus, Check, ArrowRight, ArrowLeft, ShieldCheck,
+  Package, AlertCircle, Loader2, Sparkles, ExternalLink
 } from 'lucide-react';
 import API_URL from '@/config';
-import { 
-  getCart, 
-  updateCartQuantity, 
-  removeFromCart, 
-  clearCart, 
-  subscribeToCart, 
+import {
+  getCart,
+  updateCartQuantity,
+  removeFromCart,
+  clearCart,
+  subscribeToCart,
   closeCartDrawer,
   getCartCount
 } from '../utils/cartManager';
 import './CartDrawer.css';
 
-export default function CartDrawer({ 
-  isOpen, 
-  onClose, 
-  user, 
-  onViewProductDetails 
+export default function CartDrawer({
+  isOpen,
+  onClose,
+  user,
+  onViewProductDetails
 }) {
   const [cartItems, setCartItems] = useState(() => getCart());
   const [selectedIds, setSelectedIds] = useState(new Set());
@@ -247,7 +247,7 @@ export default function CartDrawer({
       if (formInstance && typeof formInstance.unmount === 'function') {
         try {
           formInstance.unmount();
-        } catch {}
+        } catch { }
       }
     };
   }, [showEmbeddedCheckout]);
@@ -269,9 +269,9 @@ export default function CartDrawer({
   return (
     <div className="cart-drawer-root">
       {/* Backdrop */}
-      <div 
-        className="cart-drawer-backdrop" 
-        onClick={handleClose} 
+      <div
+        className="cart-drawer-backdrop"
+        onClick={handleClose}
         aria-label="Close cart drawer"
       />
 
@@ -286,9 +286,9 @@ export default function CartDrawer({
               {totalUnits} {totalUnits === 1 ? 'item' : 'items'}
             </span>
           </div>
-          <button 
-            type="button" 
-            className="cart-drawer-close-btn" 
+          <button
+            type="button"
+            className="cart-drawer-close-btn"
             onClick={handleClose}
             aria-label="Close cart drawer"
           >
@@ -303,9 +303,9 @@ export default function CartDrawer({
             <div className="cart-drawer-error-text">
               <span>{errorMessage}</span>
             </div>
-            <button 
-              type="button" 
-              className="cart-drawer-error-dismiss" 
+            <button
+              type="button"
+              className="cart-drawer-error-dismiss"
               onClick={() => setErrorMessage(null)}
               aria-label="Dismiss error"
             >
@@ -318,8 +318,8 @@ export default function CartDrawer({
         {showEmbeddedCheckout ? (
           <div className="cart-drawer-checkout-section" style={{ display: 'flex', flexDirection: 'column', flex: 1, overflowY: 'auto', padding: '16px' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', borderBottom: '1px solid #E2E8F0', paddingBottom: '12px' }}>
-              <button 
-                type="button" 
+              <button
+                type="button"
                 onClick={() => {
                   setShowEmbeddedCheckout(false);
                   setIsCheckingOut(false);
@@ -350,8 +350,8 @@ export default function CartDrawer({
             </div>
             <h3>Your cart is empty</h3>
             <p>Explore our pet products store to find wholesome food, toys, and healthcare supplies for your companion.</p>
-            <button 
-              type="button" 
+            <button
+              type="button"
               className="cart-drawer-browse-btn"
               onClick={() => {
                 handleClose();
@@ -366,8 +366,8 @@ export default function CartDrawer({
             {/* Selection Toolbar */}
             <div className="cart-drawer-toolbar">
               <label className="cart-drawer-select-all-label">
-                <input 
-                  type="checkbox" 
+                <input
+                  type="checkbox"
                   className="cart-drawer-checkbox"
                   checked={isAllSelected}
                   onChange={handleToggleSelectAll}
@@ -388,19 +388,19 @@ export default function CartDrawer({
                 const price = Number(item.salePrice || item.regularPrice || item.price || 0);
                 const qty = Math.max(1, Number(item.selectedQuantity || item.quantity || 1));
                 const itemTotal = price * qty;
-                const imageSrc = Array.isArray(item.images) && item.images.length > 0 
-                  ? item.images[0] 
+                const imageSrc = Array.isArray(item.images) && item.images.length > 0
+                  ? item.images[0]
                   : (item.image || null);
 
                 return (
-                  <div 
-                    key={key} 
+                  <div
+                    key={key}
                     className={`cart-drawer-item-row ${isSelected ? 'selected' : ''}`}
                   >
                     {/* Item checkbox */}
                     <div className="cart-drawer-item-check">
-                      <input 
-                        type="checkbox" 
+                      <input
+                        type="checkbox"
                         className="cart-drawer-checkbox"
                         checked={isSelected}
                         onChange={() => handleToggleItem(key)}
@@ -409,8 +409,8 @@ export default function CartDrawer({
                     </div>
 
                     {/* Thumbnail */}
-                    <div 
-                      className="cart-drawer-item-thumb" 
+                    <div
+                      className="cart-drawer-item-thumb"
                       onClick={() => handleOpenProduct(item._id || item.id)}
                       title="View product details"
                     >
@@ -426,15 +426,15 @@ export default function CartDrawer({
                     {/* Metadata & Controls */}
                     <div className="cart-drawer-item-info">
                       <div className="cart-drawer-item-head">
-                        <span 
-                          className="cart-drawer-item-name" 
+                        <span
+                          className="cart-drawer-item-name"
                           onClick={() => handleOpenProduct(item._id || item.id)}
                           title="View product details"
                         >
                           {item.name}
                         </span>
-                        <button 
-                          type="button" 
+                        <button
+                          type="button"
                           className="cart-drawer-item-delete"
                           onClick={() => handleRemove(key)}
                           title="Remove item"
@@ -469,8 +469,8 @@ export default function CartDrawer({
 
                         {/* Quantity Counter */}
                         <div className="cart-drawer-qty-group">
-                          <button 
-                            type="button" 
+                          <button
+                            type="button"
                             className="cart-drawer-qty-btn"
                             disabled={qty <= 1}
                             onClick={() => handleQuantityChange(key, qty, -1)}
@@ -479,8 +479,8 @@ export default function CartDrawer({
                             <Minus size={13} />
                           </button>
                           <span className="cart-drawer-qty-value">{qty}</span>
-                          <button 
-                            type="button" 
+                          <button
+                            type="button"
                             className="cart-drawer-qty-btn"
                             onClick={() => handleQuantityChange(key, qty, 1)}
                             aria-label="Increase quantity"
@@ -515,8 +515,8 @@ export default function CartDrawer({
               </div>
 
               {/* Checkout Action Button */}
-              <button 
-                type="button" 
+              <button
+                type="button"
                 className="cart-drawer-checkout-btn"
                 disabled={selectedItems.length === 0 || isCheckingOut}
                 onClick={handleProceedToCheckout}
@@ -536,8 +536,8 @@ export default function CartDrawer({
               </button>
 
               <div className="cart-drawer-footer-actions">
-                <button 
-                  type="button" 
+                <button
+                  type="button"
                   className="cart-drawer-continue-btn"
                   onClick={handleClose}
                 >

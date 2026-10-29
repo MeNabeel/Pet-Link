@@ -325,7 +325,7 @@ exports.createCheckoutSession = async (req, res) => {
       console.error('[Stripe Checkout Error]:', stripeErr.type, stripeErr.code, stripeErr.message);
 
       const isCurrencyError = stripeErr.message && (
-        stripeErr.message.toLowerCase().includes('currency') || 
+        stripeErr.message.toLowerCase().includes('currency') ||
         stripeErr.message.toLowerCase().includes('pkr')
       );
 
@@ -333,7 +333,7 @@ exports.createCheckoutSession = async (req, res) => {
         success: false,
         stripeError: true,
         code: stripeErr.code || stripeErr.type || 'stripe_error',
-        message: isCurrencyError 
+        message: isCurrencyError
           ? `Stripe account error: ${stripeErr.message}. If testing in sandbox with an international test account that restricts PKR, please ensure PKR multi-currency presentment is enabled on your Stripe test dashboard.`
           : stripeErr.message || 'Failed to create Stripe Checkout session.'
       });

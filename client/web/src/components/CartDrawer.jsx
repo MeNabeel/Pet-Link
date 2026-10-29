@@ -218,13 +218,18 @@ export default function CartDrawer({
           form.mount('#checkout-form');
           setIsSdkLoading(false);
 
+          const returnUrl = `${window.location.origin}/#/shop?checkout=success`;
           const loadActionsResult = await checkout.loadActions();
           if (loadActionsResult.type === 'success' && !isCancelled) {
             form.on('confirm', async (event) => {
               try {
-                await loadActionsResult.actions.confirm({ formConfirmEvent: event });
+                await loadActionsResult.actions.confirm({ 
+                  formConfirmEvent: event,
+                  returnUrl 
+                });
               } catch (error) {
                 console.error('Payment confirmation error:', error);
+                setErrorMessage(error.message || 'Payment confirmation failed.');
               }
             });
           }

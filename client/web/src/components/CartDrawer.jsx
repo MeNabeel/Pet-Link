@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { 
-  X, ShoppingCart, Trash2, Plus, Minus, Check, ArrowRight, ShieldCheck, 
+  X, ShoppingCart, Trash2, Plus, Minus, Check, ArrowRight, ArrowLeft, ShieldCheck, 
   Package, AlertCircle, Loader2, Sparkles, ExternalLink 
 } from 'lucide-react';
 import API_URL from '@/config';
@@ -25,6 +25,8 @@ export default function CartDrawer({
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [isCheckingOut, setIsCheckingOut] = useState(false);
   const [errorMessage, setErrorMessage] = useState(null);
+  const [showEmbeddedCheckout, setShowEmbeddedCheckout] = useState(false);
+  const [isSdkLoading, setIsSdkLoading] = useState(false);
 
   // Sync with live cart changes
   useEffect(() => {
@@ -66,6 +68,8 @@ export default function CartDrawer({
 
   const handleClose = () => {
     setErrorMessage(null);
+    setShowEmbeddedCheckout(false);
+    setIsCheckingOut(false);
     if (onClose) {
       onClose();
     } else {
@@ -124,66 +128,129 @@ export default function CartDrawer({
     }, 0);
   }, [selectedItems]);
 
-  // Initiate Stripe Checkout flow for selected items only
-  const handleProceedToCheckout = async () => {
+  // Handle proceeding to embedded checkout
+  const handleProceedToCheckout = () => {
     if (selectedItems.length === 0) return;
     setErrorMessage(null);
     setIsCheckingOut(true);
-
-    try {
-      const payloadItems = selectedItems.map(item => ({
-        productId: item._id || item.id,
-        cartItemId: item.cartItemId || `${item._id || item.id}-${item.selectedVariant || 'default'}`,
-        name: item.name,
-        quantity: Math.max(1, Number(item.selectedQuantity || item.quantity || 1)),
-        selectedVariant: typeof item.selectedVariant === 'string' ? item.selectedVariant : item.selectedVariant?.name || null
-      }));
-
-      // Store selected cartItemIds in sessionStorage so after Stripe redirect back, only these are cleared
-      const selectedItemKeys = selectedItems.map(item => item.cartItemId || item._id || item.id);
-      sessionStorage.setItem('petlink_pending_checkout_items', JSON.stringify(selectedItemKeys));
-
-      const authHeaders = {
-        'Content-Type': 'application/json'
-      };
-      const token = localStorage.getItem('token') || localStorage.getItem('authToken');
-      if (token) {
-        authHeaders['Authorization'] = `Bearer ${token}`;
-      }
-      const userId = user?._id || user?.id || localStorage.getItem('userId');
-      if (userId) {
-        authHeaders['x-requester-id'] = userId;
-      }
-
-      const returnOrigin = window.location.origin;
-      const response = await fetch(`${API_URL}/api/checkout/create-session`, {
-        method: 'POST',
-        headers: authHeaders,
-        body: JSON.stringify({
-          items: payloadItems,
-          customerEmail: user?.email || '',
-          customerName: user?.name || '',
-          successUrl: `${returnOrigin}/#/shop?checkout=success&session_id={CHECKOUT_SESSION_ID}`,
-          cancelUrl: `${returnOrigin}/#/shop?checkout=cancel`
-        })
-      });
-
-      const data = await response.json();
-
-      if (response.ok && data.success && data.url) {
-        // Redirect directly to Stripe Checkout hosted page
-        window.location.href = data.url;
-      } else {
-        setIsCheckingOut(false);
-        const msg = data.message || 'Unable to initiate Stripe checkout. Please try again or contact support.';
-        setErrorMessage(msg);
-      }
-    } catch (err) {
-      console.error('Checkout error:', err);
-      setIsCheckingOut(false);
-      setErrorMessage(err.message || 'Connection error while communicating with checkout server.');
-    }
+    setShowEmbeddedCheckout(true);
   };
+
+  // Mount Stripe Dahlia Embedded Form when entering embedded checkout
+  useEffect(() => {
+    if (!showEmbeddedCheckout) return;
+
+    let isCancelled = false;
+    let formInstance = null;
+
+    const setupCheckoutForm = async () => {
+      setIsSdkLoading(true);
+      try {
+        const payloadItems = selectedItems.map(item => ({
+          productId: item._id || item.id,
+          cartItemId: item.cartItemId || `${item._id || item.id}-${item.selectedVariant || 'default'}`,
+          name: item.name,
+          quantity: Math.max(1, Number(item.selectedQuantity || item.quantity || 1)),
+          selectedVariant: typeof item.selectedVariant === 'string' ? item.selectedVariant : item.selectedVariant?.name || null
+        }));
+
+        const selectedItemKeys = selectedItems.map(item => item.cartItemId || item._id || item.id);
+        sessionStorage.setItem('petlink_pending_checkout_items', JSON.stringify(selectedItemKeys));
+
+        const authHeaders = {
+          'Content-Type': 'application/json'
+        };
+        const token = localStorage.getItem('token') || localStorage.getItem('authToken');
+        if (token) {
+          authHeaders['Authorization'] = `Bearer ${token}`;
+        }
+        const userId = user?._id || user?.id || localStorage.getItem('userId');
+        if (userId) {
+          authHeaders['x-requester-id'] = userId;
+        }
+
+        const clientSecret = fetch(`${API_URL}/api/checkout/create-session`, {
+          method: 'POST',
+          headers: authHeaders,
+          body: JSON.stringify({
+            items: payloadItems,
+            customerEmail: user?.email || '',
+            customerName: user?.name || ''
+          })
+        })
+          .then((response) => response.json())
+          .then((json) => {
+            if (!json.client_secret) {
+              throw new Error(json.message || 'Failed to initialize payment session.');
+            }
+            return json.client_secret;
+          });
+
+        if (typeof window.Stripe !== 'function') {
+          throw new Error('Stripe.js Dahlia SDK is loading. Please refresh and try again.');
+        }
+
+        const publishableKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '';
+        const stripe = window.Stripe(publishableKey);
+
+        const appearance = {
+          "theme": "stripe",
+          "labels": "auto",
+          "inputs": "spaced",
+          "variables": {
+            "borderRadius": "4px",
+            "colorBackground": "#ffffff",
+            "colorDanger": "#df1b41",
+            "colorPrimary": "#0570de",
+            "colorSuccess": "#00c853",
+            "colorText": "#30313d",
+            "fontFamily": "default",
+            "fontSizeBase": "16px",
+            "spacingUnit": "4px"
+          }
+        };
+
+        const checkout = stripe.initCheckoutFormSdk({ clientSecret, appearance });
+        const form = checkout.createForm({ layout: 'expanded' });
+        formInstance = form;
+
+        if (!isCancelled) {
+          form.mount('#checkout-form');
+          setIsSdkLoading(false);
+
+          const loadActionsResult = await checkout.loadActions();
+          if (loadActionsResult.type === 'success' && !isCancelled) {
+            form.on('confirm', async (event) => {
+              try {
+                await loadActionsResult.actions.confirm({ formConfirmEvent: event });
+              } catch (error) {
+                console.error('Payment confirmation error:', error);
+              }
+            });
+          }
+        }
+      } catch (err) {
+        if (!isCancelled) {
+          console.error('Checkout error:', err);
+          setIsSdkLoading(false);
+          setShowEmbeddedCheckout(false);
+          setIsCheckingOut(false);
+          setErrorMessage(err.message || 'Connection error while communicating with checkout server.');
+        }
+      }
+    };
+
+    setupCheckoutForm();
+
+    return () => {
+      isCancelled = true;
+      if (formInstance && typeof formInstance.unmount === 'function') {
+        try {
+          formInstance.unmount();
+        } catch {}
+      }
+    };
+  }, [showEmbeddedCheckout]);
 
   const handleOpenProduct = (productId) => {
     if (onViewProductDetails) {
@@ -248,7 +315,35 @@ export default function CartDrawer({
         )}
 
         {/* Main Content Area */}
-        {cartItems.length === 0 ? (
+        {showEmbeddedCheckout ? (
+          <div className="cart-drawer-checkout-section" style={{ display: 'flex', flexDirection: 'column', flex: 1, overflowY: 'auto', padding: '16px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', borderBottom: '1px solid #E2E8F0', paddingBottom: '12px' }}>
+              <button 
+                type="button" 
+                onClick={() => {
+                  setShowEmbeddedCheckout(false);
+                  setIsCheckingOut(false);
+                }}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'none', border: 'none', color: '#0066CC', fontWeight: '600', cursor: 'pointer', fontSize: '14px', padding: 0 }}
+              >
+                <ArrowLeft size={16} />
+                Back to Cart
+              </button>
+              <span style={{ fontSize: '13px', color: '#64748B', fontWeight: '500' }}>
+                {selectedSubtotal.toLocaleString()} PKR ({selectedItems.length} items)
+              </span>
+            </div>
+
+            {isSdkLoading && (
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '48px 0', gap: '12px', color: '#64748B' }}>
+                <Loader2 size={24} className="cart-drawer-spinner" />
+                <span style={{ fontSize: '14px', fontWeight: '500' }}>Initializing secure payment form...</span>
+              </div>
+            )}
+
+            <div id="checkout-form" style={{ minHeight: '360px', width: '100%' }}></div>
+          </div>
+        ) : cartItems.length === 0 ? (
           <div className="cart-drawer-empty">
             <div className="cart-drawer-empty-icon-wrap">
               <ShoppingCart size={48} className="cart-drawer-empty-icon" />

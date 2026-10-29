@@ -83,7 +83,7 @@ const getStripe = () => {
   const secretKey = process.env.STRIPE_SECRET_KEY;
   if (!secretKey || secretKey.trim() === '') return null;
   const Stripe = require('stripe');
-  return new Stripe(secretKey.trim());
+  return new Stripe(secretKey.trim(), { apiVersion: '2026-03-25.dahlia' });
 };
 
 /**
@@ -299,33 +299,26 @@ exports.createCheckoutSession = async (req, res) => {
       };
     });
 
-    const fallbackOrigin = req.headers.origin || 'http://localhost:5173';
-    const finalSuccessUrl = successUrl || `${fallbackOrigin}/#/shop?checkout=success&session_id={CHECKOUT_SESSION_ID}`;
-    const finalCancelUrl = cancelUrl || `${fallbackOrigin}/#/shop?checkout=cancel`;
-
     // 6. Create Stripe Checkout Session
     let session;
     try {
       const sessionParams = {
-        payment_method_types: ['card'],
-        line_items: lineItems,
+        ui_mode: 'form',
         mode: 'payment',
-        metadata: {
-          userId: userId || 'guest',
-          itemCount: validatedItems.length.toString(),
-          totalAmount: totalAmount.toString(),
-          productIds: productIds.slice(0, 10).join(',')
+        billing_address_collection: 'required',
+        phone_number_collection: {
+          enabled: false
         },
-        success_url: finalSuccessUrl,
-        cancel_url: finalCancelUrl
+        automatic_tax: {
+          enabled: false
+        },
+        submit_type: 'auto',
+        shipping_address_collection: {
+          allowed_countries: ['PK']
+        },
+        integration_identifier: 'custom_embedded_web_0001',
+        line_items: lineItems
       };
-
-      if (customerEmail && typeof customerEmail === 'string' && customerEmail.includes('@')) {
-        sessionParams.customer_email = customerEmail.trim();
-      }
-      if (userId) {
-        sessionParams.client_reference_id = userId.toString();
-      }
 
       session = await stripe.checkout.sessions.create(sessionParams);
     } catch (stripeErr) {
@@ -375,6 +368,7 @@ exports.createCheckoutSession = async (req, res) => {
 
     return res.status(200).json({
       success: true,
+      client_secret: session.client_secret,
       url: session.url,
       sessionId: session.id,
       orderId: orderId

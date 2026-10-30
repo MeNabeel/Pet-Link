@@ -590,15 +590,66 @@
   color: #64748B;
 }
 
-/* DRAWER OVERLAY & DIALOG MODAL STYLING */
-/* CENTERED MODAL OVERLAY & DIALOG MODAL STYLING */
+/* CARD ACTION LINK & SCROLLABLE CONTENT (FOR HEALTH & DOCUMENTS TABS) */
+.pet-card-action-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: none;
+  border: 1px solid #BFDBFE;
+  background-color: #EFF6FF;
+  color: #0066CC;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 3px 8px;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.pet-card-action-link:hover {
+  background-color: #0066CC;
+  color: #FFFFFF;
+  border-color: #0066CC;
+}
+
+.pet-card-scrollable-content {
+  flex: 1;
+  overflow-y: auto;
+  max-height: 420px;
+  padding-right: 4px;
+}
+
+.pet-empty-box-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 16px;
+  text-align: center;
+  gap: 10px;
+  height: 100%;
+}
+
+.pet-documents-grid-compact {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* CENTERED GLASSMORPHISM MODAL OVERLAY */
 .pet-details-drawer-overlay,
 .pet-modal-overlay {
   position: fixed;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background-color: rgba(15, 23, 42, 0.4);
-  backdrop-filter: blur(4px);
-  z-index: 1000;
+  inset: 0;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(15, 23, 42, 0.48);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: 9999;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -609,16 +660,17 @@
 .pet-modal {
   background-color: #FFFFFF;
   width: 100%;
-  max-width: 580px;
+  max-width: 650px;
   max-height: 85vh;
   border-radius: 16px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.18);
   padding: 24px;
   display: flex;
   flex-direction: column;
   position: relative;
   border: 1px solid #E2E8F0;
   overflow: hidden;
+  margin: auto;
 }
 
 /* WIDE & COMPACT MEDICAL RECORD MODAL (NO SCROLLING ON DESKTOP) */
@@ -691,7 +743,39 @@
   flex-shrink: 0;
 }
 
+.pet-modal-header-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 14px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1.5px solid transparent;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+}
+
+.pet-modal-header-btn.teal {
+  border-color: #0D9488;
+  color: #0D9488;
+  background-color: rgba(13, 148, 136, 0.08);
+}
+
+.pet-modal-header-btn.teal:hover {
+  background-color: #0D9488;
+  color: #FFFFFF;
+  box-shadow: 0 2px 6px rgba(13, 148, 136, 0.25);
+}
+
 .pet-drawer-close-btn {
+  width: 34px;
+  height: 34px;
   background: none;
   border: none;
   cursor: pointer;
@@ -699,9 +783,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 4px;
-  border-radius: 6px;
+  border-radius: 8px;
   transition: background-color 0.2s ease;
+  flex-shrink: 0;
 }
 
 .pet-drawer-close-btn:hover {
@@ -721,26 +805,6 @@
   flex: 1;
   padding-right: 4px;
   max-height: calc(85vh - 130px);
-}
-
-.pet-modal-overlay {
-  position: fixed;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background-color: rgba(15, 23, 42, 0.4);
-  backdrop-filter: blur(4px);
-  z-index: 1000;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 16px;
-}
-
-.pet-modal {
-  background-color: #FFFFFF;
-  border-radius: 16px;
-  padding: 24px;
-  width: 100%;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
 }
 
 .pet-modal-row {
@@ -764,6 +828,11 @@
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.pet-modal-btn-cancel:hover {
+  background-color: #E2E8F0;
 }
 
 .pet-modal-btn-save {
@@ -775,4 +844,9 @@
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.pet-modal-btn-save:hover {
+  background-color: #0052A3;
 }

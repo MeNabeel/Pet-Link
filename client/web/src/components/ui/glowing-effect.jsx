@@ -95,3 +95,4 @@ export const GlowingEffect = memo(({
 GlowingEffect.displayName = "GlowingEffect";
 
 export default GlowingEffect;
+

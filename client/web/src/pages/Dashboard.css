@@ -27,6 +27,7 @@
     opacity: 0;
     transform: translateY(-6px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -226,8 +227,13 @@
 }
 
 @keyframes badgePop {
-  from { transform: scale(0.6); }
-  to { transform: scale(1); }
+  from {
+    transform: scale(0.6);
+  }
+
+  to {
+    transform: scale(1);
+  }
 }
 
 /* Notification Popover Panel */
@@ -1079,7 +1085,7 @@
   transition: box-shadow var(--transition-fast), border-color var(--transition-fast);
 }
 
-.dash-widget-card > * {
+.dash-widget-card>* {
   position: relative;
   z-index: 1;
 }
@@ -1431,7 +1437,7 @@
   .dash-metrics-grid {
     grid-template-columns: repeat(2, 1fr);
   }
-  
+
   .dash-main-grid {
     grid-template-columns: 1fr;
   }

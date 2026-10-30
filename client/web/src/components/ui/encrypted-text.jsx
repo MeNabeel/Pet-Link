@@ -106,3 +106,4 @@ const getRandomChar = (charset) => {
 };
 
 export default EncryptedText;
+

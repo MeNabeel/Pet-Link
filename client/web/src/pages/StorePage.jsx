@@ -7,6 +7,7 @@ import {
 import ProductDetails from './ProductDetails';
 import AddToCartPopup from '../components/AddToCartPopup';
 import { addToCart, getCart, getCartCount, subscribeToCart, openCartDrawer } from '../utils/cartManager';
+import { logUserActivity } from '../utils/activityTracker';
 import './StorePage.css';
 
 export default function StorePage({ 
@@ -102,6 +103,16 @@ export default function StorePage({
           localStorage.setItem('petlink_store_wishlist', JSON.stringify(updated));
           return updated;
         });
+        const targetProd = products.find(p => (p._id || p.id) === id);
+        const uid = user?._id || user?.id;
+        if (uid && targetProd) {
+          logUserActivity(uid, {
+            type: 'favorite',
+            title: 'Saved product to favorites:',
+            targetName: targetProd.name || 'Pet product',
+            timestamp: Date.now()
+          });
+        }
       }
     }
   };

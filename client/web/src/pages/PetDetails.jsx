@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import './PetDetails.css';
 import PetImage from '../components/PetImage';
+import { logUserActivity } from '../utils/activityTracker';
 
 export default function PetDetails({ user, petId, onBack, onEdit, onDeleteSuccess }) {
   const [pet, setPet] = useState(null);
@@ -121,6 +122,15 @@ export default function PetDetails({ user, petId, onBack, onEdit, onDeleteSucces
       });
 
       if (response.ok) {
+        const uid = user?._id || user?.id;
+        if (uid) {
+          logUserActivity(uid, {
+            type: 'vaccine',
+            title: `Added ${pet?.name || 'companion'}'s vaccination record:`,
+            targetName: `${vName} (${vDose || 'Dose 1'})`,
+            timestamp: Date.now()
+          });
+        }
         setVName(''); setVDose(''); setVDate(''); setVNextDate(''); setVVet(''); setVNotes('');
         setActiveDrawer(null);
         setActiveTab('health');

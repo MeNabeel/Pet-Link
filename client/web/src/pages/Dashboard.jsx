@@ -947,7 +947,7 @@ export default function Dashboard({ onLogout }) {
         </aside>
 
         {/* Content Area */}
-        <main className="dash-content fade-in">
+        <main className={`dash-content fade-in ${activeTab === 'marketplace' ? 'marketplace-mode' : ''}`}>
           {activeTab === 'overview' && (
             <>
               {/* ROW 1: REDESIGNED SOFT LIGHT-BLUE WELCOME HERO CARD (NO EMOJIS, VISIBLE SVG PET PATTERN, DIRECT START) */}

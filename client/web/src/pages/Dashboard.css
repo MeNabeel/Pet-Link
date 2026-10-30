@@ -592,6 +592,16 @@
   min-width: 0;
 }
 
+.dash-content.marketplace-mode {
+  overflow-y: hidden;
+  padding: 14px 24px;
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 67px);
+  max-height: calc(100vh - 67px);
+  box-sizing: border-box;
+}
+
 /* Welcome Hero Card (Soft Light Blue Theme #EEF5FF with Visible Pet SVG Pattern) */
 .dash-welcome-card {
   background-color: var(--color-bg-soft-blue);

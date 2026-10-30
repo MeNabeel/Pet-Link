@@ -716,6 +716,68 @@
   }
 }
 
+/* COMPACT & BALANCED VACCINE MODAL (NO SCROLLING ON ANY SCREEN) */
+.pet-details-drawer.vaccine-dialog {
+  max-width: 540px;
+  width: min(540px, calc(100vw - 32px));
+  max-height: 90vh;
+  padding: 22px 24px;
+  overflow: visible;
+}
+
+.vaccine-compact-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px 14px;
+}
+
+.vaccine-compact-grid .full-width {
+  grid-column: 1 / -1;
+}
+
+.vaccine-compact-grid .form-group {
+  margin-bottom: 0;
+}
+
+.vaccine-compact-grid .form-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #475569;
+  margin-bottom: 4px;
+  display: block;
+}
+
+.vaccine-compact-grid .login-input {
+  height: 38px;
+  font-size: 13px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 1px solid #CBD5E1;
+  background-color: #FFFFFF;
+  color: #0F172A;
+  box-sizing: border-box;
+  width: 100%;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.vaccine-compact-grid .login-input:focus {
+  border-color: #0066CC;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(0, 102, 204, 0.15);
+}
+
+.vaccine-compact-grid textarea.login-input {
+  height: 64px;
+  padding: 8px 12px;
+  resize: vertical;
+}
+
+@media (max-width: 560px) {
+  .vaccine-compact-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 .pet-drawer-header {
   display: flex;
   justify-content: space-between;

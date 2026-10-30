@@ -855,7 +855,7 @@ export default function PetDetails({ user, petId, onBack, onEdit, onDeleteSucces
       {/* Add Vaccine Form Centered Modal */}
       {activeDrawer === 'vaccine' && createPortal(
         <div className="pet-details-drawer-overlay" onClick={() => setActiveDrawer(null)}>
-          <div className="pet-details-drawer" onClick={(e) => e.stopPropagation()}>
+          <div className="pet-details-drawer vaccine-dialog" onClick={(e) => e.stopPropagation()}>
             <div className="pet-drawer-header">
               <h3 className="pet-drawer-title">Log Vaccination Entry</h3>
               <button type="button" className="pet-drawer-close-btn" onClick={() => setActiveDrawer(null)} title="Close">
@@ -864,7 +864,7 @@ export default function PetDetails({ user, petId, onBack, onEdit, onDeleteSucces
             </div>
 
             <form onSubmit={handleVaccineFormSubmit} className="pet-modal-form">
-              <div className="pet-modal-scroll-body">
+              <div className="vaccine-compact-grid">
                 <div className="form-group">
                   <label className="form-label">Vaccine Name *</label>
                   <input 
@@ -886,28 +886,26 @@ export default function PetDetails({ user, petId, onBack, onEdit, onDeleteSucces
                     onChange={(e) => setVDose(e.target.value)} 
                   />
                 </div>
-                <div className="pet-modal-row">
-                  <div className="form-group">
-                    <label className="form-label">Vaccination Date *</label>
-                    <input 
-                      type="date" 
-                      className="form-control login-input" 
-                      value={vDate} 
-                      onChange={(e) => setVDate(e.target.value)} 
-                      required 
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">Next Due Date</label>
-                    <input 
-                      type="date" 
-                      className="form-control login-input" 
-                      value={vNextDate} 
-                      onChange={(e) => setVNextDate(e.target.value)} 
-                    />
-                  </div>
+                <div className="form-group">
+                  <label className="form-label">Vaccination Date *</label>
+                  <input 
+                    type="date" 
+                    className="form-control login-input" 
+                    value={vDate} 
+                    onChange={(e) => setVDate(e.target.value)} 
+                    required 
+                  />
                 </div>
                 <div className="form-group">
+                  <label className="form-label">Next Due Date</label>
+                  <input 
+                    type="date" 
+                    className="form-control login-input" 
+                    value={vNextDate} 
+                    onChange={(e) => setVNextDate(e.target.value)} 
+                  />
+                </div>
+                <div className="form-group full-width">
                   <label className="form-label">Veterinarian Name</label>
                   <input 
                     type="text" 
@@ -917,11 +915,10 @@ export default function PetDetails({ user, petId, onBack, onEdit, onDeleteSucces
                     onChange={(e) => setVVet(e.target.value)} 
                   />
                 </div>
-                <div className="form-group">
+                <div className="form-group full-width">
                   <label className="form-label">Notes</label>
                   <textarea 
                     className="form-control login-input" 
-                    style={{ height: '70px', padding: '10px' }}
                     placeholder="Additional observations..."
                     value={vNotes}
                     onChange={(e) => setVNotes(e.target.value)}

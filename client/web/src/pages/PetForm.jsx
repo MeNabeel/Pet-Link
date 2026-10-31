@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import './PetForm.css';
 import PetImage from '../components/PetImage';
+import { logUserActivity } from '../utils/activityTracker';
 import { 
   AlertDialog, AlertDialogContent, AlertDialogHeader, 
   AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, 
@@ -275,6 +276,23 @@ export default function PetForm({ user, petId, onCancel, onSaveSuccess }) {
 
       if (response.ok) {
         const savedData = await response.json();
+        const uid = user?._id || user?.id;
+        if (uid) {
+          logUserActivity(uid, {
+            type: 'pet',
+            title: petId ? 'Updated profile for' : 'Registered pet profile for',
+            targetName: name,
+            timestamp: Date.now()
+          });
+          if (nextVaccinationDate) {
+            logUserActivity(uid, {
+              type: 'vaccine',
+              title: `Updated ${name}'s next vaccination date:`,
+              targetName: nextVaccinationDate,
+              timestamp: Date.now() + 10
+            });
+          }
+        }
         setActiveModalSection(null);
         setShowSectionSaveConfirm(false);
         onSaveSuccess(savedData);

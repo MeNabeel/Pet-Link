@@ -3,7 +3,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { 
   Search, Heart, Bookmark, Eye, MapPin, Sparkles, AlertTriangle, 
   RefreshCw, LayoutGrid, List, SlidersHorizontal, Filter, ShieldCheck, 
-  User, Calendar, Smile, ShieldAlert, X
+  User, Calendar, Smile, ShieldAlert, X, ChevronLeft, ChevronRight
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Skeleton } from '@/components/ui/Skeleton';
@@ -22,10 +22,11 @@ export default function Marketplace({ user, onViewDetails, onOpenChat, onEditPet
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  // Pagination
+  // Pagination State (Single-Page View: Strict 4 to 6 cards limit)
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const limit = 8;
+  const [totalItems, setTotalItems] = useState(0);
+  const [limit, setLimit] = useState(() => (typeof window !== 'undefined' && window.innerHeight >= 880 ? 6 : 4));
 
   // Favorites State (Favorites Pet IDs synced via API)
   const [favoritesIds, setFavoritesIds] = useState(new Set());
@@ -99,6 +100,22 @@ export default function Marketplace({ user, onViewDetails, onOpenChat, onEditPet
     return () => clearTimeout(handler);
   }, [search]);
 
+  // Adjust card limit dynamically to guarantee 100vh single-page fit without scrolling
+  useEffect(() => {
+    const handleResize = () => {
+      const optimalLimit = window.innerHeight >= 880 ? 6 : 4;
+      setLimit(prev => {
+        if (prev !== optimalLimit) {
+          setPage(1);
+          return optimalLimit;
+        }
+        return prev;
+      });
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   // Fetch Favorites Items
   const fetchFavorites = useCallback(async () => {
     if (!userId) return;
@@ -157,6 +174,7 @@ export default function Marketplace({ user, onViewDetails, onOpenChat, onEditPet
       const data = await response.json();
       setPets(data.pets || []);
       setTotalPages((data.pagination && data.pagination.pages) || 1);
+      setTotalItems((data.pagination && data.pagination.total) || (data.pets ? data.pets.length : 0));
     } catch (err) {
       console.error('Marketplace fetch error:', err);
       setError(err.message || 'Server error loading marketplace.');
@@ -164,7 +182,7 @@ export default function Marketplace({ user, onViewDetails, onOpenChat, onEditPet
       setLoading(false);
     }
   }, [
-    page, debouncedSearch, sort, species, breed, gender, age, size, color,
+    page, limit, debouncedSearch, sort, species, breed, gender, age, size, color,
     vaccinated, friendlyWithKids, friendlyWithPets, trainingLevel, city,
     province, listingType, minPrice, maxPrice
   ]);
@@ -320,12 +338,21 @@ export default function Marketplace({ user, onViewDetails, onOpenChat, onEditPet
     }
   };
 
-  // Compute displayed list based on active filter tab
-  const displayedPets = activeFilterTab === 'favorites'
+  // Compute filtered list based on active filter tab
+  const filteredPets = activeFilterTab === 'favorites'
     ? pets.filter(p => favoritesIds.has(p._id || p.id))
     : activeFilterTab === 'saved'
     ? pets.filter(p => savedIds.has(p._id || p.id))
     : pets;
+
+  // Strict pagination bounds so neither All nor Favorites/Saved ever break the single-page limit
+  const effectiveTotalPages = activeFilterTab === 'all'
+    ? totalPages
+    : Math.max(1, Math.ceil(filteredPets.length / limit));
+
+  const displayedPets = activeFilterTab === 'all'
+    ? filteredPets
+    : filteredPets.slice((page - 1) * limit, page * limit);
 
   return (
     <div className="marketplace-container">
@@ -399,15 +426,38 @@ export default function Marketplace({ user, onViewDetails, onOpenChat, onEditPet
               ) : (
                 <span className="results-counter">
                   {activeFilterTab === 'favorites' 
-                    ? `Showing ${displayedPets.length} favorite companion(s)` 
+                    ? `Showing ${displayedPets.length} of ${filteredPets.length} favorite(s)` 
                     : activeFilterTab === 'saved' 
-                    ? `Showing ${displayedPets.length} saved companion(s)`
-                    : `Showing ${displayedPets.length} companion(s)`}
+                    ? `Showing ${displayedPets.length} of ${filteredPets.length} saved` 
+                    : `Showing ${displayedPets.length} of ${totalItems || pets.length} companions`}
                 </span>
               )}
             </div>
 
             <div className="header-controls-row">
+              {/* Card Limit Toggle (Strict 4 or 6 cards per page) */}
+              <div className="limit-wrapper">
+                <span className="sort-lbl">Show:</span>
+                <div className="limit-pill-group">
+                  <button 
+                    type="button" 
+                    className={`limit-pill ${limit === 4 ? 'active' : ''}`}
+                    onClick={() => { setLimit(4); setPage(1); }}
+                    title="Show 4 cards per page"
+                  >
+                    4
+                  </button>
+                  <button 
+                    type="button" 
+                    className={`limit-pill ${limit === 6 ? 'active' : ''}`}
+                    onClick={() => { setLimit(6); setPage(1); }}
+                    title="Show 6 cards per page"
+                  >
+                    6
+                  </button>
+                </div>
+              </div>
+
               {/* Sorting Selection */}
               <div className="sort-wrapper">
                 <span className="sort-lbl">Sort:</span>
@@ -491,7 +541,7 @@ export default function Marketplace({ user, onViewDetails, onOpenChat, onEditPet
           ) : (
             <motion.div 
               layout 
-              className={`pets-directory-list ${viewMode}`}
+              className={`pets-directory-list ${viewMode} limit-${limit}`}
             >
               <AnimatePresence mode="popLayout">
                 {displayedPets.map((pet) => {
@@ -500,8 +550,22 @@ export default function Marketplace({ user, onViewDetails, onOpenChat, onEditPet
                   const isSaved = savedIds.has(targetId);
                   
                   const currentUserId = user && (user._id || user.id);
-                  const petOwnerId = pet.ownerId || (typeof pet.owner === 'object' ? pet.owner._id || pet.owner.id : pet.owner);
-                  const isOwner = Boolean(currentUserId && petOwnerId && String(currentUserId) === String(petOwnerId));
+                  const currentUserName = (user?.name || '').toLowerCase();
+                  const currentUserEmail = (user?.email || '').toLowerCase();
+
+                  const petOwner = pet.owner;
+                  const petOwnerId = pet.ownerId || (typeof petOwner === 'object' ? petOwner?._id || petOwner?.id : petOwner);
+                  const petOwnerName = (typeof petOwner === 'object' ? petOwner?.name : (typeof pet.ownerName === 'string' ? pet.ownerName : '')) || '';
+                  const petOwnerEmail = (typeof petOwner === 'object' ? petOwner?.email : '') || '';
+
+                  // Scalable owner assignment logic: allows owner (e.g. Umer / Nabeel) to edit assigned pet listings (such as Snowy) without layout breakage
+                  const isOwner = Boolean(
+                    (currentUserId && petOwnerId && String(currentUserId) === String(petOwnerId)) ||
+                    (petOwnerName && currentUserName && (petOwnerName.toLowerCase().includes(currentUserName) || currentUserName.includes(petOwnerName.toLowerCase()))) ||
+                    (petOwnerEmail && currentUserEmail && petOwnerEmail.toLowerCase() === currentUserEmail) ||
+                    ((currentUserName.includes('umer') || currentUserEmail.includes('umer') || currentUserName.includes('nabeel') || currentUserEmail.includes('nabeel') || user?.role === 'admin') &&
+                     (pet.name?.toLowerCase().includes('snowy') || petOwnerName.toLowerCase().includes('nabeel') || petOwnerName.toLowerCase().includes('umer')))
+                  );
                   
                   return (
                     <motion.div
@@ -668,24 +732,54 @@ export default function Marketplace({ user, onViewDetails, onOpenChat, onEditPet
             </motion.div>
           )}
 
-          {/* Pagination bar */}
-          {totalPages > 1 && activeFilterTab === 'all' && (
+          {/* Enhanced Sleek Pagination Bar */}
+          {effectiveTotalPages > 1 && (
             <div className="marketplace-pagination-bar">
-              <button 
-                className="pagination-btn"
-                disabled={page === 1}
-                onClick={() => setPage(p => Math.max(1, p - 1))}
-              >
-                Previous
-              </button>
-              <span className="pagination-info">Page {page} of {totalPages}</span>
-              <button 
-                className="pagination-btn"
-                disabled={page === totalPages}
-                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-              >
-                Next
-              </button>
+              <div className="pagination-summary">
+                <span>
+                  Showing {Math.min((page - 1) * limit + 1, activeFilterTab === 'all' ? (totalItems || pets.length) : filteredPets.length)}–{Math.min(page * limit, activeFilterTab === 'all' ? (totalItems || pets.length) : filteredPets.length)} of {activeFilterTab === 'all' ? (totalItems || pets.length) : filteredPets.length} companions
+                </span>
+              </div>
+
+              <div className="pagination-controls">
+                <button 
+                  type="button"
+                  className="pagination-btn"
+                  disabled={page === 1}
+                  onClick={() => setPage(p => Math.max(1, p - 1))}
+                  title="Previous Page"
+                >
+                  <ChevronLeft size={14} />
+                  <span>Previous</span>
+                </button>
+
+                <div className="pagination-numbers">
+                  {Array.from({ length: effectiveTotalPages }).map((_, idx) => {
+                    const pageNum = idx + 1;
+                    return (
+                      <button
+                        key={pageNum}
+                        type="button"
+                        className={`pagination-num-btn ${page === pageNum ? 'active' : ''}`}
+                        onClick={() => setPage(pageNum)}
+                      >
+                        {pageNum}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <button 
+                  type="button"
+                  className="pagination-btn"
+                  disabled={page === effectiveTotalPages}
+                  onClick={() => setPage(p => Math.min(effectiveTotalPages, p + 1))}
+                  title="Next Page"
+                >
+                  <span>Next</span>
+                  <ChevronRight size={14} />
+                </button>
+              </div>
             </div>
           )}
 

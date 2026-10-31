@@ -4,7 +4,7 @@ import { createPortal } from 'react-dom';
 import { 
   Pencil, Trash2, HeartPulse, Syringe, FilePlus2, 
   X, CheckCircle, Calendar, ShieldCheck, Heart, User, MapPin, 
-  ChevronRight, ArrowLeft, Activity, FileText, Sparkles
+  ChevronRight, ArrowLeft, Activity, FileText, Sparkles, Plus
 } from 'lucide-react';
 import './PetDetails.css';
 import PetImage from '../components/PetImage';
@@ -530,85 +530,244 @@ export default function PetDetails({ user, petId, onBack, onEdit, onDeleteSucces
         </div>
       )}
 
-      {/* HEALTH TAB: TIMELINE LOGS */}
+      {/* HEALTH TAB: TIMELINE LOGS & VITALS */}
       {activeTab === 'health' && (
-        <div className="pet-card-box">
-          <div className="pet-card-box-header">
-            <h4 className="pet-card-box-title">
-              <HeartPulse size={16} color="#16A34A" />
-              <span>Medical History & Vaccination Timelines</span>
-            </h4>
+        <div className="pet-overview-grid">
+          
+          {/* CARD 1: MEDICAL PROFILE & VITALS */}
+          <div className="pet-card-box">
+            <div className="pet-card-box-header">
+              <h4 className="pet-card-box-title">
+                <HeartPulse size={16} color="#16A34A" />
+                <span>Medical Profile & Vitals</span>
+              </h4>
+            </div>
+
+            <div className="pet-card-rows-list">
+              <div className="pet-row-item">
+                <span className="pet-row-label">Blood Group</span>
+                <span className="pet-row-val">{pet.bloodGroup || 'Not specified'}</span>
+              </div>
+              <div className="pet-row-item">
+                <span className="pet-row-label">Vaccination Status</span>
+                <span className="pet-row-val">{pet.isVaccinated ? 'Vaccinated' : 'Not Vaccinated'}</span>
+              </div>
+              <div className="pet-row-item vertical">
+                <span className="pet-row-label">Allergies</span>
+                <p className="pet-row-bio">{pet.allergies || 'No allergies recorded.'}</p>
+              </div>
+              <div className="pet-row-item vertical">
+                <span className="pet-row-label">Chronic Diseases</span>
+                <p className="pet-row-bio">{pet.diseases || 'No chronic diseases recorded.'}</p>
+              </div>
+              <div className="pet-row-item vertical border-none">
+                <span className="pet-row-label">General Medical Summary</span>
+                <p className="pet-row-bio">{pet.medicalHistory || 'No past surgical or medical history logged.'}</p>
+              </div>
+            </div>
           </div>
 
-          <div className="pet-timeline-wrapper">
-            {/* Render Vaccines */}
-            {pet.vaccines && pet.vaccines.map((vac, idx) => (
-              <div key={`vac-${idx}`} className="pet-timeline-item">
-                <div className="pet-timeline-dot green" />
-                <span className="pet-timeline-date">{vac.date}</span>
-                <h5 className="pet-timeline-title">Vaccinated: {vac.vaccineName} ({vac.dose})</h5>
-                <p className="pet-timeline-body">
-                  <strong>Veterinarian:</strong> {vac.veterinarian || 'Not specified'}<br />
-                  {vac.notes && <span><strong>Notes:</strong> {vac.notes}<br /></span>}
-                  {vac.nextDueDate && <span style={{ color: '#EAB308', fontWeight: '700' }}>Next Due: {vac.nextDueDate}</span>}
-                </p>
-              </div>
-            ))}
+          {/* CARD 2: VACCINATION LOGS */}
+          <div className="pet-card-box">
+            <div className="pet-card-box-header">
+              <h4 className="pet-card-box-title">
+                <Syringe size={16} color="#EA580C" />
+                <span>Vaccination Logs ({vaccineCount})</span>
+              </h4>
+              {isOwner && (
+                <button 
+                  type="button" 
+                  className="pet-card-action-link"
+                  onClick={() => setActiveDrawer('vaccine')}
+                  title="Add Vaccine"
+                >
+                  <Plus size={14} />
+                  <span>Add</span>
+                </button>
+              )}
+            </div>
 
-            {/* Render Medical Records */}
-            {pet.medicalRecords && pet.medicalRecords.map((med, idx) => (
-              <div key={`med-${idx}`} className="pet-timeline-item">
-                <div className="pet-timeline-dot red" />
-                <span className="pet-timeline-date">{med.visitDate}</span>
-                <h5 className="pet-timeline-title">Clinic Consultation: {med.disease}</h5>
-                <p className="pet-timeline-body">
-                  <strong>Symptoms:</strong> {med.symptoms}<br />
-                  <strong>Diagnosis:</strong> {med.diagnosis}<br />
-                  <strong>Treatment:</strong> {med.treatment}<br />
-                  <strong>Medicine:</strong> {med.medicine}<br />
-                  <strong>Doctor/Clinic:</strong> {med.doctor} at {med.clinic}<br />
-                  {med.nextVisitDate && <span style={{ color: '#0066CC', fontWeight: '700' }}>Follow up: {med.nextVisitDate}</span>}
-                </p>
-                {med.attachments && med.attachments.map((att, i) => (
-                  <div key={i} className="pet-doc-tag-inline" onClick={() => window.open(att)}>
-                    <span>Attachment {i + 1}</span>
-                  </div>
-                ))}
-              </div>
-            ))}
-
-            {(!pet.vaccines || pet.vaccines.length === 0) && (!pet.medicalRecords || pet.medicalRecords.length === 0) && (
-              <p className="pet-empty-timeline-text">No medical or vaccination history logged yet.</p>
-            )}
+            <div className="pet-card-scrollable-content">
+              {pet.vaccines && pet.vaccines.length > 0 ? (
+                <div className="pet-timeline-wrapper">
+                  {pet.vaccines.map((vac, idx) => (
+                    <div key={`vac-${idx}`} className="pet-timeline-item">
+                      <div className="pet-timeline-dot green" />
+                      <span className="pet-timeline-date">{vac.date}</span>
+                      <h5 className="pet-timeline-title">{vac.vaccineName} {vac.dose ? `(${vac.dose})` : ''}</h5>
+                      <p className="pet-timeline-body">
+                        <strong>Veterinarian:</strong> {vac.veterinarian || 'Not specified'}<br />
+                        {vac.notes && <span><strong>Notes:</strong> {vac.notes}<br /></span>}
+                        {vac.nextDueDate && <span style={{ color: '#EAB308', fontWeight: '700' }}>Next Due: {vac.nextDueDate}</span>}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="pet-empty-box-state">
+                  <Syringe size={28} color="#CBD5E1" />
+                  <p className="pet-empty-timeline-text">No vaccination entries logged yet.</p>
+                </div>
+              )}
+            </div>
           </div>
+
+          {/* CARD 3: CLINIC CONSULTATIONS */}
+          <div className="pet-card-box">
+            <div className="pet-card-box-header">
+              <h4 className="pet-card-box-title">
+                <FilePlus2 size={16} color="#0D9488" />
+                <span>Consultation Logs ({medicalCount})</span>
+              </h4>
+              {isOwner && (
+                <button 
+                  type="button" 
+                  className="pet-card-action-link"
+                  onClick={() => setActiveDrawer('medical')}
+                  title="Add Medical Record"
+                >
+                  <Plus size={14} />
+                  <span>Add</span>
+                </button>
+              )}
+            </div>
+
+            <div className="pet-card-scrollable-content">
+              {pet.medicalRecords && pet.medicalRecords.length > 0 ? (
+                <div className="pet-timeline-wrapper">
+                  {pet.medicalRecords.map((med, idx) => (
+                    <div key={`med-${idx}`} className="pet-timeline-item">
+                      <div className="pet-timeline-dot red" />
+                      <span className="pet-timeline-date">{med.visitDate}</span>
+                      <h5 className="pet-timeline-title">{med.disease}</h5>
+                      <p className="pet-timeline-body">
+                        {med.symptoms && <span><strong>Symptoms:</strong> {med.symptoms}<br /></span>}
+                        {med.diagnosis && <span><strong>Diagnosis:</strong> {med.diagnosis}<br /></span>}
+                        {med.treatment && <span><strong>Treatment:</strong> {med.treatment}<br /></span>}
+                        {med.doctor && <span><strong>Doctor:</strong> {med.doctor} {med.clinic ? `(${med.clinic})` : ''}<br /></span>}
+                        {med.nextVisitDate && <span style={{ color: '#0066CC', fontWeight: '700' }}>Follow up: {med.nextVisitDate}</span>}
+                      </p>
+                      {med.attachments && med.attachments.map((att, i) => (
+                        <div key={i} className="pet-doc-tag-inline" onClick={() => window.open(att)}>
+                          <span>Attachment {i + 1}</span>
+                        </div>
+                      ))}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="pet-empty-box-state">
+                  <HeartPulse size={28} color="#CBD5E1" />
+                  <p className="pet-empty-timeline-text">No clinical consultation logs recorded.</p>
+                </div>
+              )}
+            </div>
+          </div>
+
         </div>
       )}
 
       {/* DOCUMENTS TAB */}
       {activeTab === 'documents' && (
-        <div className="pet-card-box">
-          <div className="pet-card-box-header">
-            <h4 className="pet-card-box-title">
-              <FileText size={16} color="#0066CC" />
-              <span>Uploaded Documents & Identification Reports</span>
-            </h4>
+        <div className="pet-overview-grid">
+          
+          {/* CARD 1: IDENTITY & REGISTRATION */}
+          <div className="pet-card-box">
+            <div className="pet-card-box-header">
+              <h4 className="pet-card-box-title">
+                <ShieldCheck size={16} color="#9333EA" />
+                <span>Identity & Verification</span>
+              </h4>
+            </div>
+
+            <div className="pet-card-rows-list">
+              <div className="pet-row-item">
+                <span className="pet-row-label">Microchip ID</span>
+                <span className="pet-row-val">{pet.microchipNumber || 'N/A'}</span>
+              </div>
+              <div className="pet-row-item">
+                <span className="pet-row-label">Registry Status</span>
+                <span className="pet-row-val">{pet.activeStatus || 'ACTIVE'}</span>
+              </div>
+              <div className="pet-row-item">
+                <span className="pet-row-label">Passport / ID Record</span>
+                <span className="pet-row-val">{pet.microchipNumber ? 'Verified Microchip' : 'Unregistered ID'}</span>
+              </div>
+              <div className="pet-row-item">
+                <span className="pet-row-label">Vaccination Status</span>
+                <span className="pet-row-val">{pet.isVaccinated ? 'Vaccinated' : 'Pending'}</span>
+              </div>
+              <div className="pet-row-item border-none">
+                <span className="pet-row-label">Ownership Type</span>
+                <span className="pet-row-val">{isOwner ? 'Registered Companion' : 'Public Listing'}</span>
+              </div>
+            </div>
           </div>
 
-          {pet.documents && pet.documents.length > 0 ? (
-            <div className="pet-documents-grid">
-              {pet.documents.map((doc, idx) => (
-                <div key={idx} className="pet-doc-item-card" onClick={() => window.open(doc.data)}>
-                  <FileText size={28} color="#0066CC" />
-                  <div className="pet-doc-item-text">
-                    <span className="pet-doc-item-name">{doc.name}</span>
-                    <span className="pet-doc-item-sub">Click to view/download</span>
-                  </div>
-                </div>
-              ))}
+          {/* CARD 2: UPLOADED DOCUMENTS */}
+          <div className="pet-card-box">
+            <div className="pet-card-box-header">
+              <h4 className="pet-card-box-title">
+                <FileText size={16} color="#0066CC" />
+                <span>Official Documents ({docsCount})</span>
+              </h4>
             </div>
-          ) : (
-            <p className="pet-empty-timeline-text">No document attachments uploaded.</p>
-          )}
+
+            <div className="pet-card-scrollable-content">
+              {pet.documents && pet.documents.length > 0 ? (
+                <div className="pet-documents-grid-compact">
+                  {pet.documents.map((doc, idx) => (
+                    <div key={idx} className="pet-doc-item-card" onClick={() => window.open(doc.data)}>
+                      <FileText size={22} color="#0066CC" />
+                      <div className="pet-doc-item-text">
+                        <span className="pet-doc-item-name">{doc.name}</span>
+                        <span className="pet-doc-item-sub">Click to view/download</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="pet-empty-box-state">
+                  <FileText size={28} color="#CBD5E1" />
+                  <p className="pet-empty-timeline-text">No document attachments uploaded.</p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* CARD 3: CLINICAL ATTACHMENTS */}
+          <div className="pet-card-box">
+            <div className="pet-card-box-header">
+              <h4 className="pet-card-box-title">
+                <FilePlus2 size={16} color="#0D9488" />
+                <span>Clinical Attachments</span>
+              </h4>
+            </div>
+
+            <div className="pet-card-scrollable-content">
+              {pet.medicalRecords && pet.medicalRecords.some(m => m.attachments && m.attachments.length > 0) ? (
+                <div className="pet-documents-grid-compact">
+                  {pet.medicalRecords.flatMap((m, mIdx) => 
+                    (m.attachments || []).map((att, aIdx) => (
+                      <div key={`${mIdx}-${aIdx}`} className="pet-doc-item-card" onClick={() => window.open(att)}>
+                        <FilePlus2 size={22} color="#0D9488" />
+                        <div className="pet-doc-item-text">
+                          <span className="pet-doc-item-name">{m.disease} Report {aIdx + 1}</span>
+                          <span className="pet-doc-item-sub">{m.visitDate || 'Consultation file'}</span>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              ) : (
+                <div className="pet-empty-box-state">
+                  <FilePlus2 size={28} color="#CBD5E1" />
+                  <p className="pet-empty-timeline-text">No diagnostic or clinical reports attached.</p>
+                </div>
+              )}
+            </div>
+          </div>
+
         </div>
       )}
 
@@ -617,20 +776,20 @@ export default function PetDetails({ user, petId, onBack, onEdit, onDeleteSucces
          ---------------------------------------------------- */}
 
       {/* Health Record Logs Modal */}
-      {activeDrawer === 'health' && (
+      {activeDrawer === 'health' && createPortal(
         <div className="pet-details-drawer-overlay" onClick={() => setActiveDrawer(null)}>
           <div className="pet-details-drawer" onClick={(e) => e.stopPropagation()}>
             <div className="pet-drawer-header">
               <h3 className="pet-drawer-title">{pet.name}'s Medical Health Log</h3>
               <div className="pet-drawer-header-actions">
                 {isOwner && (
-                  <button type="button" className="pet-header-action-btn teal" onClick={() => setActiveDrawer('medical')}>
+                  <button type="button" className="pet-modal-header-btn teal" onClick={() => setActiveDrawer('medical')}>
                     <FilePlus2 size={13} />
                     <span>Add Medical Record</span>
                   </button>
                 )}
-                <button type="button" className="pet-drawer-close-btn" onClick={() => setActiveDrawer(null)}>
-                  <X size={20} />
+                <button type="button" className="pet-drawer-close-btn" onClick={() => setActiveDrawer(null)} title="Close">
+                  <X size={18} />
                 </button>
               </div>
             </div>
@@ -699,7 +858,8 @@ export default function PetDetails({ user, petId, onBack, onEdit, onDeleteSucces
             </div>
 
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Add Vaccine Form Centered Modal */}
@@ -791,13 +951,13 @@ export default function PetDetails({ user, petId, onBack, onEdit, onDeleteSucces
       )}
 
       {/* WIDE & COMPACT NON-SCROLLING MEDICAL RECORD DIALOG */}
-      {activeDrawer === 'medical' && (
+      {activeDrawer === 'medical' && createPortal(
         <div className="pet-details-drawer-overlay" onClick={() => setActiveDrawer(null)}>
           <div className="pet-details-drawer medical-wide-dialog" onClick={(e) => e.stopPropagation()}>
             <div className="pet-drawer-header">
               <h3 className="pet-drawer-title">Log Clinic Consultation</h3>
-              <button type="button" className="pet-drawer-close-btn" onClick={() => setActiveDrawer(null)}>
-                <X size={20} />
+              <button type="button" className="pet-drawer-close-btn" onClick={() => setActiveDrawer(null)} title="Close">
+                <X size={18} />
               </button>
             </div>
 
@@ -928,12 +1088,13 @@ export default function PetDetails({ user, petId, onBack, onEdit, onDeleteSucces
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Save Vaccine Confirmation Modal */}
-      {showSaveVaccineConfirm && (
-        <div className="pet-modal-overlay" style={{ zIndex: 1100 }} onClick={() => setShowSaveVaccineConfirm(false)}>
+      {showSaveVaccineConfirm && createPortal(
+        <div className="pet-modal-overlay" style={{ zIndex: 10000 }} onClick={() => setShowSaveVaccineConfirm(false)}>
           <div className="pet-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '440px', padding: '24px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '16px' }}>
               <div style={{ width: '42px', height: '42px', borderRadius: '12px', backgroundColor: '#FFEDD5', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#EA580C', flexShrink: 0 }}>
@@ -961,12 +1122,13 @@ export default function PetDetails({ user, petId, onBack, onEdit, onDeleteSucces
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Save Medical Record Confirmation Modal */}
-      {showSaveMedicalConfirm && (
-        <div className="pet-modal-overlay" style={{ zIndex: 1100 }} onClick={() => setShowSaveMedicalConfirm(false)}>
+      {showSaveMedicalConfirm && createPortal(
+        <div className="pet-modal-overlay" style={{ zIndex: 10000 }} onClick={() => setShowSaveMedicalConfirm(false)}>
           <div className="pet-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '440px', padding: '24px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '16px' }}>
               <div style={{ width: '42px', height: '42px', borderRadius: '12px', backgroundColor: '#CCFBF1', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#0D9488', flexShrink: 0 }}>
@@ -994,11 +1156,12 @@ export default function PetDetails({ user, petId, onBack, onEdit, onDeleteSucces
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Delete Confirmation Modal */}
-      {activeDrawer === 'deleteConfirm' && (
+      {activeDrawer === 'deleteConfirm' && createPortal(
         <div className="pet-modal-overlay" onClick={() => setActiveDrawer(null)}>
           <div className="pet-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '440px', padding: '24px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '16px' }}>
@@ -1027,7 +1190,8 @@ export default function PetDetails({ user, petId, onBack, onEdit, onDeleteSucces
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
     </div>

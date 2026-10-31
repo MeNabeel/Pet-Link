@@ -203,3 +203,4 @@ export default function RotatingBentoCard({ metrics = {}, onNavigate }) {
     </div>
   );
 }
+

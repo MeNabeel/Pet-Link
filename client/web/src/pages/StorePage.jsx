@@ -38,6 +38,7 @@ export default function StorePage({
   });
 
   const wishlist = propWishlist !== undefined ? propWishlist : localWishlist;
+  const safeWishlist = Array.isArray(wishlist) ? wishlist : [];
   const setWishlist = propSetWishlist || setLocalWishlist;
 
   const [localCart, setLocalCart] = useState(() => getCart());
@@ -75,7 +76,13 @@ export default function StorePage({
         const prodRes = await fetch(`${API_URL}/api/products?status=Published&visibility=Public`);
         if (prodRes.ok) {
           const prodData = await prodRes.json();
-          setProducts(prodData);
+          if (Array.isArray(prodData)) {
+            setProducts(prodData);
+          } else if (prodData && Array.isArray(prodData.products)) {
+            setProducts(prodData.products);
+          } else {
+            setProducts([]);
+          }
         }
       } catch (err) {
         console.error('Error loading store catalog:', err);
@@ -87,32 +94,33 @@ export default function StorePage({
   }, []);
 
   const toggleWishlist = (id) => {
-    if (setWishlist) {
-      const currentList = Array.isArray(wishlist) ? wishlist : [];
-      if (currentList.includes(id)) {
-        setWishlist(prev => {
-          const list = Array.isArray(prev) ? prev : [];
-          const updated = list.filter(item => item !== id);
-          localStorage.setItem('petlink_store_wishlist', JSON.stringify(updated));
-          return updated;
+    if (!id) return;
+    const currentList = Array.isArray(safeWishlist) ? safeWishlist : [];
+    if (currentList.includes(id)) {
+      const updated = currentList.filter(item => item !== id);
+      if (setWishlist) {
+        setWishlist(updated);
+      }
+      try {
+        localStorage.setItem('petlink_store_wishlist', JSON.stringify(updated));
+      } catch {}
+    } else {
+      const updated = [...currentList, id];
+      if (setWishlist) {
+        setWishlist(updated);
+      }
+      try {
+        localStorage.setItem('petlink_store_wishlist', JSON.stringify(updated));
+      } catch {}
+      const targetProd = (products || []).find(p => (p._id || p.id) === id);
+      const uid = user?._id || user?.id;
+      if (uid && targetProd) {
+        logUserActivity(uid, {
+          type: 'favorite',
+          title: 'Saved product to favorites:',
+          targetName: targetProd.name || 'Pet product',
+          timestamp: Date.now()
         });
-      } else {
-        setWishlist(prev => {
-          const list = Array.isArray(prev) ? prev : [];
-          const updated = [...list, id];
-          localStorage.setItem('petlink_store_wishlist', JSON.stringify(updated));
-          return updated;
-        });
-        const targetProd = products.find(p => (p._id || p.id) === id);
-        const uid = user?._id || user?.id;
-        if (uid && targetProd) {
-          logUserActivity(uid, {
-            type: 'favorite',
-            title: 'Saved product to favorites:',
-            targetName: targetProd.name || 'Pet product',
-            timestamp: Date.now()
-          });
-        }
       }
     }
   };
@@ -237,10 +245,10 @@ export default function StorePage({
                     <ShoppingCart size={16} style={{ marginRight: '8px' }} /> Add to Cart
                   </button>
                   <button 
-                    className={`qv-wishlist-btn ${(wishlist || []).includes(quickViewProduct._id) ? 'active' : ''}`}
+                    className={`qv-wishlist-btn ${safeWishlist.includes(quickViewProduct._id) ? 'active' : ''}`}
                     onClick={() => toggleWishlist(quickViewProduct._id)}
                   >
-                    <Heart size={16} fill={(wishlist || []).includes(quickViewProduct._id) ? '#EF4444' : 'none'} color={(wishlist || []).includes(quickViewProduct._id) ? '#EF4444' : 'currentColor'} />
+                    <Heart size={16} fill={safeWishlist.includes(quickViewProduct._id) ? '#EF4444' : 'none'} color={safeWishlist.includes(quickViewProduct._id) ? '#EF4444' : 'currentColor'} />
                   </button>
                 </div>
               </div>
@@ -384,11 +392,11 @@ export default function StorePage({
                           <Eye size={14} />
                         </button>
                         <button 
-                          className={`floating-btn wishlist ${(wishlist || []).includes(prod._id) ? 'active' : ''}`} 
+                          className={`floating-btn wishlist ${safeWishlist.includes(prod._id) ? 'active' : ''}`} 
                           onClick={(e) => { e.stopPropagation(); toggleWishlist(prod._id); }}
                           title="Save to Wishlist"
                         >
-                          <Heart size={14} fill={(wishlist || []).includes(prod._id) ? '#EF4444' : 'none'} color={(wishlist || []).includes(prod._id) ? '#EF4444' : 'currentColor'} />
+                          <Heart size={14} fill={safeWishlist.includes(prod._id) ? '#EF4444' : 'none'} color={safeWishlist.includes(prod._id) ? '#EF4444' : 'currentColor'} />
                         </button>
                       </div>
                     </div>

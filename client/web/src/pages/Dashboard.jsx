@@ -210,6 +210,16 @@ export default function Dashboard({ onLogout }) {
   const [isCartDrawerOpen, setIsCartDrawerOpen] = useState(false);
   const [checkoutNotification, setCheckoutNotification] = useState(null);
 
+  // Synchronized Store Wishlist State
+  const [dashboardWishlist, setDashboardWishlist] = useState(() => {
+    try {
+      const stored = localStorage.getItem('petlink_store_wishlist');
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
+    }
+  });
+
   // Sidebar & Pet/Vet main tab switcher
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
@@ -1578,6 +1588,8 @@ export default function Dashboard({ onLogout }) {
             <PageErrorBoundary onReset={() => setActiveTab('shop')}>
               <StorePage
                 user={user}
+                wishlist={dashboardWishlist}
+                setWishlist={setDashboardWishlist}
                 onViewProductDetails={(id) => {
                   setSelectedProductId(id);
                   window.location.hash = `#/shop/${id}`;
@@ -1595,6 +1607,8 @@ export default function Dashboard({ onLogout }) {
               <ProductDetails
                 user={user}
                 productId={selectedProductId}
+                wishlist={dashboardWishlist}
+                setWishlist={setDashboardWishlist}
                 onBack={() => {
                   window.location.hash = '#/shop';
                   setActiveTab('shop');

@@ -61,6 +61,7 @@ export default function ProductDetails({
   // Active cart items and wishlist items (prefer props if supplied, otherwise local state)
   const activeCart = setCart ? cart : localCart;
   const activeWishlist = setWishlist ? wishlist : localWishlist;
+  const safeWishlist = Array.isArray(activeWishlist) ? activeWishlist : [];
 
   const showToast = (msg) => {
     setToastMessage(msg);
@@ -162,18 +163,23 @@ export default function ProductDetails({
     const targetId = id || (product?._id || product?.id);
     if (!targetId) return;
 
+    const isCurrentlySaved = safeWishlist.includes(targetId);
+
     if (setWishlist) {
-      if (wishlist.includes(targetId)) {
-        setWishlist(prev => prev.filter(item => item !== targetId));
+      if (isCurrentlySaved) {
+        setWishlist(prev => (Array.isArray(prev) ? prev : []).filter(item => item !== targetId));
       } else {
-        setWishlist(prev => [...prev, targetId]);
+        setWishlist(prev => [...(Array.isArray(prev) ? prev : []), targetId]);
       }
     } else {
       setLocalWishlist(prev => {
-        const updated = prev.includes(targetId) 
-          ? prev.filter(item => item !== targetId) 
-          : [...prev, targetId];
-        localStorage.setItem('petlink_store_wishlist', JSON.stringify(updated));
+        const list = Array.isArray(prev) ? prev : [];
+        const updated = list.includes(targetId) 
+          ? list.filter(item => item !== targetId) 
+          : [...list, targetId];
+        try {
+          localStorage.setItem('petlink_store_wishlist', JSON.stringify(updated));
+        } catch {}
         return updated;
       });
     }
@@ -256,7 +262,7 @@ export default function ProductDetails({
   const hasDiscount = Boolean(product.salePrice && product.discount > 0);
   const discountPercent = product.discount || Math.round(((originalPrice - currentPrice) / originalPrice) * 100);
   const categoryName = product.category?.name || 'Accessories';
-  const isWishlisted = activeWishlist.includes(product._id || product.id);
+  const isWishlisted = safeWishlist.includes(product._id || product.id);
 
   return (
     <div className="product-details-container fade-in">
@@ -778,14 +784,14 @@ export default function ProductDetails({
                       <Eye size={14} />
                     </button>
                     <button 
-                      className={`floating-btn wishlist ${activeWishlist.includes(rel._id || rel.id) ? 'active' : ''}`} 
+                      className={`floating-btn wishlist ${safeWishlist.includes(rel._id || rel.id) ? 'active' : ''}`} 
                       onClick={() => handleToggleWishlist(rel._id || rel.id)}
                       title="Save to Wishlist"
                     >
                       <Heart 
                         size={14} 
-                        fill={activeWishlist.includes(rel._id || rel.id) ? '#EF4444' : 'none'} 
-                        color={activeWishlist.includes(rel._id || rel.id) ? '#EF4444' : 'currentColor'} 
+                        fill={safeWishlist.includes(rel._id || rel.id) ? '#EF4444' : 'none'} 
+                        color={safeWishlist.includes(rel._id || rel.id) ? '#EF4444' : 'currentColor'} 
                       />
                     </button>
                   </div>

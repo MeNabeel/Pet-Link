@@ -5,68 +5,32 @@ import { cn } from "@/lib/utils";
 /**
  * BackgroundBeamsWithCollision
  * Aceternity UI component for animated background beams with collision effects.
- * Tuned for PetLink theme: elegant blues, subtle particles, fully contained.
+ * Optimized for PetLink theme: vibrant cyan/blue contrast against light-blue cards,
+ * visible motion, glowing heads, and delicate contained collision bursts.
  */
 export const BackgroundBeamsWithCollision = ({
   children,
   className,
-  containerClassName
+  containerClassName,
 }) => {
   const containerRef = useRef(null);
   const parentRef = useRef(null);
 
+  // Responsive percentage-based beam paths for consistent distribution across screen widths
   const beams = [
-    {
-      initialX: 30,
-      translateX: 30,
-      duration: 6,
-      repeatDelay: 2,
-      delay: 0.5,
-    },
-    {
-      initialX: 180,
-      translateX: 180,
-      duration: 5,
-      repeatDelay: 3,
-      delay: 1.5,
-    },
-    {
-      initialX: 360,
-      translateX: 360,
-      duration: 7,
-      repeatDelay: 2,
-      delay: 0.8,
-    },
-    {
-      initialX: 540,
-      translateX: 540,
-      duration: 6.5,
-      repeatDelay: 4,
-      delay: 2,
-    },
-    {
-      initialX: 720,
-      translateX: 720,
-      duration: 5.5,
-      repeatDelay: 2.5,
-      delay: 1,
-    },
-    {
-      initialX: 900,
-      translateX: 900,
-      duration: 8,
-      repeatDelay: 3.5,
-      delay: 2.5,
-    },
+    { left: "6%", duration: 5.5, delay: 0.2, rotate: -0.5 },
+    { left: "19%", duration: 4.8, delay: 1.4, rotate: 0.5 },
+    { left: "33%", duration: 6.2, delay: 0.6, rotate: 0 },
+    { left: "48%", duration: 5.0, delay: 2.1, rotate: -0.5 },
+    { left: "63%", duration: 5.8, delay: 1.0, rotate: 0.5 },
+    { left: "77%", duration: 4.6, delay: 2.6, rotate: -0.2 },
+    { left: "91%", duration: 6.5, delay: 0.8, rotate: 0.2 },
   ];
 
   return (
     <div
       ref={parentRef}
-      className={cn(
-        "relative w-full overflow-hidden",
-        containerClassName
-      )}
+      className={cn("relative w-full overflow-hidden", containerClassName)}
     >
       <div
         ref={containerRef}
@@ -110,15 +74,15 @@ const CollisionMechanism = React.memo(({ beamOptions, containerRef, parentRef })
         const containerRect = containerRef.current.getBoundingClientRect();
 
         // Check if beam bottom reached near the container base
-        const threshold = containerRect.bottom - 24;
+        const threshold = containerRect.bottom - 20;
         if (beamRect.bottom >= threshold) {
           const relativeX = beamRect.left - containerRect.left + beamRect.width / 2;
-          const relativeY = containerRect.height - 18;
+          const relativeY = containerRect.height - 16;
 
           setCollision({
             detected: true,
             coordinates: {
-              x: Math.max(10, Math.min(relativeX, containerRect.width - 10)),
+              x: Math.max(12, Math.min(relativeX, containerRect.width - 12)),
               y: relativeY,
             },
           });
@@ -126,7 +90,7 @@ const CollisionMechanism = React.memo(({ beamOptions, containerRef, parentRef })
       }
     };
 
-    const animationInterval = setInterval(checkCollision, 60);
+    const animationInterval = setInterval(checkCollision, 50);
     return () => clearInterval(animationInterval);
   }, [collision.detected, containerRef, parentRef]);
 
@@ -135,11 +99,11 @@ const CollisionMechanism = React.memo(({ beamOptions, containerRef, parentRef })
       const resetTimeout = setTimeout(() => {
         setCollision({ detected: false, coordinates: null });
         setCycle((prev) => prev + 1);
-      }, 1800);
+      }, 1600);
 
       const keyTimeout = setTimeout(() => {
         setBeamKey((prev) => prev + 1);
-      }, 2000);
+      }, 1800);
 
       return () => {
         clearTimeout(resetTimeout);
@@ -155,18 +119,18 @@ const CollisionMechanism = React.memo(({ beamOptions, containerRef, parentRef })
         ref={beamRef}
         animate="animate"
         initial={{
-          translateY: "-100px",
+          translateY: "-120px",
           top: 0,
           opacity: 0,
         }}
         variants={{
           animate: {
-            translateY: "450px",
-            opacity: [0, 0.7, 0.7, 0],
+            translateY: "480px",
+            opacity: [0, 0.95, 0.95, 0],
             transition: {
-              duration: beamOptions.duration || 6,
+              duration: beamOptions.duration || 5.5,
               repeat: Infinity,
-              repeatDelay: beamOptions.repeatDelay || 2,
+              repeatDelay: 1.5,
               delay: beamOptions.delay || 0,
               ease: "linear",
             },
@@ -174,16 +138,20 @@ const CollisionMechanism = React.memo(({ beamOptions, containerRef, parentRef })
         }}
         style={{
           position: "absolute",
-          left: `${beamOptions.initialX || 0}px`,
+          left: beamOptions.left || "50%",
           top: 0,
           transform: `rotate(${beamOptions.rotate || 0}deg)`,
         }}
         className={cn(
-          "pointer-events-none w-[1.5px] rounded-full bg-gradient-to-b from-transparent via-[#0066CC] to-[#38BDF8]",
-          "h-24 opacity-60 shadow-[0_0_8px_rgba(0,102,204,0.4)]",
-          beamOptions.className
+          "pointer-events-none relative flex flex-col items-center",
+          "w-[3px] h-32 rounded-full",
+          "bg-gradient-to-b from-transparent via-[#38BDF8] via-[#0284C7] to-[#0052A3]",
+          "shadow-[0_0_12px_rgba(2,132,199,0.7),0_0_5px_rgba(0,102,204,0.9)]"
         )}
-      />
+      >
+        {/* Glowing Head Point at the tip of the beam */}
+        <div className="absolute -bottom-1 h-[4.5px] w-[4.5px] rounded-full bg-white shadow-[0_0_10px_#38BDF8,0_0_5px_#0066CC]" />
+      </motion.div>
 
       <AnimatePresence>
         {collision.detected && collision.coordinates && (
@@ -204,12 +172,12 @@ const CollisionMechanism = React.memo(({ beamOptions, containerRef, parentRef })
 CollisionMechanism.displayName = "CollisionMechanism";
 
 const Explosion = ({ ...props }) => {
-  const spans = Array.from({ length: 14 }, (_, index) => {
-    const angle = (index * 360) / 14;
-    const distance = 12 + (index % 4) * 6;
+  const spans = Array.from({ length: 16 }, (_, index) => {
+    const angle = (index * 360) / 16;
+    const distance = 14 + (index % 4) * 8;
     const radians = (angle * Math.PI) / 180;
     const x = Math.cos(radians) * distance;
-    const y = Math.sin(radians) * distance * 0.5 - 4; // slight upward bias
+    const y = Math.sin(radians) * distance * 0.5 - 6;
 
     return {
       id: index,
@@ -223,28 +191,30 @@ const Explosion = ({ ...props }) => {
       {...props}
       className={cn("pointer-events-none absolute z-0 h-2 w-2 -translate-x-1/2 -translate-y-1/2", props.className)}
     >
+      {/* Central burst radial bloom */}
       <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: [0, 0.5, 0] }}
+        initial={{ opacity: 0, scale: 0.5 }}
+        animate={{ opacity: [0, 0.8, 0], scale: [0.5, 1.4, 1.8] }}
         exit={{ opacity: 0 }}
-        transition={{ duration: 1.2, ease: "easeOut" }}
-        className="absolute -inset-4 rounded-full bg-gradient-to-b from-[#38BDF8]/20 to-transparent blur-[6px]"
+        transition={{ duration: 0.9, ease: "easeOut" }}
+        className="absolute -inset-4 rounded-full bg-gradient-to-b from-[#38BDF8]/40 to-[#0066CC]/20 blur-[8px]"
       />
       {spans.map((span) => (
         <motion.span
           key={span.id}
-          initial={{ x: 0, y: 0, opacity: 0.8, scale: 1 }}
+          initial={{ x: 0, y: 0, opacity: 1, scale: 1.2 }}
           animate={{
             x: span.directionX,
             y: span.directionY,
             opacity: 0,
             scale: 0.2,
           }}
-          transition={{ duration: 0.8, ease: "easeOut" }}
-          className="absolute h-1 w-1 rounded-full bg-gradient-to-b from-[#0066CC] to-[#38BDF8]"
+          transition={{ duration: 0.85, ease: "easeOut" }}
+          className="absolute h-1.5 w-1.5 rounded-full bg-gradient-to-b from-[#38BDF8] to-[#0066CC] shadow-[0_0_6px_rgba(2,132,199,0.9)]"
         />
       ))}
     </div>
   );
 };
 
+export default BackgroundBeamsWithCollision;

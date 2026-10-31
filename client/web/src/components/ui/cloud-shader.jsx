@@ -3,15 +3,14 @@ import { cn } from "@/lib/utils";
 
 /**
  * CloudShader
- * Aceternity UI WebGL shader background component.
- * Renders soft, procedural, drifting clouds using GPU fragment shaders.
- * Designed with low opacity, high performance, and safe fallback.
+ * Renders soft, organic, flowing WHITE clouds drifting smoothly across a sky-blue background.
+ * Uses GPU fragment shaders with procedural fBm noise and an ultra-smooth 2D canvas fallback.
+ * Strictly non-intrusive (pointer-events-none, contained inside the card).
  */
 export const CloudShader = ({
   className,
-  speed = 0.5,
-  opacity = 0.12,
-  color = "#0066CC",
+  speed = 0.6,
+  opacity = 0.45,
 }) => {
   const canvasRef = useRef(null);
 
@@ -19,42 +18,58 @@ export const CloudShader = ({
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    let gl = canvas.getContext("webgl", { alpha: true, antialias: false });
-    if (!gl) {
-      gl = canvas.getContext("experimental-webgl", { alpha: true });
+    let isRunning = true;
+    let animationFrameId;
+
+    // Check for prefers-reduced-motion
+    const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const effectiveSpeed = prefersReducedMotion ? 0 : speed;
+
+    let gl = null;
+    try {
+      gl = canvas.getContext("webgl", { alpha: true, antialias: false, powerPreference: "low-power" }) ||
+           canvas.getContext("experimental-webgl", { alpha: true });
+    } catch {
+      gl = null;
     }
 
-    let animationFrameId;
-    let isRunning = true;
-
     if (!gl) {
-      // Fallback: 2D subtle animated cloud gradient
+      // High-performance 2D procedural drifting white clouds fallback
       const ctx = canvas.getContext("2d");
       if (!ctx) return;
 
-      let offset = 0;
+      const clouds = [
+        { x: -50, y: 35, r: 120, vx: 0.18, alpha: 0.45 },
+        { x: 180, y: 70, r: 160, vx: 0.22, alpha: 0.4 },
+        { x: 380, y: 40, r: 140, vx: 0.15, alpha: 0.5 },
+        { x: 560, y: 90, r: 190, vx: 0.25, alpha: 0.35 },
+        { x: 740, y: 55, r: 150, vx: 0.19, alpha: 0.42 },
+      ];
+
       const render2DFallback = () => {
         if (!isRunning) return;
-        const width = (canvas.width = canvas.parentElement?.clientWidth || 300);
-        const height = (canvas.height = canvas.parentElement?.clientHeight || 200);
+        const w = (canvas.width = canvas.parentElement?.clientWidth || 600);
+        const h = (canvas.height = canvas.parentElement?.clientHeight || 260);
 
-        ctx.clearRect(0, 0, width, height);
-        offset += 0.2 * speed;
+        ctx.clearRect(0, 0, w, h);
 
-        const gradient = ctx.createRadialGradient(
-          (width / 2 + Math.sin(offset * 0.02) * 50),
-          (height / 2 + Math.cos(offset * 0.02) * 20),
-          20,
-          width / 2,
-          height / 2,
-          width * 0.6
-        );
-        gradient.addColorStop(0, "rgba(56, 189, 248, 0.15)");
-        gradient.addColorStop(0.5, "rgba(0, 102, 204, 0.08)");
-        gradient.addColorStop(1, "rgba(255, 255, 255, 0)");
+        clouds.forEach((cloud) => {
+          cloud.x += cloud.vx * effectiveSpeed;
+          if (cloud.x - cloud.r > w) cloud.x = -cloud.r;
 
-        ctx.fillStyle = gradient;
-        ctx.fillRect(0, 0, width, height);
+          const grad = ctx.createRadialGradient(
+            cloud.x, cloud.y, cloud.r * 0.15,
+            cloud.x, cloud.y, cloud.r
+          );
+          grad.addColorStop(0, `rgba(255, 255, 255, ${cloud.alpha * opacity})`);
+          grad.addColorStop(0.5, `rgba(255, 255, 255, ${cloud.alpha * 0.6 * opacity})`);
+          grad.addColorStop(1, "rgba(255, 255, 255, 0)");
+
+          ctx.fillStyle = grad;
+          ctx.beginPath();
+          ctx.arc(cloud.x, cloud.y, cloud.r, 0, Math.PI * 2);
+          ctx.fill();
+        });
 
         animationFrameId = requestAnimationFrame(render2DFallback);
       };
@@ -66,83 +81,70 @@ export const CloudShader = ({
       };
     }
 
-    // WebGL Shader setup
-    const vertexShaderSource = `
+    // WebGL Shader setup: Pure Soft White Clouds with Billowing fBm
+    const vsSource = `
       attribute vec2 position;
       void main() {
         gl_Position = vec4(position, 0.0, 1.0);
       }
     `;
 
-    const fragmentShaderSource = `
+    const fsSource = `
       precision mediump float;
       uniform vec2 u_resolution;
       uniform float u_time;
+      uniform float u_opacity;
 
-      // 2D Random
-      float random(in vec2 st) {
-        return fract(sin(dot(st.xy, vec2(12.9898, 78.233))) * 43758.5453123);
+      float hash(vec2 p) {
+        p = 50.0 * fract(p * 0.3183099 + vec2(0.71, 0.113));
+        return -1.0 + 2.0 * fract(p.x * p.y * (p.x + p.y));
       }
 
-      // 2D Value Noise
-      float noise(in vec2 st) {
-        vec2 i = floor(st);
-        vec2 f = fract(st);
-
-        float a = random(i);
-        float b = random(i + vec2(1.0, 0.0));
-        float c = random(i + vec2(0.0, 1.0));
-        float d = random(i + vec2(1.0, 1.0));
-
+      float noise(in vec2 p) {
+        vec2 i = floor(p);
+        vec2 f = fract(p);
         vec2 u = f * f * (3.0 - 2.0 * f);
-        return mix(a, b, u.x) + (c - a) * u.y * (1.0 - u.x) + (d - b) * u.x * u.y;
+        return mix(mix(hash(i + vec2(0.0, 0.0)), hash(i + vec2(1.0, 0.0)), u.x),
+                   mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), u.x), u.y);
       }
 
-      // Fractal Brownian Motion
-      float fbm(in vec2 st) {
-        float value = 0.0;
-        float amplitude = 0.5;
-        for (int i = 0; i < 4; i++) {
-          value += amplitude * noise(st);
-          st *= 2.0;
-          amplitude *= 0.5;
-        }
-        return value;
+      float fbm(in vec2 p) {
+        float f = 0.0;
+        mat2 m = mat2(1.6, 1.2, -1.2, 1.6);
+        f += 0.5000 * noise(p); p = m * p;
+        f += 0.2500 * noise(p); p = m * p;
+        f += 0.1250 * noise(p); p = m * p;
+        f += 0.0625 * noise(p);
+        return f;
       }
 
       void main() {
-        vec2 st = gl_FragCoord.xy / u_resolution.xy;
-        st.x *= u_resolution.x / u_resolution.y;
+        vec2 uv = gl_FragCoord.xy / u_resolution.xy;
+        uv.x *= u_resolution.x / u_resolution.y;
 
-        vec2 q = vec2(0.0);
-        q.x = fbm(st + 0.02 * u_time);
-        q.y = fbm(st + vec2(1.0));
+        // Smooth horizontal drift across the sky
+        vec2 drift = vec2(u_time * 0.025, 0.0);
 
-        vec2 r = vec2(0.0);
-        r.x = fbm(st + 1.0 * q + vec2(1.7, 9.2) + 0.015 * u_time);
-        r.y = fbm(st + 1.0 * q + vec2(8.3, 2.8) + 0.0126 * u_time);
+        // Billowing cloud structure
+        vec2 q = vec2(fbm(uv * 1.5 + drift), fbm(uv * 1.5 + vec2(5.2, 1.3) + drift * 0.8));
+        vec2 r = vec2(fbm(uv * 2.2 + 2.0 * q + vec2(1.7, 9.2) + drift * 0.5),
+                      fbm(uv * 2.2 + 2.0 * q + vec2(8.3, 2.8) + drift * 0.6));
+        float f = fbm(uv * 2.0 + 2.5 * r + drift * 0.4);
 
-        float f = fbm(st + r);
+        // Soft white cloud puff distribution
+        float cloudDensity = smoothstep(-0.15, 0.65, f);
 
-        // Soft sky and subtle cloud color mapping in PetLink tones
-        vec3 color = mix(
-          vec3(0.0, 0.4, 0.8), // #0066CC
-          vec3(0.4, 0.75, 0.98), // Sky blue
-          clamp((f * f) * 4.0, 0.0, 1.0)
-        );
+        // Pure white color (#FFFFFF)
+        vec3 whiteCloud = vec3(1.0, 1.0, 1.0);
 
-        color = mix(
-          color,
-          vec3(1.0, 1.0, 1.0),
-          clamp(length(q), 0.0, 1.0)
-        );
+        // Alpha calculation tuned for visible soft white clouds over sky blue
+        float alpha = cloudDensity * u_opacity * 0.55;
 
-        float alpha = smoothstep(0.15, 0.8, f) * 0.45;
-        gl_FragColor = vec4(color, alpha);
+        gl_FragColor = vec4(whiteCloud, alpha);
       }
     `;
 
-    const createShader = (gl, type, source) => {
+    const createShader = (type, source) => {
       const shader = gl.createShader(type);
       gl.shaderSource(shader, source);
       gl.compileShader(shader);
@@ -153,69 +155,64 @@ export const CloudShader = ({
       return shader;
     };
 
-    const vertShader = createShader(gl, gl.VERTEX_SHADER, vertexShaderSource);
-    const fragShader = createShader(gl, gl.FRAGMENT_SHADER, fragmentShaderSource);
-
-    if (!vertShader || !fragShader) return;
+    const vs = createShader(gl.VERTEX_SHADER, vsSource);
+    const fs = createShader(gl.FRAGMENT_SHADER, fsSource);
+    if (!vs || !fs) return;
 
     const program = gl.createProgram();
-    gl.attachShader(program, vertShader);
-    gl.attachShader(program, fragShader);
+    gl.attachShader(program, vs);
+    gl.attachShader(program, fs);
     gl.linkProgram(program);
-
     if (!gl.getProgramParameter(program, gl.LINK_STATUS)) return;
 
-    const positionAttributeLocation = gl.getAttribLocation(program, "position");
-    const resolutionUniformLocation = gl.getUniformLocation(program, "u_resolution");
-    const timeUniformLocation = gl.getUniformLocation(program, "u_time");
+    gl.useProgram(program);
 
-    const positionBuffer = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+    const posBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, posBuffer);
     gl.bufferData(
       gl.ARRAY_BUFFER,
-      new Float32Array([
-        -1, -1,
-         1, -1,
-        -1,  1,
-        -1,  1,
-         1, -1,
-         1,  1,
-      ]),
+      new Float32Array([-1, -1, 1, -1, -1, 1, -1, 1, 1, -1, 1, 1]),
       gl.STATIC_DRAW
     );
 
-    const resize = () => {
-      if (!canvas || !canvas.parentElement) return;
-      const width = canvas.parentElement.clientWidth;
-      const height = canvas.parentElement.clientHeight;
-      if (canvas.width !== width || canvas.height !== height) {
-        canvas.width = width;
-        canvas.height = height;
-        gl.viewport(0, 0, width, height);
-      }
-    };
+    const posLoc = gl.getAttribLocation(program, "position");
+    gl.enableVertexAttribArray(posLoc);
+    gl.vertexAttribPointer(posLoc, 2, gl.FLOAT, false, 0, 0);
 
-    window.addEventListener("resize", resize);
-    resize();
+    const resLoc = gl.getUniformLocation(program, "u_resolution");
+    const timeLoc = gl.getUniformLocation(program, "u_time");
+    const opacityLoc = gl.getUniformLocation(program, "u_opacity");
+
+    gl.enable(gl.BLEND);
+    gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
 
     let startTime = performance.now();
 
-    const render = (time) => {
+    const resize = () => {
+      if (!canvas || !canvas.parentElement) return;
+      const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
+      const w = canvas.parentElement.clientWidth;
+      const h = canvas.parentElement.clientHeight;
+      if (canvas.width !== Math.floor(w * dpr) || canvas.height !== Math.floor(h * dpr)) {
+        canvas.width = Math.floor(w * dpr);
+        canvas.height = Math.floor(h * dpr);
+        gl.viewport(0, 0, canvas.width, canvas.height);
+      }
+    };
+
+    resize();
+    window.addEventListener("resize", resize);
+
+    const render = (now) => {
       if (!isRunning) return;
       resize();
 
-      const elapsed = (time - startTime) * 0.001 * speed;
-
-      gl.useProgram(program);
-      gl.enableVertexAttribArray(positionAttributeLocation);
-      gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
-      gl.vertexAttribPointer(positionAttributeLocation, 2, gl.FLOAT, false, 0, 0);
-
-      gl.uniform2f(resolutionUniformLocation, canvas.width, canvas.height);
-      gl.uniform1f(timeUniformLocation, elapsed);
+      const elapsed = (now - startTime) * 0.001 * effectiveSpeed;
+      gl.uniform2f(resLoc, canvas.width, canvas.height);
+      gl.uniform1f(timeLoc, elapsed);
+      gl.uniform1f(opacityLoc, opacity);
 
       gl.drawArrays(gl.TRIANGLES, 0, 6);
-
       animationFrameId = requestAnimationFrame(render);
     };
 
@@ -226,30 +223,25 @@ export const CloudShader = ({
       window.removeEventListener("resize", resize);
       cancelAnimationFrame(animationFrameId);
       if (gl) {
+        gl.deleteBuffer(posBuffer);
         gl.deleteProgram(program);
-        gl.deleteShader(vertShader);
-        gl.deleteShader(fragShader);
-        gl.deleteBuffer(positionBuffer);
       }
     };
-  }, [speed]);
+  }, [speed, opacity]);
 
   return (
-    <div
+    <canvas
+      ref={canvasRef}
       className={cn(
-        "pointer-events-none absolute inset-0 z-0 overflow-hidden rounded-[inherit]",
+        "pointer-events-none absolute inset-0 z-0 h-full w-full rounded-[inherit]",
         className
       )}
-      style={{ opacity }}
+      style={{
+        mixBlendMode: "screen",
+      }}
       aria-hidden="true"
-    >
-      <canvas
-        ref={canvasRef}
-        className="h-full w-full block"
-      />
-    </div>
+    />
   );
 };
 
 export default CloudShader;
-

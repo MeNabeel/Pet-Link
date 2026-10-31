@@ -14,6 +14,7 @@ import { EncryptedText } from '../components/ui/encrypted-text';
 import { CloudShader } from '../components/ui/cloud-shader';
 import { GlowingEffect } from '../components/ui/glowing-effect';
 import { getUserActivities, formatRelativeTime } from '../utils/activityTracker';
+import RotatingBentoCard from '../components/RotatingBentoCard';
 import './Dashboard.css';
 import Profile from './Profile';
 import AccountSettings from './AccountSettings';
@@ -1111,90 +1112,14 @@ export default function Dashboard({ onLogout }) {
                 </BackgroundBeamsWithCollision>
               </div>
 
-              {/* ROW 2: 4 MODERN PROFESSIONAL SAAS STATISTICS CARDS */}
-              <div className="dash-metrics-grid">
-                <div
-                  className="metric-card"
-                  onClick={() => { setActiveTab('pets'); setPetSubView('list'); }}
-                  tabIndex={0}
-                  role="button"
-                >
-                  <div className="metric-card-top">
-                    <span className="metric-label">Registered Pets</span>
-                    <div className="metric-icon-box" style={{ color: '#0066CC', backgroundColor: 'rgba(0, 102, 204, 0.08)' }}>
-                      <PawPrint size={18} />
-                    </div>
-                  </div>
-                  <div className="metric-card-body">
-                    <span className="metric-value">{metrics.pets}</span>
-                    <span className="metric-subtext">Active pet profiles</span>
-                  </div>
-                </div>
+              {/* ROW 2: MAIN THREE-COLUMN DASHBOARD GRID (MY PETS ~48%, ROTATING BENTO CARD ~25%, WIDGETS ~27%) */}
+              <div className="dash-main-3col-grid">
 
-                <div
-                  className="metric-card"
-                  onClick={() => setActiveTab('marketplace')}
-                  tabIndex={0}
-                  role="button"
-                >
-                  <div className="metric-card-top">
-                    <span className="metric-label">Active Listings</span>
-                    <div className="metric-icon-box" style={{ color: '#16A34A', backgroundColor: 'rgba(22, 163, 74, 0.08)' }}>
-                      <HeartHandshake size={18} />
-                    </div>
-                  </div>
-                  <div className="metric-card-body">
-                    <span className="metric-value">{metrics.listings}</span>
-                    <span className="metric-subtext">Marketplace items</span>
-                  </div>
-                </div>
-
-                <div
-                  className="metric-card"
-                  onClick={() => { setActiveTab('pets'); setPetSubView('list'); }}
-                  tabIndex={0}
-                  role="button"
-                >
-                  <div className="metric-card-top">
-                    <span className="metric-label">Vaccines Tracked</span>
-                    <div className="metric-icon-box" style={{ color: '#EAB308', backgroundColor: 'rgba(234, 179, 8, 0.08)' }}>
-                      <Activity size={18} />
-                    </div>
-                  </div>
-                  <div className="metric-card-body">
-                    <span className="metric-value">{metrics.vaccines}</span>
-                    <span className="metric-subtext">Immunization records</span>
-                  </div>
-                </div>
-
-                <div
-                  className="metric-card"
-                  onClick={() => handleActionClick('AI Chatbot Advisor')}
-                  tabIndex={0}
-                  role="button"
-                >
-                  <div className="metric-card-top">
-                    <span className="metric-label">Support Sessions</span>
-                    <div className="metric-icon-box" style={{ color: '#8B5CF6', backgroundColor: 'rgba(139, 92, 246, 0.08)' }}>
-                      <Headphones size={18} />
-                    </div>
-                  </div>
-                  <div className="metric-card-body">
-                    <span className="metric-value">{metrics.support}</span>
-                    <span className="metric-subtext">Advisor consultations</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* ROW 3: COMPACT TWO-COLUMN DASHBOARD GRID */}
-              <div className="dash-main-grid">
-
-                {/* Left Primary Column */}
-                <div className="dash-main-left">
-
-                  {/* LARGE PET / VETERINARY CARD (MATCHING SOFT LIGHT BLUE #EEF5FF STYLE WITH CLOUD SHADER) */}
+                {/* Column 1 (Left ~48%): Large My Pets / Veterinary Clinics Card */}
+                <div className="dash-col-left">
                   <div className="pet-vet-main-card">
-                    <CloudShader opacity={0.12} speed={0.4} />
+                    <GlowingEffect spread={180} proximity={120} />
+                    <CloudShader opacity={0.45} speed={0.6} />
                     <PetPattern />
                     <div className="pet-vet-card-content">
 
@@ -1321,117 +1246,31 @@ export default function Dashboard({ onLogout }) {
                       )}
                     </div>
                   </div>
-
-                  {/* LOWER DASHBOARD: PET HEALTH OVERVIEW & QUICK ACTIONS */}
-                  <div className="dash-lower-grid">
-
-                    {/* Pet Health Overview Card (100% Dynamic - Empty State when 0 pets) */}
-                    <div className="dash-widget-card">
-                      <GlowingEffect spread={40} glow={true} proximity={80} />
-                      <div className="dash-widget-header">
-                        <h3 className="dash-widget-title">
-                          <Activity size={18} color="var(--color-primary)" />
-                          <span>Pet Health Overview</span>
-                        </h3>
-                      </div>
-
-                      {userPetsList.length === 0 ? (
-                        <div className="dash-empty-widget">
-                          <Activity size={24} color="var(--color-muted)" />
-                          <p className="dash-empty-widget-text">No pet health records yet. Add your first pet to start tracking health.</p>
-                        </div>
-                      ) : (
-                        <div className="health-overview-bars">
-                          <div className="health-bar-row">
-                            <div className="health-bar-label-group">
-                              <span style={{ color: '#16A34A' }}>Up to date</span>
-                              <span>{metrics.vaccines > 0 ? '100%' : '100%'}</span>
-                            </div>
-                            <div className="health-bar-track">
-                              <div className="health-bar-fill" style={{ width: '100%', backgroundColor: '#16A34A' }} />
-                            </div>
-                          </div>
-
-                          <div className="health-bar-row">
-                            <div className="health-bar-label-group">
-                              <span style={{ color: '#EAB308' }}>Due soon</span>
-                              <span>0%</span>
-                            </div>
-                            <div className="health-bar-track">
-                              <div className="health-bar-fill" style={{ width: '0%', backgroundColor: '#EAB308' }} />
-                            </div>
-                          </div>
-
-                          <div className="health-bar-row">
-                            <div className="health-bar-label-group">
-                              <span style={{ color: '#EF4444' }}>Overdue</span>
-                              <span>0%</span>
-                            </div>
-                            <div className="health-bar-track">
-                              <div className="health-bar-fill" style={{ width: '0%', backgroundColor: '#EF4444' }} />
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Quick Actions Grid */}
-                    <div className="dash-widget-card">
-                      <GlowingEffect spread={40} glow={true} proximity={80} />
-                      <div className="dash-widget-header">
-                        <h3 className="dash-widget-title">
-                          <Plus size={18} color="var(--color-primary)" />
-                          <span>Quick Actions</span>
-                        </h3>
-                      </div>
-
-                      <div className="dash-quick-actions-grid">
-                        <div
-                          className="quick-action-card"
-                          onClick={() => {
-                            setSelectedPetId(null);
-                            setActiveTab('pets');
-                            setPetSubView('form');
-                          }}
-                        >
-                          <div className="quick-action-icon">
-                            <Plus size={18} />
-                          </div>
-                          <span className="quick-action-title">Add New Pet</span>
-                        </div>
-
-                        <div className="quick-action-card" onClick={() => setActiveTab('shelter')}>
-                          <div className="quick-action-icon" style={{ color: '#EAB308' }}>
-                            <Calendar size={18} />
-                          </div>
-                          <span className="quick-action-title">Book Shelter</span>
-                        </div>
-
-                        <div className="quick-action-card" onClick={() => setActiveTab('shop')}>
-                          <div className="quick-action-icon" style={{ color: '#16A34A' }}>
-                            <Store size={18} />
-                          </div>
-                          <span className="quick-action-title">Buy Products</span>
-                        </div>
-
-                        <div className="quick-action-card" onClick={() => setActiveTab('clinics')}>
-                          <div className="quick-action-icon" style={{ color: '#8B5CF6' }}>
-                            <Stethoscope size={18} />
-                          </div>
-                          <span className="quick-action-title">Find a Vet</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
                 </div>
 
-                {/* Right Secondary Column (Upcoming Vaccinations & Activity) */}
-                <div className="dash-main-right">
+                {/* Column 2 (Center ~25%): Single Rotating Bento Statistics Card */}
+                <div className="dash-col-center">
+                  <RotatingBentoCard
+                    metrics={metrics}
+                    onNavigate={(dest) => {
+                      if (dest === 'pets') {
+                        setActiveTab('pets');
+                        setPetSubView('list');
+                      } else if (dest === 'marketplace') {
+                        setActiveTab('marketplace');
+                      } else if (dest === 'ai') {
+                        handleActionClick('AI Chatbot Advisor');
+                      }
+                    }}
+                  />
+                </div>
+
+                {/* Column 3 (Right ~27%): Upcoming Vaccinations (Top) & Recent Activity (Bottom) */}
+                <div className="dash-col-right">
 
                   {/* Dynamic Upcoming Vaccinations Widget */}
                   <div className="dash-widget-card">
-                    <GlowingEffect spread={40} glow={true} proximity={80} />
+                    <GlowingEffect spread={150} proximity={90} />
                     <div className="dash-widget-header">
                       <h3 className="dash-widget-title">
                         <Syringe size={18} color="var(--color-primary)" />
@@ -1501,7 +1340,7 @@ export default function Dashboard({ onLogout }) {
 
                   {/* Dynamic Recent Activity Widget */}
                   <div className="dash-widget-card">
-                    <GlowingEffect spread={40} glow={true} proximity={80} />
+                    <GlowingEffect spread={150} proximity={90} />
                     <div className="dash-widget-header">
                       <h3 className="dash-widget-title">
                         <Clock size={18} color="var(--color-primary)" />
@@ -1540,6 +1379,114 @@ export default function Dashboard({ onLogout }) {
                     )}
                   </div>
 
+                </div>
+
+              </div>
+
+              {/* ROW 3: BOTTOM SECTION (PET HEALTH OVERVIEW & QUICK ACTIONS SIDE-BY-SIDE) */}
+              <div className="dash-bottom-2col-grid">
+
+                {/* Pet Health Overview Card */}
+                <div className="dash-widget-card">
+                  <GlowingEffect
+                    spread={160}
+                    proximity={90}
+                    highlightColor="rgba(74, 222, 128, 0.85)"
+                    glowColor="rgba(22, 163, 74, 0.4)"
+                  />
+                  <div className="dash-widget-header">
+                    <h3 className="dash-widget-title">
+                      <Activity size={18} color="var(--color-primary)" />
+                      <span>Pet Health Overview</span>
+                    </h3>
+                  </div>
+
+                  {userPetsList.length === 0 ? (
+                    <div className="dash-empty-widget">
+                      <Activity size={24} color="var(--color-muted)" />
+                      <p className="dash-empty-widget-text">No pet health records yet. Add your first pet to start tracking health.</p>
+                    </div>
+                  ) : (
+                    <div className="health-overview-bars">
+                      <div className="health-bar-row">
+                        <div className="health-bar-label-group">
+                          <span style={{ color: '#16A34A' }}>Up to date</span>
+                          <span>{metrics.vaccines > 0 ? '100%' : '100%'}</span>
+                        </div>
+                        <div className="health-bar-track">
+                          <div className="health-bar-fill" style={{ width: '100%', backgroundColor: '#16A34A' }} />
+                        </div>
+                      </div>
+
+                      <div className="health-bar-row">
+                        <div className="health-bar-label-group">
+                          <span style={{ color: '#EAB308' }}>Due soon</span>
+                          <span>0%</span>
+                        </div>
+                        <div className="health-bar-track">
+                          <div className="health-bar-fill" style={{ width: '0%', backgroundColor: '#EAB308' }} />
+                        </div>
+                      </div>
+
+                      <div className="health-bar-row">
+                        <div className="health-bar-label-group">
+                          <span style={{ color: '#EF4444' }}>Overdue</span>
+                          <span>0%</span>
+                        </div>
+                        <div className="health-bar-track">
+                          <div className="health-bar-fill" style={{ width: '0%', backgroundColor: '#EF4444' }} />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Quick Actions Grid */}
+                <div className="dash-widget-card">
+                  <GlowingEffect spread={160} proximity={90} />
+                  <div className="dash-widget-header">
+                    <h3 className="dash-widget-title">
+                      <Plus size={18} color="var(--color-primary)" />
+                      <span>Quick Actions</span>
+                    </h3>
+                  </div>
+
+                  <div className="dash-quick-actions-grid">
+                    <div
+                      className="quick-action-card"
+                      onClick={() => {
+                        setSelectedPetId(null);
+                        setActiveTab('pets');
+                        setPetSubView('form');
+                      }}
+                    >
+                      <div className="quick-action-icon">
+                        <Plus size={18} />
+                      </div>
+                      <span className="quick-action-title">Add New Pet</span>
+                    </div>
+
+                    <div className="quick-action-card" onClick={() => setActiveTab('shelter')}>
+                      <div className="quick-action-icon" style={{ color: '#EAB308' }}>
+                        <Calendar size={18} />
+                      </div>
+                      <span className="quick-action-title">Book Shelter</span>
+                    </div>
+
+                    <div className="quick-action-card" onClick={() => setActiveTab('shop')}>
+                      <div className="quick-action-icon" style={{ color: '#16A34A' }}>
+                        <Store size={18} />
+                      </div>
+                      <span className="quick-action-title">Buy Products</span>
+                    </div>
+
+                    <div className="quick-action-card" onClick={() => setActiveTab('clinics')}>
+                      <div className="quick-action-icon" style={{ color: '#8B5CF6' }}>
+                        <Stethoscope size={18} />
+                      </div>
+                      <span className="quick-action-title">Find a Vet</span>
+                    </div>
+                  </div>
                 </div>
 
               </div>

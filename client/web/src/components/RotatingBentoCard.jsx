@@ -137,7 +137,7 @@ export default function RotatingBentoCard({ metrics = {}, onNavigate }) {
             handleCardClick();
           }}
         >
-          <ArrowUpRight size={15} />
+          <ArrowUpRight size={14} />
         </button>
       </div>
 
@@ -160,7 +160,7 @@ export default function RotatingBentoCard({ metrics = {}, onNavigate }) {
                 backgroundColor: current.bgLight,
               }}
             >
-              <IconComponent size={24} />
+              <IconComponent size={20} />
             </div>
 
             {/* Metric Value */}

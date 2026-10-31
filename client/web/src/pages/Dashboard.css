@@ -15,10 +15,12 @@
 .dash-container {
   display: flex;
   flex-direction: column;
+  height: 100vh;
   min-height: 100vh;
   background-color: var(--color-bg-light);
   color: var(--color-dark);
   font-family: var(--font-sans);
+  overflow: hidden;
 }
 
 /* Keyframe animations */
@@ -61,13 +63,15 @@
   justify-content: space-between;
   align-items: center;
   background-color: var(--color-white);
-  padding: 14px 28px;
+  padding: 10px 24px;
   border-bottom: 1px solid rgba(226, 232, 240, 0.85);
   position: sticky;
   top: 0;
   z-index: 40;
   box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.04), 0 2px 6px -1px rgba(15, 23, 42, 0.02);
   transition: box-shadow 0.2s ease;
+  height: 56px;
+  flex-shrink: 0;
 }
 
 .dash-header-left {
@@ -513,6 +517,9 @@
   display: flex;
   flex: 1;
   position: relative;
+  height: calc(100vh - 56px);
+  min-height: 0;
+  overflow: hidden;
 }
 
 .dash-sidebar-overlay {
@@ -523,16 +530,17 @@
   width: 250px;
   background-color: var(--color-white);
   border-right: 1px solid var(--color-border);
-  padding: 20px 16px;
+  padding: 16px 14px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
   position: sticky;
-  top: 67px;
-  height: calc(100vh - 67px);
+  top: 56px;
+  height: calc(100vh - 56px);
   overflow-y: auto;
   transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1), padding 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   z-index: 30;
+  flex-shrink: 0;
 }
 
 .dash-sidebar.collapsed {
@@ -650,27 +658,29 @@
 ---------------------------------------------------- */
 .dash-content {
   flex: 1;
-  padding: 18px 24px;
+  padding: 12px 20px 12px 20px;
   overflow-y: auto;
   min-width: 0;
+  height: 100%;
 }
 
 /* Welcome Hero Card (Soft Light Blue Theme #EEF5FF with Visible Pet SVG Pattern & Aceternity Collision Beams) */
 .dash-welcome-card {
   background-color: var(--color-bg-soft-blue);
   border: 1px solid rgba(0, 102, 204, 0.12);
-  border-radius: 20px;
+  border-radius: 16px;
   padding: 0;
-  margin-bottom: 16px;
+  margin-bottom: 10px;
   box-shadow: 0 2px 8px rgba(0, 102, 204, 0.04);
   position: relative;
   overflow: hidden;
+  flex-shrink: 0;
 }
 
 .dash-welcome-beams-container {
-  padding: 18px 24px;
+  padding: 10px 18px;
   width: 100%;
-  border-radius: 20px;
+  border-radius: 16px;
 }
 
 .dash-welcome-content {
@@ -679,32 +689,32 @@
 }
 
 .dash-welcome-title {
-  font-size: 20px;
+  font-size: 17px;
   font-weight: 800;
   color: var(--color-dark);
-  margin-bottom: 4px;
+  margin-bottom: 2px;
 }
 
 .dash-welcome-text {
-  font-size: 13px;
+  font-size: 12px;
   color: var(--color-muted);
   font-weight: 500;
   max-width: 620px;
-  line-height: 1.45;
+  line-height: 1.35;
 }
 
 .dash-welcome-address {
   display: inline-flex;
   align-items: center;
-  gap: 14px;
+  gap: 12px;
   flex-wrap: wrap;
-  margin-top: 10px;
-  font-size: 12px;
+  margin-top: 5px;
+  font-size: 11px;
   color: var(--color-primary);
   font-weight: 600;
   background-color: rgba(255, 255, 255, 0.9);
-  padding: 5px 12px;
-  border-radius: 8px;
+  padding: 3px 10px;
+  border-radius: 6px;
   border: 1px solid rgba(0, 102, 204, 0.1);
 }
 
@@ -721,9 +731,13 @@
 .dash-main-3col-grid {
   display: grid;
   grid-template-columns: 48fr 25fr 27fr;
-  gap: 16px;
-  margin-bottom: 16px;
+  gap: 10px;
+  margin-bottom: 10px;
   align-items: stretch;
+  height: 260px;
+  min-height: 260px;
+  max-height: 280px;
+  flex-shrink: 0;
 }
 
 .dash-col-left {
@@ -743,13 +757,20 @@
 .dash-col-right {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 10px;
   min-width: 0;
   height: 100%;
 }
 
 .dash-col-right > .dash-widget-card {
   flex: 1;
+  min-height: 0;
+  padding: 10px 14px;
+  border-radius: 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  overflow: hidden;
 }
 
 /* ----------------------------------------------------
@@ -758,8 +779,8 @@
 .dash-bento-card {
   background-color: var(--color-white);
   border: 1px solid #E2E8F0;
-  border-radius: 20px;
-  padding: 18px 20px;
+  border-radius: 16px;
+  padding: 12px 16px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -768,7 +789,8 @@
   position: relative;
   overflow: hidden;
   height: 100%;
-  min-height: 280px;
+  min-height: 0;
+  box-sizing: border-box;
   transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s ease;
   outline: none;
 }
@@ -795,14 +817,14 @@
 .dash-bento-tag {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  font-size: 11px;
+  gap: 5px;
+  font-size: 10.5px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   color: #64748B;
   background-color: #F8FAFC;
-  padding: 4px 10px;
+  padding: 3px 8px;
   border-radius: 99px;
   border: 1px solid #E2E8F0;
 }
@@ -815,9 +837,9 @@
 }
 
 .dash-bento-arrow-btn {
-  width: 28px;
-  height: 28px;
-  border-radius: 8px;
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
   background-color: #F8FAFC;
   border: 1px solid #E2E8F0;
   color: #64748B;
@@ -840,8 +862,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 12px 0;
-  min-height: 140px;
+  padding: 4px 0;
+  min-height: 0;
 }
 
 .dash-bento-slide {
@@ -853,13 +875,13 @@
 }
 
 .dash-bento-icon-box {
-  width: 48px;
-  height: 48px;
-  border-radius: 14px;
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 12px;
+  margin-bottom: 6px;
   transition: transform 0.2s ease, background-color 0.3s ease, color 0.3s ease;
 }
 
@@ -868,11 +890,11 @@
 }
 
 .dash-bento-value {
-  font-size: 38px;
+  font-size: 28px;
   font-weight: 800;
   line-height: 1;
   letter-spacing: -0.03em;
-  margin-bottom: 6px;
+  margin-bottom: 3px;
 }
 
 .dash-bento-meta {
@@ -882,14 +904,14 @@
 }
 
 .dash-bento-label {
-  font-size: 14px;
+  font-size: 12.5px;
   font-weight: 700;
   color: #0F172A;
-  margin-bottom: 2px;
+  margin-bottom: 1px;
 }
 
 .dash-bento-desc {
-  font-size: 12px;
+  font-size: 11px;
   color: #64748B;
   font-weight: 500;
 }
@@ -898,12 +920,12 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  padding-top: 8px;
+  gap: 5px;
+  padding-top: 4px;
 }
 
 .dash-bento-dot {
-  height: 6px;
+  height: 5px;
   border-radius: 99px;
   background-color: #E2E8F0;
   border: none;
@@ -922,8 +944,99 @@
 .dash-bottom-2col-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 16px;
+  gap: 10px;
+  flex-shrink: 0;
 }
+
+.dash-bottom-2col-grid > .dash-widget-card {
+  padding: 12px 16px;
+  border-radius: 16px;
+}
+
+.dash-bottom-2col-grid .dash-widget-header {
+  margin-bottom: 6px;
+}
+
+.dash-bottom-2col-grid .dash-widget-title {
+  font-size: 13.5px;
+  gap: 6px;
+}
+
+
+.dash-col-right .dash-widget-header {
+  margin-bottom: 6px;
+}
+
+.dash-col-right .dash-widget-title {
+  font-size: 13px;
+  gap: 6px;
+}
+
+.dash-col-right .dash-widget-link {
+  font-size: 11px;
+}
+
+.dash-col-right .dash-vac-item {
+  padding: 4px 0;
+}
+
+.dash-col-right .dash-vac-date-box {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+}
+
+.dash-col-right .dash-vac-date-day {
+  font-size: 12px;
+}
+
+.dash-col-right .dash-vac-date-month {
+  font-size: 7.5px;
+}
+
+.dash-col-right .dash-vac-title {
+  font-size: 11.5px;
+  margin-bottom: 1px;
+}
+
+.dash-col-right .dash-vac-pet {
+  font-size: 10px;
+}
+
+.dash-col-right .dash-vac-badge {
+  font-size: 9.5px;
+  padding: 2px 6px;
+}
+
+.dash-col-right .dash-empty-widget {
+  padding: 8px 12px;
+  gap: 4px;
+}
+
+.dash-col-right .dash-empty-widget-text {
+  font-size: 11.5px;
+}
+
+.dash-col-right .dash-activity-item {
+  padding: 4px 0;
+  gap: 8px;
+}
+
+.dash-col-right .dash-activity-icon {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+}
+
+.dash-col-right .dash-activity-text {
+  font-size: 11px;
+  line-height: 1.25;
+}
+
+.dash-col-right .dash-activity-time {
+  font-size: 9.5px;
+}
+
 
 /* ----------------------------------------------------
    LARGE PET / VETERINARY CARD (SOFT LIGHT BLUE STYLE)
@@ -931,8 +1044,8 @@
 .pet-vet-main-card {
   background-color: var(--color-bg-soft-blue);
   border: 1px solid rgba(0, 102, 204, 0.12);
-  border-radius: 20px;
-  padding: 20px 22px;
+  border-radius: 16px;
+  padding: 12px 16px;
   margin-bottom: 0;
   box-shadow: 0 2px 8px rgba(0, 102, 204, 0.04);
   position: relative;
@@ -940,6 +1053,7 @@
   height: 100%;
   display: flex;
   flex-direction: column;
+  box-sizing: border-box;
 }
 
 .pet-vet-card-content {
@@ -950,24 +1064,24 @@
 /* Glassmorphism Toggle Header */
 .pet-vet-toggle-bar {
   display: flex;
-  gap: 8px;
+  gap: 6px;
   background: rgba(255, 255, 255, 0.85);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
-  padding: 5px;
-  border-radius: 14px;
+  padding: 3px;
+  border-radius: 10px;
   width: fit-content;
-  margin-bottom: 20px;
+  margin-bottom: 10px;
   border: 1px solid rgba(0, 102, 204, 0.12);
 }
 
 .pet-vet-toggle-btn {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 18px;
-  border-radius: 10px;
-  font-size: 13px;
+  gap: 6px;
+  padding: 5px 14px;
+  border-radius: 8px;
+  font-size: 12px;
   font-weight: 700;
   border: none;
   background: transparent;
@@ -1009,10 +1123,10 @@
 }
 
 .dash-pet-avatar-wrapper {
-  width: 68px;
-  height: 68px;
+  width: 56px;
+  height: 56px;
   border-radius: 50%;
-  padding: 3px;
+  padding: 2px;
   border: 2px solid var(--color-primary);
   background-color: var(--color-white);
   overflow: hidden;
@@ -1030,8 +1144,8 @@
 }
 
 .dash-pet-name {
-  margin-top: 8px;
-  font-size: 13px;
+  margin-top: 5px;
+  font-size: 12px;
   font-weight: 700;
   color: var(--color-dark);
   text-align: center;
@@ -1046,8 +1160,8 @@
 }
 
 .dash-add-pet-circle {
-  width: 68px;
-  height: 68px;
+  width: 56px;
+  height: 56px;
   border-radius: 50%;
   border: 2px dashed var(--color-primary);
   display: flex;
@@ -1065,8 +1179,8 @@
 }
 
 .dash-add-pet-label {
-  margin-top: 8px;
-  font-size: 13px;
+  margin-top: 5px;
+  font-size: 12px;
   font-weight: 700;
   color: var(--color-primary);
   text-align: center;
@@ -1077,13 +1191,13 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 14px;
+  margin-bottom: 8px;
 }
 
 .dash-clinics-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 14px;
+  gap: 8px;
 }
 
 .dash-clinic-card {
@@ -1104,7 +1218,7 @@
 
 .dash-clinic-img-wrapper {
   position: relative;
-  height: 105px;
+  height: 68px;
   width: 100%;
 }
 
@@ -1128,18 +1242,21 @@
 }
 
 .dash-clinic-body {
-  padding: 10px 12px;
+  padding: 5px 8px;
   display: flex;
   flex-direction: column;
   flex: 1;
 }
 
 .dash-clinic-name {
-  font-size: 13px;
+  font-size: 11.5px;
   font-weight: 700;
   color: var(--color-dark);
-  margin-bottom: 4px;
-  line-height: 1.3;
+  margin-bottom: 2px;
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .dash-clinic-meta {
@@ -1464,25 +1581,25 @@
 .health-overview-bars {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  margin-top: 6px;
+  gap: 6px;
+  margin-top: 4px;
 }
 
 .health-bar-row {
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 2px;
 }
 
 .health-bar-label-group {
   display: flex;
   justify-content: space-between;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
 }
 
 .health-bar-track {
-  height: 8px;
+  height: 6px;
   border-radius: 99px;
   background-color: #F1F5F9;
   overflow: hidden;
@@ -1498,17 +1615,17 @@
 .dash-quick-actions-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 10px;
+  gap: 8px;
 }
 
 .quick-action-card {
   background-color: var(--color-bg-light);
   border: 1px solid var(--color-border);
-  border-radius: 12px;
-  padding: 14px;
+  border-radius: 10px;
+  padding: 8px 10px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
   cursor: pointer;
   transition: all var(--transition-fast);
 }
@@ -1521,9 +1638,9 @@
 }
 
 .quick-action-icon {
-  width: 34px;
-  height: 34px;
-  border-radius: 8px;
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
   background-color: var(--color-white);
   color: var(--color-primary);
   display: flex;
@@ -1533,7 +1650,7 @@
 }
 
 .quick-action-title {
-  font-size: 12.5px;
+  font-size: 11.5px;
   font-weight: 700;
   color: var(--color-dark);
 }
@@ -1544,6 +1661,8 @@
 @media (max-width: 1200px) {
   .dash-main-3col-grid {
     grid-template-columns: 1fr 1fr;
+    height: auto;
+    max-height: none;
   }
 
   .dash-col-left {
@@ -1560,8 +1679,39 @@
 }
 
 @media (max-width: 991px) {
+  .dash-container {
+    height: auto;
+    min-height: 100vh;
+    overflow: visible;
+  }
+
+  .dash-body {
+    height: auto;
+    overflow: visible;
+  }
+
+  .dash-content {
+    height: auto;
+    overflow-y: visible;
+    padding: 16px;
+  }
+
   .dash-main-3col-grid {
     grid-template-columns: 1fr;
+    height: auto;
+    max-height: none;
+  }
+
+  .dash-col-left,
+  .dash-col-center,
+  .dash-col-right {
+    grid-column: 1 / -1;
+    height: auto;
+  }
+
+  .dash-bento-card {
+    height: auto;
+    min-height: 220px;
   }
 
   .dash-col-left,

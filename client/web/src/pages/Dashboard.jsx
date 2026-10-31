@@ -1311,7 +1311,7 @@ export default function Dashboard({ onLogout }) {
                         </span>
                       </div>
                     ) : (
-                      upcomingVaccinations.map((vac) => {
+                      upcomingVaccinations.slice(0, 2).map((vac) => {
                         const dateObj = vac.dueDate;
                         const dayStr = dateObj.getDate();
                         const monthStr = dateObj.toLocaleString('default', { month: 'short' }).toUpperCase();
@@ -1368,7 +1368,7 @@ export default function Dashboard({ onLogout }) {
                         <p className="dash-empty-widget-text">No recent activity yet.</p>
                       </div>
                     ) : (
-                      recentActivitiesList.slice(0, 5).map((act) => {
+                      recentActivitiesList.slice(0, 2).map((act) => {
                         const iconMeta = getActivityIconMeta(act.type);
                         const IconComp = iconMeta.icon;
                         return (

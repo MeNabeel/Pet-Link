@@ -1,14 +1,19 @@
 import API_URL from '@/config';
-import React, { useEffect, useState, useRef } from 'react';
-import { 
-  LayoutDashboard, PawPrint, Store, CalendarClock, 
+import React, { useEffect, useState, useRef, useMemo } from 'react';
+import {
+  LayoutDashboard, PawPrint, Store, CalendarClock,
   MessageSquareCode, MapPin, LogOut, ChevronRight, ChevronDown, Phone,
   HeartHandshake, Activity, Users, Menu, X, Bell, BellOff,
   Stethoscope, Syringe, Headphones, Sparkles, Plus,
-  Star, Calendar, Clock, User, AlertTriangle, ShoppingCart, CheckCircle2
+  Star, Calendar, Clock, User, AlertTriangle, ShoppingCart, CheckCircle2, Heart
 } from 'lucide-react';
 import { safeSetUserStorage } from '../utils/storage';
-import { getCartCount, subscribeToCart, subscribeToCartDrawer, openCartDrawer, closeCartDrawer, clearCart } from '../utils/cartManager';
+import { getCart, getCartCount, subscribeToCart, subscribeToCartDrawer, openCartDrawer, closeCartDrawer, clearCart } from '../utils/cartManager';
+import { BackgroundBeamsWithCollision } from '../components/ui/background-beams-with-collision';
+import { EncryptedText } from '../components/ui/encrypted-text';
+import { CloudShader } from '../components/ui/cloud-shader';
+import { GlowingEffect } from '../components/ui/glowing-effect';
+import { getUserActivities, formatRelativeTime } from '../utils/activityTracker';
 import './Dashboard.css';
 import Profile from './Profile';
 import AccountSettings from './AccountSettings';
@@ -56,14 +61,14 @@ class ShelterErrorBoundary extends React.Component {
             An unexpected error occurred while displaying the shelter section.
           </p>
           <div style={{ display: 'flex', gap: '12px', marginTop: '20px' }}>
-            <button 
+            <button
               onClick={() => this.setState({ hasError: false, error: null })}
               style={{ padding: '10px 20px', backgroundColor: '#EF4444', color: '#FFFFFF', border: 'none', borderRadius: '8px', fontWeight: '600', cursor: 'pointer' }}
             >
               Try Again
             </button>
             {this.props.onReset && (
-              <button 
+              <button
                 onClick={() => {
                   this.setState({ hasError: false, error: null });
                   this.props.onReset();
@@ -107,14 +112,14 @@ class PageErrorBoundary extends React.Component {
             {this.state.error?.message || 'An unexpected rendering error occurred.'}
           </p>
           <div style={{ display: 'flex', gap: '12px', marginTop: '20px' }}>
-            <button 
+            <button
               onClick={() => this.setState({ hasError: false, error: null })}
               style={{ padding: '10px 20px', backgroundColor: '#0066CC', color: '#FFFFFF', border: 'none', borderRadius: '8px', fontWeight: '600', cursor: 'pointer' }}
             >
               Reload View
             </button>
             {this.props.onReset && (
-              <button 
+              <button
                 onClick={() => {
                   this.setState({ hasError: false, error: null });
                   this.props.onReset();
@@ -131,10 +136,10 @@ class PageErrorBoundary extends React.Component {
     return this.props.children;
   }
 }
-import { 
-  AlertDialog, AlertDialogContent, AlertDialogHeader, 
-  AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, 
-  AlertDialogCancel, AlertDialogAction 
+import {
+  AlertDialog, AlertDialogContent, AlertDialogHeader,
+  AlertDialogTitle, AlertDialogDescription, AlertDialogFooter,
+  AlertDialogCancel, AlertDialogAction
 } from '@/components/ui/alert-dialog';
 
 // Reusable SVG Background Pet Pattern (No Emojis - Vector SVG Outlines with High Contrast Opacity)
@@ -302,7 +307,7 @@ export default function Dashboard({ onLogout }) {
     const handleCheckoutReturn = () => {
       const url = new URL(window.location.href);
       const hash = window.location.hash || '';
-      
+
       let searchParams = url.searchParams;
       if (hash.includes('?')) {
         const hashQuery = hash.split('?')[1];
@@ -381,7 +386,7 @@ export default function Dashboard({ onLogout }) {
   const fetchNotifications = () => {
     const userId = user?._id || user?.id;
     if (!userId) return;
-    const headers = { 
+    const headers = {
       'x-requester-id': userId,
       'Authorization': `Bearer ${user?.token || localStorage.getItem('token') || ''}`
     };
@@ -396,7 +401,7 @@ export default function Dashboard({ onLogout }) {
             .then(cd => {
               if (Array.isArray(cd)) setNotifications(cd);
               else if (cd && Array.isArray(cd.notifications)) setNotifications(cd.notifications);
-            }).catch(() => {});
+            }).catch(() => { });
         }
       })
       .catch(err => console.error('Error loading notifications:', err));
@@ -419,7 +424,7 @@ export default function Dashboard({ onLogout }) {
             const petsCount = petsData.length;
             const listingsCount = petsData.filter(p => ['FOR_SALE', 'FOR_ADOPTION'].includes(p.activeStatus)).length;
             const vaccinesCount = petsData.reduce((acc, p) => acc + (p.vaccines ? p.vaccines.length : 0), 0);
-            
+
             // Support: dynamically derived from chatbot history or real session log
             const chatHistory = localStorage.getItem('chatbot_history');
             const supportCount = chatHistory ? JSON.parse(chatHistory).length : 0;
@@ -431,25 +436,9 @@ export default function Dashboard({ onLogout }) {
               support: supportCount
             });
 
-            // Derive dynamic activities from real pet state
-            const dynamicActs = [];
-            if (petsData.length > 0) {
-              dynamicActs.push({
-                id: 'act-pet-latest',
-                icon: PawPrint,
-                text: `Registered pet profile for ${petsData[0].name}`,
-                time: 'Recently updated'
-              });
-            }
-            if (vaccinesCount > 0) {
-              dynamicActs.push({
-                id: 'act-vac-latest',
-                icon: Activity,
-                text: `Tracked ${vaccinesCount} vaccination records across active pets`,
-                time: 'Active'
-              });
-            }
-            setRecentActivitiesList(dynamicActs);
+            // Derive dynamic activities from real pet state and actions
+            const acts = getUserActivities(userId, petsData, userAppointmentsList, getCart());
+            setRecentActivitiesList(acts);
           }
         })
         .catch(err => console.error('Error loading dashboard pets:', err));
@@ -466,20 +455,140 @@ export default function Dashboard({ onLogout }) {
 
       // 3. Fetch User Appointments
       fetch(`${API_URL}/api/clinics/appointments/user`, {
-        headers: { 
-            'x-requester-id': userId,
-            'Authorization': `Bearer ${user?.token || localStorage.getItem('token') || ''}`
+        headers: {
+          'x-requester-id': userId,
+          'Authorization': `Bearer ${user?.token || localStorage.getItem('token') || ''}`
         }
       })
         .then(res => res.json())
         .then(apptsData => {
           if (Array.isArray(apptsData)) {
             setUserAppointmentsList(apptsData);
+            const acts = getUserActivities(userId, userPetsList, apptsData, getCart());
+            setRecentActivitiesList(acts);
           }
         })
         .catch(err => console.error('Error loading dashboard appointments:', err));
     }
   }, [user?._id || user?.id, petSubView, activeTab]);
+
+  // Sync dynamic recent activities across user actions
+  useEffect(() => {
+    const targetId = user?._id || user?.id;
+    if (!targetId) return;
+
+    const refreshActs = () => {
+      const acts = getUserActivities(targetId, userPetsList, userAppointmentsList, getCart());
+      setRecentActivitiesList(acts);
+    };
+
+    refreshActs();
+
+    window.addEventListener('petlink_activity_updated', refreshActs);
+    window.addEventListener('petlink_cart_updated', refreshActs);
+    window.addEventListener('petlink_wishlist_updated', refreshActs);
+
+    return () => {
+      window.removeEventListener('petlink_activity_updated', refreshActs);
+      window.removeEventListener('petlink_cart_updated', refreshActs);
+      window.removeEventListener('petlink_wishlist_updated', refreshActs);
+    };
+  }, [user?._id, user?.id, userPetsList, userAppointmentsList]);
+
+  // Dynamically compute upcoming vaccinations for user's pets
+  const upcomingVaccinations = useMemo(() => {
+    if (!Array.isArray(userPetsList) || userPetsList.length === 0) return [];
+
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const list = [];
+
+    userPetsList.forEach(pet => {
+      // 1. Check pet.vaccines array
+      if (Array.isArray(pet.vaccines)) {
+        pet.vaccines.forEach((vac, idx) => {
+          const dueDateStr = vac.nextDueDate || vac.dueDate;
+          if (dueDateStr) {
+            const dueDate = new Date(dueDateStr);
+            if (!isNaN(dueDate.getTime())) {
+              const dueDay = new Date(dueDate.getFullYear(), dueDate.getMonth(), dueDate.getDate());
+              const diffTime = dueDay.getTime() - today.getTime();
+              const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+              if (diffDays >= 0) {
+                list.push({
+                  id: `${pet._id || pet.id}-vac-${idx}-${dueDateStr}`,
+                  petId: pet._id || pet.id,
+                  petName: pet.name || 'Pet',
+                  petImage: pet.image,
+                  vaccineName: vac.vaccineName || vac.name || 'Vaccination Booster',
+                  dueDate,
+                  diffDays,
+                });
+              }
+            }
+          }
+        });
+      }
+
+      // 2. Check pet.nextVaccinationDate if defined
+      if (pet.nextVaccinationDate) {
+        const dueDate = new Date(pet.nextVaccinationDate);
+        if (!isNaN(dueDate.getTime())) {
+          const dueDay = new Date(dueDate.getFullYear(), dueDate.getMonth(), dueDate.getDate());
+          const diffTime = dueDay.getTime() - today.getTime();
+          const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+          if (diffDays >= 0) {
+            const already = list.some(item => item.petId === (pet._id || pet.id) && Math.abs(item.dueDate.getTime() - dueDate.getTime()) < 86400000);
+            if (!already) {
+              list.push({
+                id: `${pet._id || pet.id}-nextVac-${pet.nextVaccinationDate}`,
+                petId: pet._id || pet.id,
+                petName: pet.name || 'Pet',
+                petImage: pet.image,
+                vaccineName: 'Core Scheduled Vaccine',
+                dueDate,
+                diffDays,
+              });
+            }
+          }
+        }
+      }
+    });
+
+    list.sort((a, b) => a.dueDate.getTime() - b.dueDate.getTime());
+    return list.slice(0, 5);
+  }, [userPetsList]);
+
+  // Helper: Format remaining days and badge style for vaccination
+  const formatVaccineRemaining = (diffDays) => {
+    if (diffDays === 0) return { text: 'Due today', status: 'due-today' };
+    if (diffDays === 1) return { text: 'In 1 day', status: 'due-soon' };
+    if (diffDays <= 7) return { text: `In ${diffDays} days`, status: 'due-soon' };
+    if (diffDays < 14) return { text: `In ${diffDays} days`, status: 'due-later' };
+    if (diffDays < 21) return { text: 'In 2 weeks', status: 'due-later' };
+    if (diffDays < 30) return { text: 'In 3 weeks', status: 'due-later' };
+    const months = Math.round(diffDays / 30);
+    return { text: `In ${months} ${months === 1 ? 'month' : 'months'}`, status: 'due-later' };
+  };
+
+  // Helper: Get Activity Icon and Badge styling
+  const getActivityIconMeta = (type) => {
+    switch (type) {
+      case 'pet':
+        return { icon: PawPrint, bg: 'rgba(0, 102, 204, 0.08)', color: '#0066CC' };
+      case 'vaccine':
+        return { icon: Syringe, bg: 'rgba(234, 179, 8, 0.12)', color: '#D97706' };
+      case 'cart':
+        return { icon: ShoppingCart, bg: 'rgba(22, 163, 74, 0.1)', color: '#16A34A' };
+      case 'favorite':
+        return { icon: Heart, bg: 'rgba(239, 68, 68, 0.1)', color: '#EF4444' };
+      case 'appointment':
+        return { icon: Calendar, bg: 'rgba(139, 92, 246, 0.1)', color: '#8B5CF6' };
+      default:
+        return { icon: Activity, bg: 'rgba(100, 116, 139, 0.1)', color: '#64748B' };
+    }
+  };
 
   // Helper for Dynamic Header Page Title
   const getPageTitle = (tab) => {
@@ -554,7 +663,7 @@ export default function Dashboard({ onLogout }) {
           coverPhoto: updatedUser.coverPhoto,
         }),
       });
-      
+
       const data = await response.json();
       if (response.ok && data) {
         setUser(data);
@@ -597,8 +706,8 @@ export default function Dashboard({ onLogout }) {
       {/* Header bar (Dynamic Title, Bell Popover & User Profile Dropdown) */}
       <header className="dash-header">
         <div className="dash-header-left">
-          <button 
-            type="button" 
+          <button
+            type="button"
             className="dash-sidebar-toggle-btn"
             onClick={() => {
               if (window.innerWidth <= 991) {
@@ -621,11 +730,11 @@ export default function Dashboard({ onLogout }) {
             </h1>
           </div>
         </div>
-        
+
         <div className="dash-header-right">
           {/* SHOPPING CART BUTTON WITH RED NOTIFICATION BADGE */}
-          <button 
-            type="button" 
+          <button
+            type="button"
             className={`dash-cart-header-btn ${isCartDrawerOpen ? 'active' : ''}`}
             onClick={() => {
               setIsCartDrawerOpen(prev => !prev);
@@ -643,8 +752,8 @@ export default function Dashboard({ onLogout }) {
 
           {/* DYNAMIC NOTIFICATION BELL & POPOVER PANEL */}
           <div className="dash-notif-wrapper" ref={notifRef}>
-            <button 
-              type="button" 
+            <button
+              type="button"
               className={`dash-notif-btn ${isNotifDropdownOpen ? 'active' : ''}`}
               onClick={() => {
                 setIsNotifDropdownOpen(!isNotifDropdownOpen);
@@ -675,8 +784,8 @@ export default function Dashboard({ onLogout }) {
                     )}
                   </span>
                   {unreadCount > 0 && (
-                    <button 
-                      type="button" 
+                    <button
+                      type="button"
                       className="dash-notif-mark-all"
                       onClick={handleMarkAllNotificationsRead}
                     >
@@ -694,8 +803,8 @@ export default function Dashboard({ onLogout }) {
                     </div>
                   ) : (
                     notifications.map((notif) => (
-                      <div 
-                        key={notif.id} 
+                      <div
+                        key={notif.id}
                         className={`dash-notif-item ${!notif.isRead ? 'unread' : ''}`}
                         onClick={async () => {
                           setNotifications(prev => prev.map(n => n.id === notif.id ? { ...n, isRead: true } : n));
@@ -705,7 +814,7 @@ export default function Dashboard({ onLogout }) {
                               method: 'PUT',
                               headers: { 'x-requester-id': userId }
                             });
-                          } catch (e) {}
+                          } catch (e) { }
                         }}
                         style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', padding: '12px 16px' }}
                       >
@@ -727,7 +836,7 @@ export default function Dashboard({ onLogout }) {
                                 method: 'DELETE',
                                 headers: { 'x-requester-id': userId }
                               });
-                            } catch (e) {}
+                            } catch (e) { }
                           }}
                           style={{ background: 'none', border: 'none', color: '#94A3B8', cursor: 'pointer', padding: '2px 6px', fontSize: '12px' }}
                           title="Dismiss notification"
@@ -740,7 +849,7 @@ export default function Dashboard({ onLogout }) {
                 </div>
 
                 <div className="dash-notif-panel-footer">
-                  <span 
+                  <span
                     className="dash-notif-footer-link"
                     onClick={() => {
                       setActiveTab('clinics');
@@ -756,19 +865,19 @@ export default function Dashboard({ onLogout }) {
 
           {/* REDESIGNED USER PROFILE SECTION & DROPDOWN MENU */}
           <div className="dash-user-profile-wrapper" ref={profileRef}>
-            <div 
-              className={`dash-user-profile-badge ${isProfileDropdownOpen ? 'active' : ''}`} 
+            <div
+              className={`dash-user-profile-badge ${isProfileDropdownOpen ? 'active' : ''}`}
               onClick={() => {
                 setIsProfileDropdownOpen(!isProfileDropdownOpen);
                 setIsNotifDropdownOpen(false);
-              }} 
+              }}
               aria-label="User Profile Menu"
               aria-haspopup="true"
               aria-expanded={isProfileDropdownOpen}
             >
-              <img 
-                src={user.profilePic || "/logo/logo.jpeg"} 
-                alt="Avatar" 
+              <img
+                src={user.profilePic || "/logo/logo.jpeg"}
+                alt="Avatar"
                 className="dash-user-avatar"
               />
               <div className="dash-user-meta">
@@ -781,7 +890,7 @@ export default function Dashboard({ onLogout }) {
             {/* Profile Popover Menu */}
             {isProfileDropdownOpen && (
               <div className="dash-profile-dropdown-menu">
-                <div 
+                <div
                   className="dash-dropdown-item"
                   onClick={() => {
                     setActiveTab('profile');
@@ -794,7 +903,7 @@ export default function Dashboard({ onLogout }) {
 
                 <div className="dash-dropdown-divider" />
 
-                <div 
+                <div
                   className="dash-dropdown-item danger"
                   onClick={() => {
                     setIsSignoutOpen(true);
@@ -813,8 +922,8 @@ export default function Dashboard({ onLogout }) {
       <div className="dash-body">
         {/* Mobile Off-Canvas Drawer Overlay */}
         {isMobileOpen && (
-          <div 
-            className="dash-sidebar-overlay" 
+          <div
+            className="dash-sidebar-overlay"
             onClick={() => setIsMobileOpen(false)}
           />
         )}
@@ -822,127 +931,151 @@ export default function Dashboard({ onLogout }) {
         {/* Collapsible Sidebar Nav */}
         <aside className={`dash-sidebar ${!isSidebarOpen ? 'collapsed' : ''} ${isMobileOpen ? 'mobile-open' : ''}`}>
           <div className="dash-side-section-header">Menu</div>
-          
-          <span 
+
+          <span
             className={`dash-side-link ${activeTab === 'overview' ? 'active' : ''}`}
             onClick={() => { setActiveTab('overview'); setIsMobileOpen(false); }}
+            tabIndex={0}
             title="Dashboard"
           >
             <LayoutDashboard size={18} />
             <span className="dash-side-link-text">Dashboard</span>
+            <span className="dash-side-tooltip" role="tooltip">Dashboard</span>
           </span>
 
-          <span 
+          <span
             className={`dash-side-link ${activeTab === 'profile' || activeTab === 'settings' ? 'active' : ''}`}
             onClick={() => { setActiveTab('profile'); setIsMobileOpen(false); }}
+            tabIndex={0}
             title="My Profile"
           >
             <User size={18} />
             <span className="dash-side-link-text">My Profile</span>
+            <span className="dash-side-tooltip" role="tooltip">My Profile</span>
           </span>
 
-          <span 
+          <span
             className={`dash-side-link ${activeTab === 'pets' ? 'active' : ''}`}
             onClick={() => {
               setActiveTab('pets');
               setPetSubView('list');
               setIsMobileOpen(false);
             }}
+            tabIndex={0}
             title="My Pets"
           >
             <PawPrint size={18} />
             <span className="dash-side-link-text">My Pets</span>
+            <span className="dash-side-tooltip" role="tooltip">My Pets</span>
           </span>
 
-          <span 
+          <span
             className={`dash-side-link ${activeTab === 'marketplace' || activeTab === 'marketplace-details' ? 'active' : ''}`}
             onClick={() => { setActiveTab('marketplace'); setIsMobileOpen(false); }}
+            tabIndex={0}
             title="Marketplace"
           >
             <HeartHandshake size={18} />
             <span className="dash-side-link-text">Marketplace</span>
+            <span className="dash-side-tooltip" role="tooltip">Marketplace</span>
           </span>
 
-          <span 
+          <span
             className={`dash-side-link ${activeTab === 'chat' ? 'active' : ''}`}
             onClick={() => { setActiveTab('chat'); setIsMobileOpen(false); }}
+            tabIndex={0}
             title="Pet Messages"
           >
             <MessageSquareCode size={18} />
             <span className="dash-side-link-text">Pet Messages</span>
+            <span className="dash-side-tooltip" role="tooltip">Pet Messages</span>
           </span>
 
-          <span 
+          <span
             className={`dash-side-link ${['shelter', 'shelter-details'].includes(activeTab) ? 'active' : ''}`}
             onClick={() => { setActiveTab('shelter'); setIsMobileOpen(false); }}
+            tabIndex={0}
             title="Shelter Boarding"
           >
             <CalendarClock size={18} />
             <span className="dash-side-link-text">Shelter Boarding</span>
+            <span className="dash-side-tooltip" role="tooltip">Shelter Boarding</span>
           </span>
 
-          <span 
+          <span
             className={`dash-side-link ${['clinics', 'clinic-details'].includes(activeTab) ? 'active' : ''}`}
             onClick={() => { setActiveTab('clinics'); setIsMobileOpen(false); }}
+            tabIndex={0}
             title="Find Nearby Clinics"
           >
             <Stethoscope size={18} />
             <span className="dash-side-link-text">Find Nearby Clinics</span>
+            <span className="dash-side-tooltip" role="tooltip">Find Nearby Clinics</span>
           </span>
 
-          <span 
+          <span
             className={`dash-side-link ${['shop', 'product-details', 'cart'].includes(activeTab) ? 'active' : ''}`}
-            onClick={() => { 
+            onClick={() => {
               window.location.hash = '#/shop';
-              setActiveTab('shop'); 
-              setIsMobileOpen(false); 
+              setActiveTab('shop');
+              setIsMobileOpen(false);
             }}
+            tabIndex={0}
             title="Shop Products"
           >
             <Store size={18} />
             <span className="dash-side-link-text">Shop Products</span>
+            <span className="dash-side-tooltip" role="tooltip">Shop Products</span>
           </span>
 
           <div className="dash-side-section-header">Services</div>
 
-          <span 
+          <span
             className={`dash-side-link`}
             onClick={() => {
               setActiveTab('pets');
               setPetSubView('list');
               setIsMobileOpen(false);
             }}
+            tabIndex={0}
             title="Health Vault"
           >
             <Syringe size={18} />
             <span className="dash-side-link-text">Health Vault</span>
+            <span className="dash-side-tooltip" role="tooltip">Health Vault</span>
           </span>
 
-          <span 
+          <span
             className={`dash-side-link`}
             onClick={() => { setActiveTab('clinics'); setIsMobileOpen(false); }}
+            tabIndex={0}
             title="Appointments"
           >
             <Calendar size={18} />
             <span className="dash-side-link-text">Appointments</span>
+            <span className="dash-side-tooltip" role="tooltip">Appointments</span>
           </span>
 
-          <span 
+          <span
             className={`dash-side-link`}
             onClick={() => { setActiveTab('clinics'); setIsMobileOpen(false); }}
+            tabIndex={0}
             title="Notifications"
           >
             <Bell size={18} />
             <span className="dash-side-link-text">Notifications</span>
+            <span className="dash-side-tooltip" role="tooltip">Notifications</span>
           </span>
 
-          <span 
+          <span
             className={`dash-side-link ${activeTab === 'ai' ? 'active' : ''}`}
             onClick={() => { handleActionClick('AI Chatbot Advisor'); setIsMobileOpen(false); }}
+            tabIndex={0}
             title="AI Assistant"
           >
             <Sparkles size={18} />
             <span className="dash-side-link-text">AI Assistant</span>
+            <span className="dash-side-tooltip" role="tooltip">AI Assistant</span>
           </span>
         </aside>
 
@@ -950,88 +1083,124 @@ export default function Dashboard({ onLogout }) {
         <main className="dash-content fade-in">
           {activeTab === 'overview' && (
             <>
-              {/* ROW 1: REDESIGNED SOFT LIGHT-BLUE WELCOME HERO CARD (NO EMOJIS, VISIBLE SVG PET PATTERN, DIRECT START) */}
+              {/* ROW 1: REDESIGNED SOFT LIGHT-BLUE WELCOME HERO CARD WITH ACETERNITY BEAMS & ENCRYPTED TEXT */}
               <div className="dash-welcome-card">
-                <PetPattern />
-                <div className="dash-welcome-content">
-                  <h2 className="dash-welcome-title">
-                    <span>Welcome back, {user.name}!</span>
-                  </h2>
-                  <p className="dash-welcome-text">
-                    Your PetLink profile is secure. Explore everything you need for your pets in one place across Pakistan's growing pet ecosystem.
-                  </p>
-                  <div className="dash-welcome-address">
-                    <div className="dash-welcome-meta-item">
-                      <MapPin size={14} />
-                      <span>{user.address || `${user.city || 'Lahore'}, ${user.province || 'Punjab'}`}</span>
-                    </div>
-                    {user.phone && (
+                <BackgroundBeamsWithCollision containerClassName="dash-welcome-beams-container">
+                  <PetPattern />
+                  <div className="dash-welcome-content">
+                    <h2 className="dash-welcome-title">
+                      <EncryptedText text="Welcome back," />{" "}
+                      <EncryptedText text={user.name || "Pet Parent"} />!
+                    </h2>
+                    <p className="dash-welcome-text">
+                      Your PetLink profile is secure. Explore everything you need for your pets in one place across Pakistan's growing pet ecosystem.
+                    </p>
+                    <div className="dash-welcome-address">
                       <div className="dash-welcome-meta-item">
-                        <Phone size={14} />
-                        <span>{user.phone}</span>
+                        <MapPin size={14} />
+                        <span>{user.address || `${user.city || 'Lahore'}, ${user.province || 'Punjab'}`}</span>
                       </div>
-                    )}
+                      {user.phone && (
+                        <div className="dash-welcome-meta-item">
+                          <Phone size={14} />
+                          <span>{user.phone}</span>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
+                </BackgroundBeamsWithCollision>
               </div>
 
-              {/* ROW 2: 4 DYNAMIC SUMMARY STATISTICS CARDS */}
+              {/* ROW 2: 4 MODERN PROFESSIONAL SAAS STATISTICS CARDS */}
               <div className="dash-metrics-grid">
-                <div className="metric-card" onClick={() => { setActiveTab('pets'); setPetSubView('list'); }}>
-                  <div className="metric-icon-box">
-                    <PawPrint size={20} />
+                <div
+                  className="metric-card"
+                  onClick={() => { setActiveTab('pets'); setPetSubView('list'); }}
+                  tabIndex={0}
+                  role="button"
+                >
+                  <div className="metric-card-top">
+                    <span className="metric-label">Registered Pets</span>
+                    <div className="metric-icon-box" style={{ color: '#0066CC', backgroundColor: 'rgba(0, 102, 204, 0.08)' }}>
+                      <PawPrint size={18} />
+                    </div>
                   </div>
-                  <div className="metric-info">
-                    <span className="metric-label">REGISTERED PETS</span>
+                  <div className="metric-card-body">
                     <span className="metric-value">{metrics.pets}</span>
+                    <span className="metric-subtext">Active pet profiles</span>
                   </div>
                 </div>
-                
-                <div className="metric-card" onClick={() => setActiveTab('marketplace')}>
-                  <div className="metric-icon-box" style={{ color: '#16A34A', backgroundColor: 'rgba(22, 163, 74, 0.08)' }}>
-                    <HeartHandshake size={20} />
+
+                <div
+                  className="metric-card"
+                  onClick={() => setActiveTab('marketplace')}
+                  tabIndex={0}
+                  role="button"
+                >
+                  <div className="metric-card-top">
+                    <span className="metric-label">Active Listings</span>
+                    <div className="metric-icon-box" style={{ color: '#16A34A', backgroundColor: 'rgba(22, 163, 74, 0.08)' }}>
+                      <HeartHandshake size={18} />
+                    </div>
                   </div>
-                  <div className="metric-info">
-                    <span className="metric-label">ACTIVE LISTINGS</span>
+                  <div className="metric-card-body">
                     <span className="metric-value">{metrics.listings}</span>
+                    <span className="metric-subtext">Marketplace items</span>
                   </div>
                 </div>
 
-                <div className="metric-card" onClick={() => { setActiveTab('pets'); setPetSubView('list'); }}>
-                  <div className="metric-icon-box" style={{ color: '#EAB308', backgroundColor: 'rgba(234, 179, 8, 0.08)' }}>
-                    <Activity size={20} />
+                <div
+                  className="metric-card"
+                  onClick={() => { setActiveTab('pets'); setPetSubView('list'); }}
+                  tabIndex={0}
+                  role="button"
+                >
+                  <div className="metric-card-top">
+                    <span className="metric-label">Vaccines Tracked</span>
+                    <div className="metric-icon-box" style={{ color: '#EAB308', backgroundColor: 'rgba(234, 179, 8, 0.08)' }}>
+                      <Activity size={18} />
+                    </div>
                   </div>
-                  <div className="metric-info">
-                    <span className="metric-label">VACCINES TRACKED</span>
+                  <div className="metric-card-body">
                     <span className="metric-value">{metrics.vaccines}</span>
+                    <span className="metric-subtext">Immunization records</span>
                   </div>
                 </div>
 
-                <div className="metric-card" onClick={() => handleActionClick('AI Chatbot Advisor')}>
-                  <div className="metric-icon-box" style={{ color: '#8B5CF6', backgroundColor: 'rgba(139, 92, 246, 0.08)' }}>
-                    <Headphones size={20} />
+                <div
+                  className="metric-card"
+                  onClick={() => handleActionClick('AI Chatbot Advisor')}
+                  tabIndex={0}
+                  role="button"
+                >
+                  <div className="metric-card-top">
+                    <span className="metric-label">Support Sessions</span>
+                    <div className="metric-icon-box" style={{ color: '#8B5CF6', backgroundColor: 'rgba(139, 92, 246, 0.08)' }}>
+                      <Headphones size={18} />
+                    </div>
                   </div>
-                  <div className="metric-info">
-                    <span className="metric-label">SUPPORT SESSIONS</span>
+                  <div className="metric-card-body">
                     <span className="metric-value">{metrics.support}</span>
+                    <span className="metric-subtext">Advisor consultations</span>
                   </div>
                 </div>
               </div>
 
               {/* ROW 3: COMPACT TWO-COLUMN DASHBOARD GRID */}
               <div className="dash-main-grid">
-                
+
                 {/* Left Primary Column */}
                 <div className="dash-main-left">
-                  
-                  {/* LARGE PET / VETERINARY CARD (MATCHING SOFT LIGHT BLUE #EEF5FF STYLE WITH VISIBLE SVG PATTERN) */}
+
+                  {/* LARGE PET / VETERINARY CARD (MATCHING SOFT LIGHT BLUE #EEF5FF STYLE WITH CLOUD SHADER) */}
                   <div className="pet-vet-main-card">
+                    <CloudShader opacity={0.12} speed={0.4} />
                     <PetPattern />
                     <div className="pet-vet-card-content">
-                      
+
                       {/* Glassmorphism Toggle Header */}
                       <div className="pet-vet-toggle-bar">
-                        <button 
+                        <button
                           type="button"
                           className={`pet-vet-toggle-btn ${petVetActiveTab === 'pets' ? 'active' : ''}`}
                           onClick={() => setPetVetActiveTab('pets')}
@@ -1039,8 +1208,8 @@ export default function Dashboard({ onLogout }) {
                           <PawPrint size={16} />
                           <span>My Pets</span>
                         </button>
-                        
-                        <button 
+
+                        <button
                           type="button"
                           className={`pet-vet-toggle-btn ${petVetActiveTab === 'clinics' ? 'active' : ''}`}
                           onClick={() => setPetVetActiveTab('clinics')}
@@ -1055,8 +1224,8 @@ export default function Dashboard({ onLogout }) {
                         <div>
                           <div className="dash-pets-scroll">
                             {userPetsList.map((pet) => (
-                              <div 
-                                key={pet._id} 
+                              <div
+                                key={pet._id}
                                 className="dash-pet-item"
                                 onClick={() => {
                                   setSelectedPetId(pet._id);
@@ -1065,9 +1234,9 @@ export default function Dashboard({ onLogout }) {
                                 }}
                               >
                                 <div className="dash-pet-avatar-wrapper">
-                                  <img 
-                                    src={pet.image || 'https://images.unsplash.com/photo-1552053831-71594a27632d?auto=format&fit=crop&q=80&w=150'} 
-                                    alt={pet.name} 
+                                  <img
+                                    src={pet.image || 'https://images.unsplash.com/photo-1552053831-71594a27632d?auto=format&fit=crop&q=80&w=150'}
+                                    alt={pet.name}
                                     className="dash-pet-avatar"
                                   />
                                 </div>
@@ -1076,7 +1245,7 @@ export default function Dashboard({ onLogout }) {
                             ))}
 
                             {/* Add Pet Circle Action */}
-                            <div 
+                            <div
                               className="dash-add-pet-card"
                               onClick={() => {
                                 setSelectedPetId(null);
@@ -1098,8 +1267,8 @@ export default function Dashboard({ onLogout }) {
                         <div>
                           <div className="dash-clinics-header">
                             <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-muted)' }}>Nearby Certified Hospitals</span>
-                            <button 
-                              type="button" 
+                            <button
+                              type="button"
                               className="dash-show-more-btn"
                               onClick={() => setActiveTab('clinics')}
                             >
@@ -1113,8 +1282,8 @@ export default function Dashboard({ onLogout }) {
                           ) : (
                             <div className="dash-clinics-grid">
                               {nearbyClinicsList.map((clinic) => (
-                                <div 
-                                  key={clinic.googlePlaceId || clinic.id} 
+                                <div
+                                  key={clinic.googlePlaceId || clinic.id}
                                   className="dash-clinic-card"
                                   onClick={() => {
                                     setSelectedClinicId(clinic.googlePlaceId || clinic.id);
@@ -1122,9 +1291,9 @@ export default function Dashboard({ onLogout }) {
                                   }}
                                 >
                                   <div className="dash-clinic-img-wrapper">
-                                    <img 
-                                      src={clinic.photo || clinic.coverImage || 'https://images.unsplash.com/photo-1584132967334-10e028bd69f7?auto=format&fit=crop&q=80&w=320'} 
-                                      alt={clinic.name} 
+                                    <img
+                                      src={clinic.photo || clinic.coverImage || 'https://images.unsplash.com/photo-1584132967334-10e028bd69f7?auto=format&fit=crop&q=80&w=320'}
+                                      alt={clinic.name}
                                       className="dash-clinic-img"
                                     />
                                     {clinic.connected && (
@@ -1155,16 +1324,17 @@ export default function Dashboard({ onLogout }) {
 
                   {/* LOWER DASHBOARD: PET HEALTH OVERVIEW & QUICK ACTIONS */}
                   <div className="dash-lower-grid">
-                    
+
                     {/* Pet Health Overview Card (100% Dynamic - Empty State when 0 pets) */}
                     <div className="dash-widget-card">
+                      <GlowingEffect spread={40} glow={true} proximity={80} />
                       <div className="dash-widget-header">
                         <h3 className="dash-widget-title">
                           <Activity size={18} color="var(--color-primary)" />
                           <span>Pet Health Overview</span>
                         </h3>
                       </div>
-                      
+
                       {userPetsList.length === 0 ? (
                         <div className="dash-empty-widget">
                           <Activity size={24} color="var(--color-muted)" />
@@ -1207,6 +1377,7 @@ export default function Dashboard({ onLogout }) {
 
                     {/* Quick Actions Grid */}
                     <div className="dash-widget-card">
+                      <GlowingEffect spread={40} glow={true} proximity={80} />
                       <div className="dash-widget-header">
                         <h3 className="dash-widget-title">
                           <Plus size={18} color="var(--color-primary)" />
@@ -1215,7 +1386,7 @@ export default function Dashboard({ onLogout }) {
                       </div>
 
                       <div className="dash-quick-actions-grid">
-                        <div 
+                        <div
                           className="quick-action-card"
                           onClick={() => {
                             setSelectedPetId(null);
@@ -1255,45 +1426,73 @@ export default function Dashboard({ onLogout }) {
 
                 </div>
 
-                {/* Right Secondary Column (Appointments & Activity) */}
+                {/* Right Secondary Column (Upcoming Vaccinations & Activity) */}
                 <div className="dash-main-right">
-                  
-                  {/* Dynamic Upcoming Appointments Widget */}
+
+                  {/* Dynamic Upcoming Vaccinations Widget */}
                   <div className="dash-widget-card">
+                    <GlowingEffect spread={40} glow={true} proximity={80} />
                     <div className="dash-widget-header">
                       <h3 className="dash-widget-title">
-                        <Calendar size={18} color="var(--color-primary)" />
-                        <span>Upcoming Appointments</span>
+                        <Syringe size={18} color="var(--color-primary)" />
+                        <span>Upcoming Vaccinations</span>
                       </h3>
-                      <span className="dash-widget-link" onClick={() => setActiveTab('clinics')}>
+                      <span
+                        className="dash-widget-link"
+                        onClick={() => {
+                          setActiveTab('pets');
+                          setPetSubView('list');
+                        }}
+                      >
                         <span>View All</span>
                         <ChevronRight size={14} />
                       </span>
                     </div>
 
-                    {userAppointmentsList.length === 0 ? (
+                    {upcomingVaccinations.length === 0 ? (
                       <div className="dash-empty-widget">
-                        <Calendar size={24} color="var(--color-muted)" />
-                        <p className="dash-empty-widget-text">No upcoming veterinary appointments scheduled.</p>
+                        <div style={{ width: 44, height: 44, borderRadius: '50%', backgroundColor: 'rgba(22, 163, 74, 0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 6, color: '#16A34A' }}>
+                          <CheckCircle2 size={24} />
+                        </div>
+                        <p className="dash-empty-widget-text" style={{ fontWeight: 600, color: '#0F172A' }}>
+                          No upcoming vaccinations
+                        </p>
+                        <span style={{ fontSize: '12px', color: '#64748B' }}>
+                          Your pets are all caught up!
+                        </span>
                       </div>
                     ) : (
-                      userAppointmentsList.map((appt) => {
-                        const dateObj = new Date(appt.appointmentDate);
-                        const dayStr = dateObj.getDate() || '12';
-                        const monthStr = dateObj.toLocaleString('default', { month: 'short' }) || 'SEP';
+                      upcomingVaccinations.map((vac) => {
+                        const dateObj = vac.dueDate;
+                        const dayStr = dateObj.getDate();
+                        const monthStr = dateObj.toLocaleString('default', { month: 'short' }).toUpperCase();
+                        const rem = formatVaccineRemaining(vac.diffDays);
                         return (
-                          <div key={appt.id} className="dash-appt-item">
-                            <div className="dash-appt-left">
-                              <div className="dash-appt-date-box">
-                                <span className="dash-appt-date-day">{dayStr}</span>
-                                <span className="dash-appt-date-month">{monthStr}</span>
+                          <div
+                            key={vac.id}
+                            className="dash-vac-item"
+                            onClick={() => {
+                              setSelectedPetId(vac.petId);
+                              setActiveTab('pets');
+                              setPetSubView('details');
+                            }}
+                          >
+                            <div className="dash-vac-left">
+                              <div className="dash-vac-date-box">
+                                <span className="dash-vac-date-day">{dayStr}</span>
+                                <span className="dash-vac-date-month">{monthStr}</span>
                               </div>
-                              <div>
-                                <h4 className="dash-appt-title">{appt.serviceName || 'General Consultation'}</h4>
-                                <p className="dash-appt-sub">{appt.clinicName}</p>
+                              <div className="dash-vac-info">
+                                <h4 className="dash-vac-title">{vac.vaccineName}</h4>
+                                <span className="dash-vac-pet">
+                                  <PawPrint size={11} />
+                                  <span>{vac.petName}</span>
+                                </span>
                               </div>
                             </div>
-                            <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--color-primary)' }}>{appt.appointmentTime}</span>
+                            <span className={`dash-vac-badge ${rem.status}`}>
+                              {rem.text}
+                            </span>
                           </div>
                         );
                       })
@@ -1302,6 +1501,7 @@ export default function Dashboard({ onLogout }) {
 
                   {/* Dynamic Recent Activity Widget */}
                   <div className="dash-widget-card">
+                    <GlowingEffect spread={40} glow={true} proximity={80} />
                     <div className="dash-widget-header">
                       <h3 className="dash-widget-title">
                         <Clock size={18} color="var(--color-primary)" />
@@ -1319,16 +1519,20 @@ export default function Dashboard({ onLogout }) {
                         <p className="dash-empty-widget-text">No recent activity yet.</p>
                       </div>
                     ) : (
-                      recentActivitiesList.map((act) => {
-                        const IconComp = act.icon;
+                      recentActivitiesList.slice(0, 5).map((act) => {
+                        const iconMeta = getActivityIconMeta(act.type);
+                        const IconComp = iconMeta.icon;
                         return (
                           <div key={act.id} className="dash-activity-item">
-                            <div className="dash-activity-icon">
-                              <IconComp size={16} />
+                            <div className="dash-activity-icon" style={{ backgroundColor: iconMeta.bg, color: iconMeta.color }}>
+                              <IconComp size={15} />
                             </div>
-                            <div>
-                              <p className="dash-activity-text">{act.text}</p>
-                              <span className="dash-activity-time">{act.time}</span>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <p className="dash-activity-text">
+                                <span>{act.title} </span>
+                                {act.targetName && <strong style={{ fontWeight: 600, color: '#0F172A' }}>{act.targetName}</strong>}
+                              </p>
+                              <span className="dash-activity-time">{formatRelativeTime(act.timestamp)}</span>
                             </div>
                           </div>
                         );
@@ -1343,7 +1547,7 @@ export default function Dashboard({ onLogout }) {
           )}
 
           {activeTab === 'profile' && (
-            <Profile 
+            <Profile
               user={user}
               onNavigateToSettings={() => setActiveTab('settings')}
               onNavigateToAddresses={() => setActiveTab('addresses')}
@@ -1357,7 +1561,7 @@ export default function Dashboard({ onLogout }) {
           )}
 
           {activeTab === 'addresses' && (
-            <UserAddresses 
+            <UserAddresses
               user={user}
               onBack={() => setActiveTab('profile')}
             />
@@ -1366,7 +1570,7 @@ export default function Dashboard({ onLogout }) {
           {activeTab === 'pets' && (
             <>
               {petSubView === 'list' && (
-                <MyPets 
+                <MyPets
                   user={user}
                   onViewDetails={(id) => {
                     setSelectedPetId(id);
@@ -1387,7 +1591,7 @@ export default function Dashboard({ onLogout }) {
               )}
 
               {petSubView === 'form' && (
-                <PetForm 
+                <PetForm
                   user={user}
                   petId={selectedPetId}
                   onCancel={() => setPetSubView('list')}
@@ -1398,7 +1602,7 @@ export default function Dashboard({ onLogout }) {
               )}
 
               {petSubView === 'details' && (
-                <PetDetails 
+                <PetDetails
                   user={user}
                   petId={selectedPetId}
                   onBack={() => setPetSubView('list')}
@@ -1413,7 +1617,7 @@ export default function Dashboard({ onLogout }) {
           )}
 
           {activeTab === 'settings' && (
-            <AccountSettings 
+            <AccountSettings
               user={user}
               onSave={(updated) => {
                 handleUpdateUser(updated);
@@ -1425,8 +1629,8 @@ export default function Dashboard({ onLogout }) {
 
           {activeTab === 'shop' && (
             <PageErrorBoundary onReset={() => setActiveTab('shop')}>
-              <StorePage 
-                user={user} 
+              <StorePage
+                user={user}
                 onViewProductDetails={(id) => {
                   setSelectedProductId(id);
                   window.location.hash = `#/shop/${id}`;
@@ -1441,7 +1645,7 @@ export default function Dashboard({ onLogout }) {
 
           {activeTab === 'product-details' && (
             <PageErrorBoundary onReset={() => { window.location.hash = '#/shop'; setActiveTab('shop'); }}>
-              <ProductDetails 
+              <ProductDetails
                 user={user}
                 productId={selectedProductId}
                 onBack={() => {
@@ -1467,7 +1671,7 @@ export default function Dashboard({ onLogout }) {
 
           {activeTab === 'cart' && (
             <PageErrorBoundary onReset={() => { window.location.hash = '#/shop'; setActiveTab('shop'); }}>
-              <CartPage 
+              <CartPage
                 user={user}
                 onContinueShopping={() => {
                   window.location.hash = '#/shop';
@@ -1483,8 +1687,8 @@ export default function Dashboard({ onLogout }) {
           )}
 
           {activeTab === 'marketplace' && (
-            <Marketplace 
-              user={user} 
+            <Marketplace
+              user={user}
               onViewDetails={(id) => {
                 setSelectedPetId(id);
                 setActiveTab('marketplace-details');
@@ -1503,10 +1707,10 @@ export default function Dashboard({ onLogout }) {
           )}
 
           {activeTab === 'marketplace-details' && (
-            <MarketplacePetDetails 
-              user={user} 
-              petId={selectedPetId} 
-              onBack={() => setActiveTab('marketplace')} 
+            <MarketplacePetDetails
+              user={user}
+              petId={selectedPetId}
+              onBack={() => setActiveTab('marketplace')}
               onOpenChat={({ pet, owner }) => {
                 setSelectedChatPet(pet);
                 setSelectedChatOwner(owner);
@@ -1521,7 +1725,7 @@ export default function Dashboard({ onLogout }) {
           )}
 
           {activeTab === 'chat' && (
-            <PetChat 
+            <PetChat
               user={user}
               pet={selectedChatPet}
               owner={selectedChatOwner}
@@ -1535,8 +1739,8 @@ export default function Dashboard({ onLogout }) {
 
           {activeTab === 'shelter' && (
             <ShelterErrorBoundary onReset={() => setActiveTab('shelter')}>
-              <ShelterServices 
-                user={user} 
+              <ShelterServices
+                user={user}
                 onViewDetails={(id) => {
                   setSelectedShelterId(id);
                   setActiveTab('shelter-details');
@@ -1547,10 +1751,10 @@ export default function Dashboard({ onLogout }) {
 
           {activeTab === 'shelter-details' && (
             <ShelterErrorBoundary onReset={() => setActiveTab('shelter')}>
-              <ShelterDetails 
-                user={user} 
-                shelterId={selectedShelterId} 
-                onBack={() => setActiveTab('shelter')} 
+              <ShelterDetails
+                user={user}
+                shelterId={selectedShelterId}
+                onBack={() => setActiveTab('shelter')}
                 onOpenChat={({ pet, owner }) => {
                   setSelectedChatPet(pet);
                   setSelectedChatOwner(owner);
@@ -1561,8 +1765,8 @@ export default function Dashboard({ onLogout }) {
           )}
 
           {activeTab === 'clinics' && (
-            <ClinicsServices 
-              user={user} 
+            <ClinicsServices
+              user={user}
               onViewDetails={(id) => {
                 setSelectedClinicId(id);
                 setActiveTab('clinic-details');
@@ -1571,9 +1775,9 @@ export default function Dashboard({ onLogout }) {
           )}
 
           {activeTab === 'clinic-details' && (
-            <ClinicDetails 
-              user={user} 
-              clinicId={selectedClinicId} 
+            <ClinicDetails
+              user={user}
+              clinicId={selectedClinicId}
               onBack={() => setActiveTab('clinics')}
               onNavigateToAddPet={() => {
                 setActiveTab('pets');
@@ -1601,20 +1805,20 @@ export default function Dashboard({ onLogout }) {
       </AlertDialog>
 
       {/* Slide-In Shopping Cart Drawer */}
-      <CartDrawer 
-        isOpen={isCartDrawerOpen} 
-        onClose={() => setIsCartDrawerOpen(false)} 
-        user={user} 
+      <CartDrawer
+        isOpen={isCartDrawerOpen}
+        onClose={() => setIsCartDrawerOpen(false)}
+        user={user}
         onViewProductDetails={(id) => {
           setSelectedProductId(id);
           window.location.hash = `#/shop/${id}`;
           setActiveTab('product-details');
-        }} 
+        }}
       />
 
       {/* Stripe Checkout Status Modal */}
       {checkoutNotification && (
-        <div 
+        <div
           className="dash-modal-overlay"
           style={{
             position: 'fixed',
@@ -1630,7 +1834,7 @@ export default function Dashboard({ onLogout }) {
           role="dialog"
           aria-modal="true"
         >
-          <div 
+          <div
             style={{
               width: '100%',
               maxWidth: '440px',
@@ -1681,7 +1885,7 @@ export default function Dashboard({ onLogout }) {
               {checkoutNotification.message}
             </p>
 
-            <button 
+            <button
               type="button"
               style={{
                 width: '100%',

@@ -1,3 +1,5 @@
+import { logUserActivity } from './activityTracker';
+
 /**
  * Centralized Shopping Cart Manager for PetLink Web Application
  * Handles synchronized persistence in localStorage and cross-component reactive updates
@@ -101,6 +103,24 @@ export function addToCart(product, quantity = 1, variant = null) {
   }
 
   saveCart(updatedCart);
+
+  // Auto-log user activity for dynamic activity feed
+  try {
+    const sessionUser = localStorage.getItem('user');
+    if (sessionUser) {
+      const u = JSON.parse(sessionUser);
+      const uid = u._id || u.id;
+      if (uid) {
+        logUserActivity(uid, {
+          type: 'cart',
+          title: 'Added to cart:',
+          targetName: product.name || 'Pet product',
+          timestamp: Date.now()
+        });
+      }
+    }
+  } catch {}
+
   return { updatedCart, addedItem: finalCartItem, quantityAdded: numQty };
 }
 

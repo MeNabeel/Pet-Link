@@ -3,10 +3,11 @@ import './user-cursor.css';
 
 /**
  * PetLink SaaS Custom Cursor
- * - Hardware-accelerated movement via requestAnimationFrame
- * - Trailing spring aura with PetLink cyan/blue styling
+ * - Hardware-accelerated movement & rotation via requestAnimationFrame
+ * - 360° dynamic directional rotation following mouse vector (Math.atan2)
+ * - Completely hides native cursor on desktop while keeping text selection functional
+ * - Increased size by 20-25% with PetLink colors & cyan trailing aura
  * - Auto-disables on touch screens and mobile devices (@media pointer: fine)
- * - Adapts on hover over buttons/links and fades on text inputs for perfect UX
  */
 export default function UserCursor({ user }) {
   const [enabled, setEnabled] = useState(false);
@@ -15,11 +16,20 @@ export default function UserCursor({ user }) {
   const [isTextInput, setIsTextInput] = useState(false);
   const [ripples, setRipples] = useState([]);
 
-  // Coordinates
+  // Coordinates & Velocity Refs
   const mouseRef = useRef({ x: -100, y: -100 });
   const auraRef = useRef({ x: -100, y: -100 });
+  const lastMousePosRef = useRef({ x: -100, y: -100 });
+
+  // Directional rotation refs (in degrees)
+  const targetAngleRef = useRef(0);
+  const currentAngleRef = useRef(0);
+  const isHoveringRef = useRef(false);
+
+  // DOM element refs for direct hardware-accelerated transforms
   const pointerElRef = useRef(null);
   const auraElRef = useRef(null);
+  const svgElRef = useRef(null);
   const rafIdRef = useRef(null);
 
   // Check if fine pointer (mouse / trackpad) is supported
@@ -42,22 +52,54 @@ export default function UserCursor({ user }) {
     };
   }, []);
 
-  // Animation loop for smooth movement and trailing aura
+  // When enabled on desktop, attach cursor-hiding class to html & body
+  useEffect(() => {
+    if (enabled) {
+      document.documentElement.classList.add('petlink-custom-cursor-active');
+      document.body.classList.add('petlink-custom-cursor-active');
+    } else {
+      document.documentElement.classList.remove('petlink-custom-cursor-active');
+      document.body.classList.remove('petlink-custom-cursor-active');
+    }
+
+    return () => {
+      document.documentElement.classList.remove('petlink-custom-cursor-active');
+      document.body.classList.remove('petlink-custom-cursor-active');
+    };
+  }, [enabled]);
+
+  // Animation loop: smooth position, trailing aura, and dynamic 360° rotation
   useEffect(() => {
     if (!enabled) return;
 
     const animate = () => {
-      // Trailing spring physics for the glow aura
-      const speed = 0.22;
-      auraRef.current.x += (mouseRef.current.x - auraRef.current.x) * speed;
-      auraRef.current.y += (mouseRef.current.y - auraRef.current.y) * speed;
+      // 1. Trailing spring physics for the glow aura
+      const auraSpeed = 0.22;
+      auraRef.current.x += (mouseRef.current.x - auraRef.current.x) * auraSpeed;
+      auraRef.current.y += (mouseRef.current.y - auraRef.current.y) * auraSpeed;
 
+      // 2. Shortest angular distance to prevent 360-degree flip
+      let angleDiff = (targetAngleRef.current - currentAngleRef.current) % 360;
+      if (angleDiff > 180) angleDiff -= 360;
+      if (angleDiff < -180) angleDiff += 360;
+
+      // 3. Smooth angle interpolation (lerp speed 0.28 gives responsive turn without lag)
+      currentAngleRef.current += angleDiff * 0.28;
+
+      // 4. Update pointer position
       if (pointerElRef.current) {
         pointerElRef.current.style.transform = `translate3d(${mouseRef.current.x}px, ${mouseRef.current.y}px, 0)`;
       }
 
+      // 5. Update aura position
       if (auraElRef.current) {
         auraElRef.current.style.transform = `translate3d(${auraRef.current.x}px, ${auraRef.current.y}px, 0)`;
+      }
+
+      // 6. Apply dynamic rotation to the cursor arrow
+      if (svgElRef.current) {
+        const scale = isHoveringRef.current ? 1.15 : 1;
+        svgElRef.current.style.transform = `rotate(${currentAngleRef.current}deg) scale(${scale})`;
       }
 
       rafIdRef.current = requestAnimationFrame(animate);
@@ -77,10 +119,38 @@ export default function UserCursor({ user }) {
     if (!enabled) return;
 
     const handleMouseMove = (e) => {
-      mouseRef.current.x = e.clientX;
-      mouseRef.current.y = e.clientY;
+      const clientX = e.clientX;
+      const clientY = e.clientY;
 
       if (!visible) setVisible(true);
+
+      // On first mouse move, initialize previous position to avoid jump
+      if (lastMousePosRef.current.x === -100 && lastMousePosRef.current.y === -100) {
+        lastMousePosRef.current = { x: clientX, y: clientY };
+        mouseRef.current = { x: clientX, y: clientY };
+        auraRef.current = { x: clientX, y: clientY };
+        return;
+      }
+
+      // Calculate directional vector
+      const deltaX = clientX - lastMousePosRef.current.x;
+      const deltaY = clientY - lastMousePosRef.current.y;
+      const distance = Math.hypot(deltaX, deltaY);
+
+      // Jitter prevention: only update angle if movement is distinct (>= 3px)
+      if (distance >= 3) {
+        // Math.atan2(deltaY, deltaX):
+        //  0° = pure right
+        //  90° = pure down
+        //  180° = pure left
+        // -90° = pure up
+        const rad = Math.atan2(deltaY, deltaX);
+        targetAngleRef.current = (rad * 180) / Math.PI;
+        lastMousePosRef.current = { x: clientX, y: clientY };
+      }
+
+      mouseRef.current.x = clientX;
+      mouseRef.current.y = clientY;
 
       // Check element under cursor for hover / text input states
       const target = e.target;
@@ -91,10 +161,11 @@ export default function UserCursor({ user }) {
         );
 
         const isInput = Boolean(
-          target.closest('input:not([type="button"]):not([type="submit"]):not([type="checkbox"]):not([type="radio"]), textarea, [contenteditable="true"]')
+          target.closest('input:not([type="button"]):not([type="submit"]):not([type="checkbox"]):not([type="radio"]):not([type="range"]), textarea, [contenteditable="true"]')
         );
 
-        setIsHovering(isInteractive && !isInput);
+        isHoveringRef.current = isInteractive && !isInput;
+        setIsHovering(isHoveringRef.current);
         setIsTextInput(isInput);
       }
     };
@@ -129,34 +200,38 @@ export default function UserCursor({ user }) {
 
   return (
     <div className="petlink-custom-cursor-layer" aria-hidden="true">
-      {/* Trailing soft cyan glow */}
+      {/* Trailing soft cyan glow aura */}
       <div
         ref={auraElRef}
         className={`petlink-cursor-aura ${isHovering ? 'hovering' : ''} ${isTextInput ? 'text-input' : ''}`}
       />
 
-      {/* Main sleek pointer */}
+      {/* Main cursor pointer */}
       <div
         ref={pointerElRef}
         className={`petlink-cursor-pointer ${isHovering ? 'hovering' : ''} ${isTextInput ? 'text-input' : ''}`}
       >
-        <svg
-          className="petlink-cursor-svg"
-          viewBox="0 0 24 24"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          {/* Outer stroke */}
-          <path
-            d="M5.65376 12.3673H5.46026L5.31717 12.4976L0.500002 16.8829L0.500002 1.19841L11.7841 12.3673H5.65376Z"
-            fill="#0066CC"
-            stroke="#FFFFFF"
-            strokeWidth="1.5"
-            strokeLinejoin="round"
-          />
-          {/* Inner accent dot */}
-          <circle cx="4.5" cy="5.5" r="1.5" fill="#38BDF8" />
-        </svg>
+        {/* Directional rotating arrow wrapper */}
+        <div className="petlink-cursor-svg-wrapper">
+          <svg
+            ref={svgElRef}
+            className="petlink-cursor-svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            {/* Directional arrowhead (tip at 21.5, 12 facing pure right at 0deg) */}
+            <path
+              d="M21.5 12L3.5 3.5L7.5 12L3.5 20.5L21.5 12Z"
+              fill="#0066CC"
+              stroke="#FFFFFF"
+              strokeWidth="1.6"
+              strokeLinejoin="round"
+            />
+            {/* Center PetLink cyan accent dot */}
+            <circle cx="12" cy="12" r="1.8" fill="#38BDF8" />
+          </svg>
+        </div>
 
         {/* Micro tag badge */}
         <div className="petlink-cursor-tag">
@@ -176,4 +251,3 @@ export default function UserCursor({ user }) {
     </div>
   );
 }
-

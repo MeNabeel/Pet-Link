@@ -42,19 +42,66 @@
 /* MAIN WORKSPACE DUAL-PANEL GRID */
 .pet-chat-workspace {
   display: grid;
-  grid-template-columns: 340px minmax(0, 1fr);
-  gap: 20px;
+  grid-template-columns: 320px minmax(0, 1fr);
+  gap: 16px;
   align-items: stretch;
   width: 100%;
-  min-height: 650px;
-  height: calc(100vh - 170px);
+  height: calc(100vh - 140px);
+  max-height: calc(100vh - 140px);
+  min-height: 480px;
   box-sizing: border-box;
+}
+
+.mobile-back-to-inbox-btn {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid #E2E8F0;
+  background-color: #FFFFFF;
+  color: #0F172A;
+  cursor: pointer;
+  flex-shrink: 0;
+  margin-right: 4px;
+  transition: all 0.2s ease;
+}
+
+.mobile-back-to-inbox-btn:hover {
+  background-color: #F1F5F9;
+  border-color: #CBD5E1;
 }
 
 @media (max-width: 991px) {
   .pet-chat-workspace {
     grid-template-columns: 1fr;
-    height: auto;
+    height: calc(100dvh - 130px);
+    max-height: calc(100dvh - 130px);
+    min-height: 440px;
+    position: relative;
+  }
+
+  .mobile-back-to-inbox-btn {
+    display: inline-flex;
+  }
+
+  .pet-chat-workspace.show-inbox-view .pet-chat-main-panel {
+    display: none !important;
+  }
+
+  .pet-chat-workspace.show-inbox-view .pet-chat-inbox-panel {
+    display: flex !important;
+    height: 100% !important;
+  }
+
+  .pet-chat-workspace.show-chat-view .pet-chat-inbox-panel {
+    display: none !important;
+  }
+
+  .pet-chat-workspace.show-chat-view .pet-chat-main-panel {
+    display: flex !important;
+    height: 100% !important;
   }
 }
 
@@ -1016,4 +1063,44 @@
 .chat-modal-btn.delete:hover {
   background-color: #DC2626;
 }
+
+@media (max-width: 640px) {
+  .chat-header-bar {
+    padding: 10px 12px;
+  }
+  .chat-pet-context-card {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    padding: 10px 12px;
+  }
+  .context-card-left {
+    gap: 10px;
+  }
+  .context-img-wrapper {
+    width: 52px;
+    height: 52px;
+  }
+  .context-card-right .context-view-btn {
+    width: 100%;
+    justify-content: center;
+    padding: 6px 12px;
+  }
+  .message-bubble-wrapper {
+    max-width: 88%;
+  }
+  .chat-body-scroll {
+    padding: 12px 14px;
+    gap: 12px;
+  }
+  .chat-composer-form {
+    padding: 8px 12px;
+  }
+  .composer-send-btn {
+    padding: 0 12px;
+    height: 32px;
+    font-size: 11.5px;
+  }
+}
+
 

@@ -285,7 +285,7 @@ export default function ClinicsServices({ user, onViewDetails }) {
       </div>
 
       {activeTab === 'discovery' ? (
-        <div style={{ display: 'grid', gridTemplateColumns: '260px 1fr', gap: '24px' }}>
+        <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-6">
           
           {/* Filters sidebar */}
           <aside style={{ backgroundColor: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: '12px', padding: '20px' }}>

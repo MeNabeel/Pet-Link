@@ -45,6 +45,7 @@ export default function PetChat({
   const [searchQuery, setSearchQuery] = useState('');
   const [chatPet, setChatPet] = useState(null);
   const [chatOwner, setChatOwner] = useState(null);
+  const [mobileShowChat, setMobileShowChat] = useState(Boolean(pet || initialPet));
 
   // Archive & Filter Tabs State
   const [chatTab, setChatTab] = useState('all'); // 'all' | 'archived'
@@ -108,6 +109,7 @@ export default function PetChat({
 
   // 4. SWITCH ACTIVE CONVERSATION HANDLER
   const handleSwitchConversation = (selectedConv) => {
+    setMobileShowChat(true);
     if (!selectedConv || (conversation && conversation.id === selectedConv.id)) return;
     setConversation(selectedConv);
     if (selectedConv.pet) setChatPet(selectedConv.pet);
@@ -385,7 +387,7 @@ export default function PetChat({
       )}
 
       {/* MAIN WORKSPACE GRID: INBOX CONVERSATION LIST & ACTIVE CHAT */}
-      <div className="pet-chat-workspace">
+      <div className={`pet-chat-workspace ${mobileShowChat ? 'show-chat-view' : 'show-inbox-view'}`}>
 
         {/* LEFT PANEL: CONVERSATION LIST */}
         <aside className="pet-chat-inbox-panel">
@@ -545,6 +547,16 @@ export default function PetChat({
           {/* 1. CHAT HEADER */}
           <div className="chat-header-bar">
             <div className="chat-header-left">
+              <button
+                type="button"
+                className="mobile-back-to-inbox-btn"
+                onClick={() => setMobileShowChat(false)}
+                title="Back to messages inbox"
+                aria-label="Back to inbox"
+              >
+                <ArrowLeft size={18} />
+              </button>
+
               <div className="chat-owner-avatar-container">
                 {activeOwner && (activeOwner.profilePic || activeOwner.avatar) ? (
                   <img src={activeOwner.profilePic || activeOwner.avatar} alt={ownerName} className="chat-header-avatar" />

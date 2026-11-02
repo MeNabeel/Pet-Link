@@ -4,6 +4,7 @@ import Login from './pages/Login';
 import Signup from './pages/Signup';
 import ForgotPassword from './pages/ForgotPassword';
 import Dashboard from './pages/Dashboard';
+import UserCursor from './components/ui/user-cursor';
 
 import { safeSetUserStorage } from './utils/storage';
 
@@ -38,6 +39,7 @@ function App() {
 
   return (
     <div className="App">
+      <UserCursor user={user} />
       {screen === 'splash' && (
         <Splash onProceed={() => setScreen('login')} />
       )}

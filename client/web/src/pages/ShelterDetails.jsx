@@ -195,21 +195,18 @@ export default function ShelterDetails({ user, shelterId, onBack, onOpenChat }) 
       
       {/* 6. COMPACT HERO SECTION WITH INTEGRATED ICON-ONLY BACK ARROW */}
       <div 
+        className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_240px] gap-4 items-center"
         style={{ 
           backgroundColor: '#FFFFFF', 
           borderRadius: '12px', 
           border: '1px solid #E2E8F0', 
           padding: '12px 16px', 
           marginBottom: '12px',
-          boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
-          display: 'grid',
-          gridTemplateColumns: 'minmax(0, 1fr) 240px',
-          gap: '16px',
-          alignItems: 'center'
+          boxShadow: '0 1px 2px rgba(0,0,0,0.03)'
         }}
       >
         {/* Left + Center Hero Content */}
-        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+        <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
           
           {/* ICON-ONLY BACK ARROW BUTTON */}
           <button 
@@ -363,7 +360,7 @@ export default function ShelterDetails({ user, shelterId, onBack, onOpenChat }) 
       </div>
 
       {/* 7. ULTRA-COMPACT TWO-COLUMN CONTENT LAYOUT */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 300px', gap: '12px', alignItems: 'start' }}>
+      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_300px] gap-3 items-start">
         
         {/* LEFT COLUMN */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>

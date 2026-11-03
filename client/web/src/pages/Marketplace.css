@@ -476,14 +476,15 @@
   color: var(--color-primary);
 }
 
-/* CARD LAYOUT CONFIGURATIONS (STRICT SINGLE-PAGE VIEWPORT BOUNDS) */
+/* CARD LAYOUT CONFIGURATIONS */
 .pets-directory-list.grid {
   display: grid;
-  gap: 10px;
+  gap: 14px;
   flex: 1;
   min-height: 0;
-  overflow: hidden;
-  align-content: stretch;
+  overflow-y: auto;
+  padding: 4px 2px;
+  align-content: start;
 }
 
 .pets-directory-list.grid.limit-4 {
@@ -491,106 +492,94 @@
 }
 
 .pets-directory-list.grid.limit-6 {
-  display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  grid-template-rows: repeat(2, minmax(0, 1fr));
 }
 
-@media (max-width: 1024px) {
+@media (max-width: 1200px) {
   .pets-directory-list.grid.limit-4 {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    grid-template-rows: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 
-/* Compact rules for 6-card grid to guarantee zero overflow in 100vh */
-.pets-directory-list.grid.limit-6 .card-media-wrapper {
-  height: 35%;
-  min-height: 80px;
-  max-height: 105px;
+@media (max-width: 900px) {
+  .pets-directory-list.grid.limit-4,
+  .pets-directory-list.grid.limit-6 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
-.pets-directory-list.grid.limit-6 .card-info-content {
-  padding: 6px 8px;
-  gap: 2px;
-}
-
-.pets-directory-list.grid.limit-6 .spec-badge {
-  font-size: 8.5px;
-  padding: 1px 4px;
-}
-
-.pets-directory-list.grid.limit-6 .card-geography-row {
-  display: none;
-}
-
-.pets-directory-list.grid.limit-6 .card-action-btn {
-  height: 25px;
-  font-size: 10.5px;
-}
-
-.pets-directory-list.grid.limit-6 .circle-action-btn {
-  width: 24px;
-  height: 24px;
+@media (max-width: 580px) {
+  .pets-directory-list.grid.limit-4,
+  .pets-directory-list.grid.limit-6 {
+    grid-template-columns: 1fr;
+  }
 }
 
 .pets-directory-list.list {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 12px;
   flex: 1;
   min-height: 0;
   overflow-y: auto;
+  padding: 4px 2px;
 }
 
-/* MARKETPLACE PET CARD REDESIGN (SINGLE VIEWPORT COMPACT DESIGN) */
+/* MARKETPLACE PET CARD REDESIGN */
 .marketplace-pet-card {
   background-color: var(--color-white);
-  border: 1px solid var(--color-border);
-  border-radius: 12px;
+  border: 1.5px solid var(--color-border);
+  border-radius: 14px;
   overflow: hidden;
-  transition: all 0.2s ease;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
   display: flex;
   flex-direction: column;
   position: relative;
-  height: 100%;
-  min-height: 0;
+  min-height: 350px;
   box-sizing: border-box;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.marketplace-pet-card:hover {
+  border-color: #CBD5E1;
+  box-shadow: 0 6px 16px rgba(0, 102, 204, 0.08);
+  transform: translateY(-2px);
 }
 
 .marketplace-pet-card.list {
   flex-direction: row;
-  height: 180px;
+  min-height: 190px;
+  height: auto;
 }
 
-@media (max-width: 576px) {
+@media (max-width: 640px) {
   .marketplace-pet-card.list {
     flex-direction: column;
-    height: auto;
+    min-height: auto;
   }
 }
 
 /* CARD MEDIA & ACTIONS OVERLAY */
 .card-media-wrapper {
   position: relative;
-  height: 40%;
-  min-height: 105px;
-  max-height: 140px;
+  height: 175px;
   width: 100%;
   overflow: hidden;
   flex-shrink: 0;
+  background-color: #F8FAFC;
 }
 
 .marketplace-pet-card.list .card-media-wrapper {
-  width: 180px;
+  width: 220px;
   height: 100%;
+  min-height: 190px;
   flex-shrink: 0;
 }
 
-@media (max-width: 576px) {
+@media (max-width: 640px) {
   .marketplace-pet-card.list .card-media-wrapper {
     width: 100%;
-    height: 140px;
+    height: 175px;
   }
 }
 
@@ -694,11 +683,10 @@
 
 /* CARD INFO CONTENT */
 .card-info-content {
-  padding: 8px 10px;
+  padding: 12px 14px;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
-  gap: 4px;
+  gap: 8px;
   flex: 1;
   min-height: 0;
 }
@@ -707,28 +695,28 @@
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  gap: 6px;
+  gap: 8px;
 }
 
 .pet-name {
-  font-size: 13px;
-  font-weight: 800;
+  font-size: 14px;
+  font-weight: 700;
   color: var(--color-dark);
   margin: 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 125px;
+  max-width: 140px;
 }
 
 .pet-breed {
-  font-size: 10.5px;
+  font-size: 11px;
   color: var(--color-muted);
-  font-weight: 600;
+  font-weight: 500;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 125px;
+  max-width: 140px;
   display: block;
 }
 
@@ -738,30 +726,30 @@
 }
 
 .price-value {
-  font-size: 12px;
-  font-weight: 800;
-  color: #10B981;
+  font-size: 13px;
+  font-weight: 700;
+  color: #059669;
   white-space: nowrap;
 }
 
 .negotiable-badge {
-  font-size: 8px;
-  font-weight: 800;
+  font-size: 8.5px;
+  font-weight: 700;
   background-color: rgba(16, 185, 129, 0.1);
-  color: #10B981;
-  padding: 1px 4px;
-  border-radius: 3px;
+  color: #059669;
+  padding: 1px 5px;
+  border-radius: 4px;
   text-transform: uppercase;
   display: block;
   margin-top: 1px;
 }
 
 .adoption-free-badge {
-  font-size: 10px;
-  font-weight: 800;
-  color: #EA580C;
-  background-color: rgba(234, 88, 12, 0.1);
-  padding: 2px 5px;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #D97706;
+  background-color: rgba(245, 158, 11, 0.12);
+  padding: 2px 6px;
   border-radius: 4px;
   white-space: nowrap;
 }
@@ -770,35 +758,36 @@
 .specifications-badges-grid {
   display: flex;
   flex-wrap: wrap;
-  gap: 3px;
+  gap: 4px;
 }
 
 .spec-badge {
-  font-size: 9.5px;
-  font-weight: 700;
+  font-size: 10px;
+  font-weight: 600;
   background-color: var(--color-bg-light);
   color: var(--color-dark-light);
-  padding: 2px 5px;
-  border-radius: 4px;
+  padding: 3px 6px;
+  border-radius: 5px;
   display: inline-flex;
   align-items: center;
   line-height: 1.2;
 }
 
 .spec-badge.vaccinated {
-  background-color: rgba(16, 185, 129, 0.08);
-  color: #10B981;
+  background-color: rgba(16, 185, 129, 0.1);
+  color: #059669;
+  font-weight: 700;
 }
 
 /* GEOGRAPHY LOCATION & DATE */
 .card-geography-row {
   display: flex;
   justify-content: space-between;
-  font-size: 10px;
+  font-size: 10.5px;
   color: var(--color-muted);
-  font-weight: 600;
+  font-weight: 500;
   border-top: 1px solid #F1F5F9;
-  padding-top: 4px;
+  padding-top: 5px;
 }
 
 .geo-location {
@@ -820,15 +809,15 @@
 .card-owner-profile {
   display: flex;
   align-items: center;
-  gap: 5px;
-  font-size: 10px;
+  gap: 6px;
+  font-size: 10.5px;
   color: var(--color-dark-light);
   margin-top: 1px;
 }
 
 .owner-avatar {
-  width: 16px;
-  height: 16px;
+  width: 18px;
+  height: 18px;
   border-radius: 50%;
   overflow: hidden;
   background-color: var(--color-border);
@@ -846,8 +835,8 @@
 }
 
 .owner-name {
-  font-size: 10px;
-  font-weight: 700;
+  font-size: 10.5px;
+  font-weight: 600;
   color: var(--color-dark-light);
   white-space: nowrap;
   overflow: hidden;
@@ -858,17 +847,18 @@
 .card-actions-wrapper {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
   margin-top: auto;
-  padding-top: 4px;
+  padding-top: 8px;
+  border-top: 1px solid #F1F5F9;
 }
 
 .card-action-btn {
-  height: 28px;
-  padding: 0 8px;
-  font-size: 11px;
+  height: 32px;
+  padding: 0 12px;
+  font-size: 11.5px;
   font-weight: 700;
-  border-radius: 6px;
+  border-radius: 8px;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -889,11 +879,11 @@
 }
 
 .card-action-btn.secondary {
-  height: 28px;
-  padding: 0 8px;
-  font-size: 11px;
+  height: 32px;
+  padding: 0 10px;
+  font-size: 11.5px;
   font-weight: 700;
-  border-radius: 6px;
+  border-radius: 8px;
   white-space: nowrap;
   background-color: #EEF5FF;
   color: #0066CC;
@@ -909,16 +899,16 @@
 
 .extra-action-buttons {
   display: flex;
-  gap: 3px;
+  gap: 4px;
   flex-shrink: 0;
 }
 
 .circle-action-btn {
   background-color: var(--color-bg-light);
   border: 1px solid var(--color-border);
-  width: 26px;
-  height: 26px;
-  border-radius: 6px;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;

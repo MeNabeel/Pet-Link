@@ -1104,3 +1104,250 @@
 }
 
 
+
+/* ==================================================
+   WHATSAPP-WEB STYLE EMPTY STATE PANEL
+   ================================================== */
+.pet-chat-empty-panel {
+  background-color: #F8FAFC;
+  border: 1px solid var(--color-border, #E2E8F0);
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+  padding: 40px 24px;
+  text-align: center;
+  height: 100%;
+  box-sizing: border-box;
+}
+
+.chat-empty-container {
+  max-width: 440px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+
+.chat-empty-icon-circle {
+  width: 76px;
+  height: 76px;
+  border-radius: 50%;
+  background-color: #EEF5FF;
+  border: 1.5px solid rgba(0, 102, 204, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 14px rgba(0, 102, 204, 0.08);
+}
+
+.chat-empty-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: #0F172A;
+  margin: 0;
+}
+
+.chat-empty-subtitle {
+  font-size: 13.5px;
+  color: #64748B;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.chat-empty-guidelines {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  margin-top: 10px;
+}
+
+.chat-empty-pill {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background-color: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 20px;
+  padding: 8px 16px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #334155;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+}
+
+/* ONLINE / OFFLINE STATUS INDICATORS */
+.conv-status-dot {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 2px solid #FFFFFF;
+}
+
+.conv-status-dot.online {
+  background-color: #10B981;
+}
+
+.conv-status-dot.offline {
+  background-color: #EF4444;
+}
+
+.conv-name-status-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.conv-status-pill {
+  font-size: 9.5px;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 4px;
+  text-transform: uppercase;
+}
+
+.conv-status-pill.online {
+  color: #059669;
+  background-color: rgba(16, 185, 129, 0.1);
+}
+
+.conv-status-pill.offline {
+  color: #DC2626;
+  background-color: rgba(239, 68, 68, 0.1);
+}
+
+.chat-header-status-dot {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  border: 2px solid #FFFFFF;
+}
+
+.chat-header-status-dot.online {
+  background-color: #10B981;
+}
+
+.chat-header-status-dot.offline {
+  background-color: #EF4444;
+}
+
+.chat-header-status-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 12px;
+}
+
+.chat-header-status-indicator .dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.chat-header-status-indicator.online {
+  color: #059669;
+  background-color: rgba(16, 185, 129, 0.1);
+}
+
+.chat-header-status-indicator.online .dot {
+  background-color: #10B981;
+}
+
+.chat-header-status-indicator.offline {
+  color: #DC2626;
+  background-color: rgba(239, 68, 68, 0.1);
+}
+
+.chat-header-status-indicator.offline .dot {
+  background-color: #EF4444;
+}
+
+.chat-phone-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background-color: #EEF5FF;
+  border-bottom: 1px solid #BFDBFE;
+  padding: 8px 16px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #0066CC;
+}
+
+.chat-phone-banner button {
+  background: none;
+  border: none;
+  font-size: 16px;
+  font-weight: 700;
+  color: #0066CC;
+  cursor: pointer;
+}
+
+/* BUBBLE FOOTER & READ RECEIPT */
+.bubble-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.outgoing-bubble .bubble-footer {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.incoming-bubble .bubble-footer {
+  color: #94A3B8;
+}
+
+.bubble-footer .message-timestamp {
+  font-size: 10px;
+  font-weight: 500;
+}
+
+.outgoing-bubble .message-timestamp {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.read-receipt-icon {
+  color: #93C5FD;
+}
+
+.chat-header-pet-badge.clickable {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+  transition: color 0.15s ease;
+}
+
+.chat-header-pet-badge.clickable:hover {
+  color: #0066CC;
+}
+
+/* Selected conversation highlight (subtle light-blue) */
+.conversation-card.selected {
+  background-color: #EEF5FF !important;
+  border-left: 3px solid #0066CC;
+}
+
+@media (max-width: 991px) {
+  .pet-chat-workspace.show-inbox-view .pet-chat-empty-panel {
+    display: none !important;
+  }
+}

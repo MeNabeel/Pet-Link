@@ -739,3 +739,160 @@
   }
 }
 
+
+/* ==================================================
+   PRODUCT CARD ADD TO CART BUTTON & TOAST STYLING
+   ================================================== */
+.card-cart-action-row {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid #F1F5F9;
+  width: 100%;
+}
+
+.card-add-to-cart-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  background-color: var(--color-primary, #0066CC);
+  color: #FFFFFF;
+  border: none;
+  font-size: 12px;
+  font-weight: 700;
+  border-radius: 10px;
+  height: 36px;
+  width: 100%;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 2px 6px rgba(0, 102, 204, 0.15);
+  user-select: none;
+}
+
+.card-add-to-cart-btn:hover:not(:disabled) {
+  background-color: var(--color-primary-hover, #0052A3);
+  box-shadow: 0 4px 12px rgba(0, 102, 204, 0.25);
+  transform: translateY(-1px);
+}
+
+.card-add-to-cart-btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.card-add-to-cart-btn.just-added {
+  background-color: #10B981 !important;
+  color: #FFFFFF !important;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25);
+}
+
+.card-add-to-cart-btn.out-of-stock,
+.card-add-to-cart-btn:disabled {
+  background-color: #F1F5F9 !important;
+  color: #94A3B8 !important;
+  border: 1px solid #E2E8F0 !important;
+  cursor: not-allowed !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+/* FLOATING SUCCESS TOAST NOTIFICATION */
+.store-floating-toast {
+  position: fixed;
+  bottom: 28px;
+  right: 28px;
+  background-color: #0F172A;
+  color: #FFFFFF;
+  padding: 12px 16px;
+  border-radius: 14px;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.25);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  z-index: 9999;
+  animation: slideUpToast 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  cursor: pointer;
+}
+
+.toast-check-circle {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background-color: #10B981;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.toast-info-col {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-width: 240px;
+}
+
+.toast-info-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: #F8FAFC;
+}
+
+.toast-info-desc {
+  font-size: 11px;
+  color: #94A3B8;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.toast-open-cart-btn {
+  background-color: var(--color-primary, #0066CC);
+  color: #FFFFFF;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 11.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+  white-space: nowrap;
+}
+
+.toast-open-cart-btn:hover {
+  background-color: var(--color-primary-hover, #0052A3);
+}
+
+.toast-dismiss-btn {
+  background: none;
+  border: none;
+  color: #64748B;
+  font-size: 18px;
+  cursor: pointer;
+  padding: 0 4px;
+  line-height: 1;
+}
+
+.toast-dismiss-btn:hover {
+  color: #FFFFFF;
+}
+
+@keyframes slideUpToast {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Card responsive consistency */
+.store-product-card {
+  min-height: 380px;
+}
+
+.store-product-card .card-media-wrapper {
+  height: 180px;
+}

@@ -1,8 +1,8 @@
 import API_URL from '@/config';
 import React, { useState, useEffect } from 'react';
 import { 
-  Search, Heart, ShoppingCart, Eye, Star, Filter, SlidersHorizontal, Tag, 
-  Layers, Package, Check, XCircle
+  Search, Heart, ShoppingCart, Eye, Star, SlidersHorizontal, 
+  Package, Check, XCircle
 } from 'lucide-react';
 import ProductDetails from './ProductDetails';
 import AddToCartPopup from '../components/AddToCartPopup';
@@ -52,6 +52,10 @@ export default function StorePage({
   const [isPopupOpen, setIsPopupOpen] = useState(false);
   const [lastAddedItem, setLastAddedItem] = useState(null);
   const [selectedProductId, setSelectedProductId] = useState(null);
+
+  // Quick Add To Cart visual feedback state
+  const [justAddedId, setJustAddedId] = useState(null);
+  const [toastMessage, setToastMessage] = useState(null);
 
   // Subscribe to live cart updates across the application
   useEffect(() => {
@@ -125,6 +129,7 @@ export default function StorePage({
     }
   };
 
+  // Add to cart from quick view or modal
   const handleAddToCart = (product, qty = 1, variant = null) => {
     const { addedItem, quantityAdded } = addToCart(product, qty, variant);
     setLastAddedItem({
@@ -132,8 +137,50 @@ export default function StorePage({
       quantity: quantityAdded || qty,
       variant: variant
     });
-    // Open the slide-in cart drawer immediately
     openCartDrawer();
+  };
+
+  // Direct 1-Click "Add to Cart" directly from the product card
+  const handleQuickAddToCart = (product, e) => {
+    if (e) e.stopPropagation();
+    if (!product) return;
+
+    const prodId = product._id || product.id;
+    const stockStatus = (product.stockStatus || 'In Stock').toString().toLowerCase();
+    const stockQty = Number(product.stock ?? product.stockQuantity ?? 10);
+    const isOutOfStock = stockStatus === 'out of stock' || stockStatus === 'out-of-stock' || stockQty <= 0;
+
+    if (isOutOfStock) return;
+
+    // 1. Add 1 valid unit to cart
+    const { addedItem, quantityAdded } = addToCart(product, 1, null);
+
+    // 2. Button temporary confirmation state
+    setJustAddedId(prodId);
+    setTimeout(() => {
+      setJustAddedId(null);
+    }, 1600);
+
+    // 3. Display professional success toast
+    setToastMessage({
+      title: 'Product added to cart',
+      name: product.name,
+      price: Number(product.salePrice || product.regularPrice || product.price || 0).toLocaleString()
+    });
+    setTimeout(() => {
+      setToastMessage(null);
+    }, 3800);
+
+    // 4. Log activity
+    const uid = user?._id || user?.id;
+    if (uid) {
+      logUserActivity(uid, {
+        type: 'cart',
+        title: 'Added to cart:',
+        targetName: product.name,
+        timestamp: Date.now()
+      });
+    }
   };
 
   const handleOpenProduct = (id) => {
@@ -174,6 +221,45 @@ export default function StorePage({
   return (
     <div className="store-catalog-wrapper fade-in">
       
+      {/* Floating Success Toast when adding product */}
+      {toastMessage && (
+        <div 
+          className="store-floating-toast" 
+          onClick={() => openCartDrawer()}
+          role="status"
+          aria-live="polite"
+        >
+          <div className="toast-check-circle">
+            <Check size={16} color="#FFFFFF" strokeWidth={3} />
+          </div>
+          <div className="toast-info-col">
+            <span className="toast-info-title">{toastMessage.title}</span>
+            <span className="toast-info-desc">{toastMessage.name} • {toastMessage.price} PKR</span>
+          </div>
+          <button 
+            type="button" 
+            className="toast-open-cart-btn"
+            onClick={(e) => {
+              e.stopPropagation();
+              openCartDrawer();
+            }}
+          >
+            View Cart
+          </button>
+          <button 
+            type="button" 
+            className="toast-dismiss-btn"
+            onClick={(e) => {
+              e.stopPropagation();
+              setToastMessage(null);
+            }}
+            aria-label="Dismiss toast"
+          >
+            ×
+          </button>
+        </div>
+      )}
+
       {/* Add-to-Cart Confirmation Popup */}
       <AddToCartPopup 
         isOpen={isPopupOpen}
@@ -216,18 +302,18 @@ export default function StorePage({
                     <Star size={14} fill="#FBBF24" color="#FBBF24" />
                     <Star size={14} color="#D1D5DB" />
                   </div>
-                  <span className="ratings-count">(4.8 rating placeholder)</span>
+                  <span className="ratings-count">(4.8 rating)</span>
                 </div>
 
                 <div className="qv-price-box">
                   {quickViewProduct.salePrice ? (
                     <>
-                      <span className="qv-sale-price">{quickViewProduct.salePrice.toLocaleString()} PKR</span>
-                      <span className="qv-reg-price-crossed">{quickViewProduct.regularPrice.toLocaleString()} PKR</span>
+                      <span className="qv-sale-price">{Number(quickViewProduct.salePrice).toLocaleString()} PKR</span>
+                      <span className="qv-reg-price-crossed">{Number(quickViewProduct.regularPrice).toLocaleString()} PKR</span>
                       <span className="qv-discount-tag">{quickViewProduct.discount}% OFF</span>
                     </>
                   ) : (
-                    <span className="qv-sale-price">{quickViewProduct.regularPrice.toLocaleString()} PKR</span>
+                    <span className="qv-sale-price">{Number(quickViewProduct.regularPrice).toLocaleString()} PKR</span>
                   )}
                 </div>
 
@@ -358,89 +444,137 @@ export default function StorePage({
               </div>
               
               <div className="products-responsive-grid">
-                {filteredProducts.map(prod => (
-                  <div 
-                    key={prod._id} 
-                    className="store-product-card hover-lift"
-                    onClick={() => handleOpenProduct(prod._id)}
-                    style={{ cursor: 'pointer' }}
-                  >
-                    
-                    {/* Image & Badges wrapper */}
-                    <div className="card-media-wrapper">
-                      {prod.images && prod.images.length > 0 ? (
-                        <img src={prod.images[0]} alt={prod.name} className="card-main-image" />
-                      ) : (
-                        <div className="card-no-img"><Package size={32} /></div>
-                      )}
-                      
-                      {/* Category Badge */}
-                      <span className="card-cat-badge">{prod.category?.name || 'Accessories'}</span>
-                      
-                      {/* Discount Tag */}
-                      {prod.salePrice && prod.discount > 0 && (
-                        <span className="card-discount-badge">{prod.discount}% OFF</span>
-                      )}
+                {filteredProducts.map(prod => {
+                  const prodId = prod._id || prod.id;
+                  const isWishlisted = safeWishlist.includes(prodId);
+                  const isJustAdded = justAddedId === prodId;
 
-                      {/* Floating actions */}
-                      <div className="card-floating-actions" onClick={(e) => e.stopPropagation()}>
-                        <button 
-                          className="floating-btn view" 
-                          onClick={(e) => { e.stopPropagation(); setQuickViewProduct(prod); }} 
-                          title="Quick View Product"
-                        >
-                          <Eye size={14} />
-                        </button>
-                        <button 
-                          className={`floating-btn wishlist ${safeWishlist.includes(prod._id) ? 'active' : ''}`} 
-                          onClick={(e) => { e.stopPropagation(); toggleWishlist(prod._id); }}
-                          title="Save to Wishlist"
-                        >
-                          <Heart size={14} fill={safeWishlist.includes(prod._id) ? '#EF4444' : 'none'} color={safeWishlist.includes(prod._id) ? '#EF4444' : 'currentColor'} />
-                        </button>
-                      </div>
-                    </div>
+                  const stockStatus = (prod.stockStatus || 'In Stock').toString().toLowerCase();
+                  const stockQty = Number(prod.stock ?? prod.stockQuantity ?? 10);
+                  const isOutOfStock = stockStatus === 'out of stock' || stockStatus === 'out-of-stock' || stockQty <= 0;
 
-                    {/* Metadata body */}
-                    <div className="card-meta-body">
-                      {prod.brand && <span className="card-brand-label">{prod.brand}</span>}
-                      <h4 className="card-prod-title">
-                        {prod.name}
-                      </h4>
-                      
-                      <div className="card-ratings-row">
-                        <div className="card-stars">
-                          <Star size={10} fill="#FBBF24" color="#FBBF24" />
-                          <Star size={10} fill="#FBBF24" color="#FBBF24" />
-                          <Star size={10} fill="#FBBF24" color="#FBBF24" />
-                          <Star size={10} fill="#FBBF24" color="#FBBF24" />
-                          <Star size={10} color="#D1D5DB" />
-                        </div>
-                        <span className="card-rating-text">4.8</span>
-                      </div>
-
-                      <p className="card-short-desc">{prod.shortDescription || 'Verified premium pet essentials catalog item.'}</p>
-
-                      <div className="card-price-stock-row">
-                        <div className="card-prices">
-                          {prod.salePrice ? (
-                            <>
-                              <span className="card-price-sale">{Number(prod.salePrice).toLocaleString()} PKR</span>
-                              <span className="card-price-reg-crossed">{Number(prod.regularPrice || prod.salePrice).toLocaleString()} PKR</span>
-                            </>
-                          ) : (
-                            <span className="card-price-sale">{Number(prod.regularPrice || prod.price || 0).toLocaleString()} PKR</span>
-                          )}
-                        </div>
+                  return (
+                    <div 
+                      key={prodId} 
+                      className="store-product-card hover-lift"
+                      onClick={() => handleOpenProduct(prodId)}
+                      style={{ cursor: 'pointer' }}
+                    >
+                      {/* Image & Badges wrapper */}
+                      <div className="card-media-wrapper">
+                        {prod.images && prod.images.length > 0 ? (
+                          <img 
+                            src={prod.images[0]} 
+                            alt={prod.name} 
+                            className="card-main-image"
+                            onError={(e) => {
+                              e.target.onerror = null;
+                              e.target.src = '/logo/logo.jpeg';
+                            }}
+                          />
+                        ) : (
+                          <div className="card-no-img"><Package size={32} /></div>
+                        )}
                         
-                        <span className={`card-stock-status-pill ${(prod.stockStatus || 'In Stock').toString().replace(' ', '-').toLowerCase()}`}>
-                          {prod.stockStatus || 'In Stock'}
-                        </span>
-                      </div>
-                    </div>
+                        {/* Category Badge */}
+                        <span className="card-cat-badge">{prod.category?.name || 'Accessories'}</span>
+                        
+                        {/* Discount Tag */}
+                        {prod.salePrice && prod.discount > 0 && (
+                          <span className="card-discount-badge">{prod.discount}% OFF</span>
+                        )}
 
-                  </div>
-                ))}
+                        {/* Floating actions */}
+                        <div className="card-floating-actions" onClick={(e) => e.stopPropagation()}>
+                          <button 
+                            type="button"
+                            className="floating-btn view" 
+                            onClick={(e) => { e.stopPropagation(); setQuickViewProduct(prod); }} 
+                            title="Quick View Product"
+                          >
+                            <Eye size={14} />
+                          </button>
+                          <button 
+                            type="button"
+                            className={`floating-btn wishlist ${isWishlisted ? 'active' : ''}`} 
+                            onClick={(e) => { e.stopPropagation(); toggleWishlist(prodId); }}
+                            title="Save to Wishlist"
+                          >
+                            <Heart size={14} fill={isWishlisted ? '#EF4444' : 'none'} color={isWishlisted ? '#EF4444' : 'currentColor'} />
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Metadata body */}
+                      <div className="card-meta-body">
+                        {prod.brand && <span className="card-brand-label">{prod.brand}</span>}
+                        <h4 className="card-prod-title">
+                          {prod.name}
+                        </h4>
+                        
+                        <div className="card-ratings-row">
+                          <div className="card-stars">
+                            <Star size={10} fill="#FBBF24" color="#FBBF24" />
+                            <Star size={10} fill="#FBBF24" color="#FBBF24" />
+                            <Star size={10} fill="#FBBF24" color="#FBBF24" />
+                            <Star size={10} fill="#FBBF24" color="#FBBF24" />
+                            <Star size={10} color="#D1D5DB" />
+                          </div>
+                          <span className="card-rating-text">4.8</span>
+                        </div>
+
+                        <p className="card-short-desc">{prod.shortDescription || 'Verified premium pet essentials catalog item.'}</p>
+
+                        <div className="card-price-stock-row">
+                          <div className="card-prices">
+                            {prod.salePrice ? (
+                              <>
+                                <span className="card-price-sale">{Number(prod.salePrice).toLocaleString()} PKR</span>
+                                <span className="card-price-reg-crossed">{Number(prod.regularPrice || prod.salePrice).toLocaleString()} PKR</span>
+                              </>
+                            ) : (
+                              <span className="card-price-sale">{Number(prod.regularPrice || prod.price || 0).toLocaleString()} PKR</span>
+                            )}
+                          </div>
+                          
+                          <span className={`card-stock-status-pill ${isOutOfStock ? 'out-of-stock' : 'in-stock'}`}>
+                            {isOutOfStock ? 'Out of Stock' : (prod.stockStatus || 'In Stock')}
+                          </span>
+                        </div>
+
+                        {/* DIRECT ADD TO CART BUTTON ON CARD */}
+                        <div className="card-cart-action-row" onClick={(e) => e.stopPropagation()}>
+                          <button
+                            type="button"
+                            className={`card-add-to-cart-btn ${isOutOfStock ? 'out-of-stock' : ''} ${isJustAdded ? 'just-added' : ''}`}
+                            onClick={(e) => handleQuickAddToCart(prod, e)}
+                            disabled={isOutOfStock}
+                            title={isOutOfStock ? 'This product is out of stock' : 'Add to Shopping Cart'}
+                          >
+                            {isOutOfStock ? (
+                              <>
+                                <XCircle size={15} />
+                                <span>Out of Stock</span>
+                              </>
+                            ) : isJustAdded ? (
+                              <>
+                                <Check size={15} strokeWidth={2.5} />
+                                <span>Added!</span>
+                              </>
+                            ) : (
+                              <>
+                                <ShoppingCart size={15} />
+                                <span>Add to Cart</span>
+                              </>
+                            )}
+                          </button>
+                        </div>
+
+                      </div>
+
+                    </div>
+                  );
+                })}
 
                 {filteredProducts.length === 0 && (
                   <div className="store-empty-state">

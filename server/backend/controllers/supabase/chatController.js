@@ -276,7 +276,7 @@ exports.getUserConversations = async (req, res) => {
         let otherUser = null;
         try {
           const userRes = await pool.query(
-            `SELECT id, name, email, phone, "profilePic", city, province FROM users WHERE id = $1 LIMIT 1`,
+            `SELECT id, name, email, phone, "profilePic", city, province, status, "updatedAt" FROM users WHERE id = $1 LIMIT 1`,
             [otherUserId]
           );
           if (userRes.rows.length > 0) {

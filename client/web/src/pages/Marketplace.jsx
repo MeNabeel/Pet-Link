@@ -1,13 +1,22 @@
 import API_URL from '@/config';
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { 
   Search, Heart, Bookmark, Eye, MapPin, Sparkles, AlertTriangle, 
   RefreshCw, LayoutGrid, List, SlidersHorizontal, Filter, ShieldCheck, 
-  User, Calendar, Smile, ShieldAlert, X, ChevronLeft, ChevronRight
+  User, Calendar, Smile, ShieldAlert, X
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Skeleton } from '@/components/ui/Skeleton';
 import PetImage from '../components/PetImage';
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from '@/components/ui/pagination';
 import './Marketplace.css';
 
 export default function Marketplace({ user, onViewDetails, onOpenChat, onEditPet }) {
@@ -16,6 +25,7 @@ export default function Marketplace({ user, onViewDetails, onOpenChat, onEditPet
   const [isFilterExpanded, setIsFilterExpanded] = useState(true);
   const [quickViewPet, setQuickViewPet] = useState(null);
   const [activeFilterTab, setActiveFilterTab] = useState('all'); // 'all' | 'favorites' | 'saved'
+  const directoryRef = useRef(null);
   
   // Data State
   const [pets, setPets] = useState([]);
@@ -26,7 +36,7 @@ export default function Marketplace({ user, onViewDetails, onOpenChat, onEditPet
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
-  const [limit, setLimit] = useState(() => (typeof window !== 'undefined' && window.innerHeight >= 880 ? 6 : 4));
+  const [limit, setLimit] = useState(6);
 
   // Favorites State (Favorites Pet IDs synced via API)
   const [favoritesIds, setFavoritesIds] = useState(new Set());
@@ -99,22 +109,6 @@ export default function Marketplace({ user, onViewDetails, onOpenChat, onEditPet
     }, 400);
     return () => clearTimeout(handler);
   }, [search]);
-
-  // Adjust card limit dynamically to guarantee 100vh single-page fit without scrolling
-  useEffect(() => {
-    const handleResize = () => {
-      const optimalLimit = window.innerHeight >= 880 ? 6 : 4;
-      setLimit(prev => {
-        if (prev !== optimalLimit) {
-          setPage(1);
-          return optimalLimit;
-        }
-        return prev;
-      });
-    };
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
 
   // Fetch Favorites Items
   const fetchFavorites = useCallback(async () => {
@@ -325,6 +319,27 @@ export default function Marketplace({ user, onViewDetails, onOpenChat, onEditPet
     setPage(1);
   };
 
+  const handlePageChange = (newPage) => {
+    if (newPage < 1 || newPage > effectiveTotalPages || newPage === page) return;
+    setPage(newPage);
+    if (directoryRef.current) {
+      directoryRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
+
+  const getPaginationRange = (currentPage, total) => {
+    if (total <= 7) {
+      return Array.from({ length: total }, (_, i) => i + 1);
+    }
+    if (currentPage <= 3) {
+      return [1, 2, 3, 4, 'ellipsis-right', total];
+    }
+    if (currentPage >= total - 2) {
+      return [1, 'ellipsis-left', total - 3, total - 2, total - 1, total];
+    }
+    return [1, 'ellipsis-left', currentPage - 1, currentPage, currentPage + 1, 'ellipsis-right', total];
+  };
+
   // Share Listing Link
   const handleShareListing = (e, pet) => {
     e.stopPropagation();
@@ -416,7 +431,7 @@ export default function Marketplace({ user, onViewDetails, onOpenChat, onEditPet
       <div className={`marketplace-work-layout ${!isFilterExpanded ? 'collapsed' : ''}`}>
         
         {/* LEFT DIRECTORY CONTENT PANEL */}
-        <section className="marketplace-directory-panel">
+        <section className="marketplace-directory-panel" ref={directoryRef}>
           
           {/* List Settings Control Header */}
           <div className="directory-settings-header">
@@ -734,52 +749,56 @@ export default function Marketplace({ user, onViewDetails, onOpenChat, onEditPet
 
           {/* Enhanced Sleek Pagination Bar */}
           {effectiveTotalPages > 1 && (
-            <div className="marketplace-pagination-bar">
-              <div className="pagination-summary">
-                <span>
-                  Showing {Math.min((page - 1) * limit + 1, activeFilterTab === 'all' ? (totalItems || pets.length) : filteredPets.length)}–{Math.min(page * limit, activeFilterTab === 'all' ? (totalItems || pets.length) : filteredPets.length)} of {activeFilterTab === 'all' ? (totalItems || pets.length) : filteredPets.length} companions
-                </span>
+            <div className="marketplace-shadcn-pagination-bar">
+              <div className="pagination-results-summary">
+                Showing{' '}
+                <span className="font-semibold text-slate-800">
+                  {Math.min((page - 1) * limit + 1, activeFilterTab === 'all' ? (totalItems || pets.length) : filteredPets.length)}–{Math.min(page * limit, activeFilterTab === 'all' ? (totalItems || pets.length) : filteredPets.length)}
+                </span>{' '}
+                of{' '}
+                <span className="font-semibold text-slate-800">
+                  {activeFilterTab === 'all' ? (totalItems || pets.length) : filteredPets.length}
+                </span>{' '}
+                companions
               </div>
 
-              <div className="pagination-controls">
-                <button 
-                  type="button"
-                  className="pagination-btn"
-                  disabled={page === 1}
-                  onClick={() => setPage(p => Math.max(1, p - 1))}
-                  title="Previous Page"
-                >
-                  <ChevronLeft size={14} />
-                  <span>Previous</span>
-                </button>
+              <Pagination className="marketplace-shadcn-nav justify-end">
+                <PaginationContent>
+                  <PaginationItem>
+                    <PaginationPrevious 
+                      onClick={() => handlePageChange(page - 1)}
+                      disabled={page <= 1}
+                    />
+                  </PaginationItem>
 
-                <div className="pagination-numbers">
-                  {Array.from({ length: effectiveTotalPages }).map((_, idx) => {
-                    const pageNum = idx + 1;
+                  {getPaginationRange(page, effectiveTotalPages).map((item, index) => {
+                    if (typeof item === 'string') {
+                      return (
+                        <PaginationItem key={`${item}-${index}`}>
+                          <PaginationEllipsis />
+                        </PaginationItem>
+                      );
+                    }
                     return (
-                      <button
-                        key={pageNum}
-                        type="button"
-                        className={`pagination-num-btn ${page === pageNum ? 'active' : ''}`}
-                        onClick={() => setPage(pageNum)}
-                      >
-                        {pageNum}
-                      </button>
+                      <PaginationItem key={item}>
+                        <PaginationLink
+                          isActive={page === item}
+                          onClick={() => handlePageChange(item)}
+                        >
+                          {item}
+                        </PaginationLink>
+                      </PaginationItem>
                     );
                   })}
-                </div>
 
-                <button 
-                  type="button"
-                  className="pagination-btn"
-                  disabled={page === effectiveTotalPages}
-                  onClick={() => setPage(p => Math.min(effectiveTotalPages, p + 1))}
-                  title="Next Page"
-                >
-                  <span>Next</span>
-                  <ChevronRight size={14} />
-                </button>
-              </div>
+                  <PaginationItem>
+                    <PaginationNext 
+                      onClick={() => handlePageChange(page + 1)}
+                      disabled={page >= effectiveTotalPages}
+                    />
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
             </div>
           )}
 

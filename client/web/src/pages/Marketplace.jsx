@@ -636,8 +636,10 @@ export default function Marketplace({ user, onViewDetails, onOpenChat, onEditPet
                         <span className="species-badge-overlay">{pet.species}</span>
                       </div>
 
-                      {/* Card Meta Content */}
-                      <div className="card-info-content">
+                      {/* Card Body Column (Enclosing Meta Content and Action Buttons) */}
+                      <div className="card-body-column">
+                        {/* Card Meta Content */}
+                        <div className="card-info-content">
                         <div className="info-primary-header">
                           <div className="pet-title-box">
                             <h4 className="pet-name">{pet.name}</h4>
@@ -694,7 +696,9 @@ export default function Marketplace({ user, onViewDetails, onOpenChat, onEditPet
                           </div>
                         )}
 
-                        {/* Card Actions Row */}
+                        </div>
+
+                        {/* Card Actions Row (Direct sibling inside card-body-column) */}
                         <div className="card-actions-wrapper" onClick={(e) => e.stopPropagation()}>
                           <button 
                             type="button"
@@ -733,7 +737,6 @@ export default function Marketplace({ user, onViewDetails, onOpenChat, onEditPet
                             </button>
                           </div>
                         </div>
-
                       </div>
                     </motion.div>
                   );

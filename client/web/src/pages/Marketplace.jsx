@@ -554,11 +554,8 @@ export default function Marketplace({ user, onViewDetails, onOpenChat, onEditPet
               <button className="empty-reset-btn" onClick={handleResetFilters}>Reset Filters</button>
             </div>
           ) : (
-            <motion.div 
-              layout 
-              className={`pets-directory-list ${viewMode} limit-${limit}`}
-            >
-              <AnimatePresence mode="popLayout">
+            <div className={`pets-directory-list ${viewMode}`}>
+              <AnimatePresence>
                 {displayedPets.map((pet) => {
                   const targetId = pet._id || pet.id;
                   const isFavorited = favoritesIds.has(targetId);
@@ -585,11 +582,10 @@ export default function Marketplace({ user, onViewDetails, onOpenChat, onEditPet
                   return (
                     <motion.div
                       key={targetId}
-                      layout
-                      initial={{ opacity: 0, y: 15 }}
+                      initial={{ opacity: 0, y: 12 }}
                       animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, scale: 0.95 }}
-                      transition={{ duration: 0.3 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.2 }}
                       className={`marketplace-pet-card hover-lift ${viewMode}`}
                       onClick={() => onViewDetails(targetId)}
                     >
@@ -643,7 +639,7 @@ export default function Marketplace({ user, onViewDetails, onOpenChat, onEditPet
                       {/* Card Meta Content */}
                       <div className="card-info-content">
                         <div className="info-primary-header">
-                          <div>
+                          <div className="pet-title-box">
                             <h4 className="pet-name">{pet.name}</h4>
                             <span className="pet-breed">{pet.breed}</span>
                           </div>
@@ -712,7 +708,6 @@ export default function Marketplace({ user, onViewDetails, onOpenChat, onEditPet
                             <button 
                               type="button"
                               className="card-action-btn secondary"
-                              style={{ backgroundColor: '#EEF5FF', color: '#0066CC', border: '1px solid #0066CC', padding: '6px 12px', borderRadius: '8px', fontSize: '12px', fontWeight: '700' }}
                               onClick={() => onEditPet(targetId)}
                             >
                               Edit Pet
@@ -744,7 +739,7 @@ export default function Marketplace({ user, onViewDetails, onOpenChat, onEditPet
                   );
                 })}
               </AnimatePresence>
-            </motion.div>
+            </div>
           )}
 
           {/* Enhanced Sleek Pagination Bar */}
